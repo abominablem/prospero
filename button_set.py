@@ -8,8 +8,6 @@ Created on Thu Oct  7 22:04:30 2021
 import tkinter as tk
 from math import gcd
 from functools import reduce
-import matplotlib.pyplot as plt
-import numpy as np
 
 class ButtonSet:
     """
