@@ -13,7 +13,8 @@ import numpy as np
 
 class ButtonSet:
     """
-    This class generates a set of buttons in a defined manner.
+    Generates a set of buttons from a defined layout with optional custom
+    bindings.
     """
     def __init__(self, root, names, labels, layout, set_width, bindings = None,  
                  frame_kwargs = None, button_kwargs = None, 
@@ -22,9 +23,9 @@ class ButtonSet:
         Parameters
         ----------
         root : tk.Frame
-            Frame to add the buttons to.
+            master to add the frame to.
         names : list
-            List of button names.
+            List of button names to assign sequentially to the buttons.
         labels : list
             List of labels to assign sequentially to the buttons.
         bindings : dict
@@ -44,10 +45,14 @@ class ButtonSet:
             Use -1 to insert a blank space in the button set. Where buttons
             span multiple rows, the button width is determined by the first row
             it appears.
+        set_width : int
+            Total width of the button set. 
         frame_kwargs : dict
             kwargs to pass to frame object.
         button_kwargs : dict
             kwargs to pass to each new button object.
+        button_kwargs : dict
+            kwargs to pass to each call to grid().
 
         """
         self.name = self.__class__.__name__
