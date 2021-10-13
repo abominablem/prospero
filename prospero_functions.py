@@ -328,7 +328,6 @@ class Functions:
     
     def pad_image_with_transparency(self, image, pixels, keep_size = False, trace = None):
         self._log_trace(self, "pad_image_with_transparency", trace)
-        
         """
         Pad around the outside of an image with the specified transparent 
         pixels on each side. Option to keep the final image the same size 
@@ -792,11 +791,37 @@ class Functions:
         return matches
     
     def remove_diacritics(self, text, trace = None):
-            self.pr.f._log_trace(self, "remove_diacritics", trace)
-            return unidecode.unidecode(text)
-
-
-
-
+        self.pr.f._log_trace(self, "remove_diacritics", trace)
+        return unidecode.unidecode(text)
+        
+    def get_tags(self, directory, filename, trace = None):
+        """
+        Return a dictionary of ID3v2 tags for a specific file.
+        """
+        self.pr.f._log_trace(self, "get_tags", trace)
+        
+        filepath = os.path.join(directory, filename)
+        audiofile = eyed3.load(filepath)
+        
+        #initialise tagging if it is not already
+        if audiofile.tag is None:
+            audiofile.initTag()
+        
+        tag_dict = {
+            "Composer": audiofile.tag.album_artist,
+            "Album": audiofile.tag.album,
+            "#": audiofile.tag.track_num[0],
+            "Track": audiofile.tag.title,
+            "Performer(s)": audiofile.tag.artist,
+            "Year": (audiofile.tag.recording_date.year 
+                     if not audiofile.tag.recording_date is None else ""),
+            "Genre": audiofile.tag.genre,
+            "URL": audiofile.tag.artist_url
+            }
+        
+        for k,v in tag_dict.items():
+            if v is None: tag_dict[k] = ""
+        
+        return tag_dict
 
 
