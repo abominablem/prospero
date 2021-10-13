@@ -127,3 +127,30 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.pylint.d/config1.stats
+.pylint.d/root1.stats
+.pylint.d/tab_audio_functions1.stats
+archive/audio_buttons.py
+archive/audio_visualiser.py
+archive/helper_functions.py
+archive/interface (2021-04-11).py
+archive/interface (2021-04-20).py
+archive/interface.py
+archive/pr_tab_tagging.py
+archive/prGetCurrentTagsFromFilename.py
+archive/prOpenTagDecisionWindowWithFilename.py
+archive/prSuggestTagsFromFilename.py
+archive/pyPadImageWithTransparency.py
+archive/root.py
+archive/root_undo.py
+archive/temp.py
+archive/tkCreateListFromDirectory.py
+archive/tkCreateListFromFileTags.py
+archive/tkCreateListFromSuggestedFileTags.py
+archive/tkCreateSpacer.py
+archive/UI mockup.xlsx
+archive/diacritics.json
+archive/timecode_patterns.json
+log/usage_statistics.json
+Original files/Goldberg Variations for recorder Quintet-rkx1GJ0uTuU.mp3
+testing.py
