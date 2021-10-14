@@ -32,7 +32,7 @@ class Insight(TableCon):
                                         "parent": self.name})
         self.type = type
         
-    def get_insight(self, values, column, trace = None):
+    def get_insight(self, values, column, trace = None, **f_kwargs):
         self.logging.log_trace(self, "get_insight", trace)
         
         del_list = []
@@ -43,7 +43,7 @@ class Insight(TableCon):
         for k in del_list:
                 del values[k]
         
-        filtered = self.filter(values, column)
+        filtered = self.filter(values, column, **f_kwargs)
         for k, v in filtered.items():
             filtered[k] = [t for t in v if t != "" and not t is None]
         return filtered

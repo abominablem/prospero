@@ -12,7 +12,6 @@ from tkinter import ttk
 import prospero_constants as prc
 import prospero_functions as prf
 import prospero_resources as prr
-import config
 from tab_tagging import Tagging
 from tab_naming import Naming
 from tab_audio_functions import AudioFunctions

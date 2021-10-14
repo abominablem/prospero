@@ -45,11 +45,12 @@ class Naming:
         ##############################################
         """
         
-        self.io_directory = IODirectory(parent = self, 
-                                        trace = inf_trace, 
-                                        call_after_input = self.populate_treeview, 
-                                        call_after_input_kwargs = {"populate_values": False}
-                                        )
+        self.io_directory = IODirectory(
+            parent = self, 
+            trace = inf_trace, 
+            call_after_input = self.populate_treeview, 
+            call_after_input_kwargs = {"populate_values": False}
+            )
         
         self.TreeviewFrame = tk.Frame(self.tab, 
                                       background = self.pr.c.colour_background)
@@ -98,8 +99,14 @@ class Naming:
         ##############################################
         """
         
-        self.treeview_info = {"columns" : ["#0", "Composer", "Album", "#", "Track", "Performer(s)", "Year", "Genre", "URL", "Final name", "Done"],
-                              "headers" : ["Original name", "Composer", "Album", "#", "Track", "Performer(s)", "Year", "Genre", "URL", "Final name", "Done"],
+        self.treeview_info = {"columns" : ["#0", "Composer", "Album", "#", 
+                                           "Track", "Performer(s)", "Year",
+                                           "Genre", "URL", "Final name", 
+                                           "Done"],
+                              "headers" : ["Original name", "Composer", 
+                                           "Album", "#", "Track", 
+                                           "Performer(s)", "Year", "Genre", 
+                                           "URL", "Final name", "Done"],
                               "column_widths" : [self.pr.c.width_text_long, 
                                                  self.pr.c.width_text_short, 
                                                  self.pr.c.width_text_short, 
@@ -111,8 +118,12 @@ class Naming:
                                                  self.pr.c.width_text_short, 
                                                  self.pr.c.width_text_long,
                                                  self.pr.c.width_text_tiny],
-                                "fixed_width" : [False, False, False, True, False, False, True, False, False, False, True],
-                                "centering" : ["w", "w", "w", "center", "w", "w", "center", "w", "w", "w", "center"],
+                                "fixed_width" : [False, False, False, True, 
+                                                 False, False, True, False, 
+                                                 False, False, True],
+                                "centering" : ["w", "w", "w", "center", "w", 
+                                               "w", "center", "w", "w", "w", 
+                                               "center"],
                                 "minimum_rows" : 30,
                                 "requested_rows" : 45,
                                 "row_height" : self.pr.c.width_text_tiny,
@@ -124,7 +135,8 @@ class Naming:
         FileListTreeviewColumnSpan = 1
         FileListTreeviewRowSpan = 1
         
-        self.FileListTreeview = ttk.Treeview(self.TreeviewFrame, height = self.treeview_info["requested_rows"])
+        self.FileListTreeview = ttk.Treeview(
+            self.TreeviewFrame, height = self.treeview_info["requested_rows"])
         self.FileListTreeview['columns'] = self.treeview_info["columns"][1:]
         
         for i in range(len(self.treeview_info["columns"])):
@@ -133,7 +145,11 @@ class Naming:
             columnHeader = self.treeview_info["headers"][i]
             columnCentering = self.treeview_info["centering"][i]
             
-            self.FileListTreeview.column(columnName, width = columnWidth, minwidth = columnWidth, stretch = tk.NO, anchor = columnCentering)
+            self.FileListTreeview.column(columnName, 
+                                         width = columnWidth, 
+                                         minwidth = columnWidth, 
+                                         stretch = tk.NO, 
+                                         anchor = columnCentering)
             self.FileListTreeview.heading(columnName, text = columnHeader)
             
         self.FileListTreeview.grid(row = FileListTreeviewGridRow, 
@@ -144,9 +160,9 @@ class Naming:
                                    )
         
         """
-        #############################################################################################################################################################################################################
-        ###################################################################### ACTION BUTTONS #######################################################################################################################
-        #############################################################################################################################################################################################################
+        ######################################################################
+        ######################### ACTION BUTTONS #############################
+        ######################################################################
         """
         
         """
@@ -154,29 +170,35 @@ class Naming:
         ########## INPUT FILES ##########
         #################################
         """
-        btnImportFiles = tk.Button(self.io_directory.frame,
-                                    text = "Import Files", 
-                                    background = self.pr.c.colour_interface_button, 
-                                    command = self._btnImportFiles_Click
-                                    )
-        self.io_directory.add_widget(widget = btnImportFiles, fixed_width = True, trace = inf_trace, row = "input", column = "end")
+        btnImportFiles = tk.Button(
+            self.io_directory.frame,
+            text = "Import Files", 
+            background = self.pr.c.colour_interface_button, 
+            command = self._btnImportFiles_Click
+            )
+        self.io_directory.add_widget(widget = btnImportFiles, 
+                                     fixed_width = True, trace = inf_trace, 
+                                     row = "input", column = "end")
         
         """
         #################################
         ######### RENAME FILES ##########
         #################################
         """
-        btnRenameFiles = tk.Button(self.io_directory.frame,
-                                    text="Rename Files", 
-                                    background = self.pr.c.colour_interface_button, 
-                                    command = self._btnRenameFiles_click
-                                    )
-        self.io_directory.add_widget(widget = btnRenameFiles, fixed_width = True, trace = inf_trace, row = "output", column = btnImportFiles)
+        btnRenameFiles = tk.Button(
+            self.io_directory.frame,
+            text="Rename Files", 
+            background = self.pr.c.colour_interface_button, 
+            command = self._btnRenameFiles_click
+            )
+        self.io_directory.add_widget(widget = btnRenameFiles, 
+                                     fixed_width = True, trace = inf_trace, 
+                                     row = "output", column = btnImportFiles)
         
         """
-        ##########################################################################################
-        ################################ BOUND FUNCTIONS #########################################
-        ##########################################################################################
+        ######################################################################
+        ################################ BOUND FUNCTIONS #####################
+        ######################################################################
         """
         
         #search box
@@ -198,26 +220,32 @@ class Naming:
 
         
         """
-        ##########################################################################################
-        ################################ ALLOCATE SCALING ########################################
-        ##########################################################################################
+        ######################################################################
+        ################################ ALLOCATE SCALING ####################
+        ######################################################################
         """  
         
         self.tab.columnconfigure(0, weight=1)
-        self.TreeviewFrame.columnconfigure(FileListTreeviewGridColumn, weight=1)
+        self.TreeviewFrame.columnconfigure(FileListTreeviewGridColumn, 
+                                           weight=1)
         
         """
-        ##########################################################################################
-        ################################ INITIALISE WIDGETS ######################################
-        ##########################################################################################
+        ######################################################################
+        ################################ INITIALISE WIDGETS ##################
+        ######################################################################
         """        
+        treeview_config = \
+            config.config.config_dict[self.name]["FileListTreeview"]
         
         if "FileListTreeview" in config.config.config_dict[self.name].keys():
-            if config.config.config_dict[self.name]["FileListTreeview"]["load_from_json"] == True:
-                if "treeview_values" in config.config.config_dict[self.name]["FileListTreeview"].keys():
-                    self.pr.f.json_to_treeview(treeview = self.FileListTreeview,
-                                               json_dict = config.config.config_dict[self.name]["FileListTreeview"]["treeview_values"],
-                                               trace = inf_trace)
+            if treeview_config["load_from_json"] == True:
+                    
+                if "treeview_values" in treeview_config.keys():
+                    self.pr.f.json_to_treeview(
+                        treeview = self.FileListTreeview,
+                        json_dict = treeview_config["treeview_values"],
+                        trace = inf_trace
+                        )
         else:
             self.populate_treeview(populate_values = False, trace = inf_trace)
             
@@ -239,9 +267,11 @@ class Naming:
         inf_trace = {"source": "function call", 
                      "parent": self.name + "._btnInputFiles_click"}
         
-        populate_values = tk.messagebox.askquestion("Reset field values?", 
-                                                    message="Do you want to reset all field values?", 
-                                                    default='no')
+        populate_values = tk.messagebox.askquestion(
+            "Reset field values?", 
+            message="Do you want to reset all field values?", 
+            default='no'
+            )
         populate_values = (populate_values == 'yes')
         self.populate_treeview(populate_values = populate_values, 
                                trace = inf_trace)
@@ -333,9 +363,11 @@ class Naming:
         
     def edit_value_via_interface(self, event, trace = None):
         self.pr.f._log_trace(self, "edit_value_via_interface", trace)
-        inf_trace = {"source": "function call", "parent": self.name + ".edit_value_via_interface"}
+        inf_trace = {"source": "function call", 
+                     "parent": self.name + ".edit_value_via_interface"}
         """
-        Open a window with the selected filename where a value can be specified for the selected cell
+        Open a window with the selected filename where a value can be specified 
+        for the selected cell
         """
             
         #Identify the column clicked

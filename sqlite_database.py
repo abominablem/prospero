@@ -208,11 +208,12 @@ class TableCon:
             raise ValueError("Invalid shape specified. rc must be one"
                              " of 'rows' or 'columns'.")
          
-        
-        
-        
-renames = TableCon(".\sqlite_db\insight", "renames", debug = True)
-renames.define_field_map({"Original name": "original_name", "#": "number"})
-
-print(renames.filter(filters = {'Composer': 'Beethoven, Ludwig Van'}, return_cols = ['composer', 'album'], boolean = "AND", rc = "columns"))
-# renames.close()
+if __name__ == "__main__":     
+    renames = TableCon(".\sqlite_db\insight", "renames", debug = True)
+    renames.define_field_map({"Original name": "original_name", "#": "number"})
+    
+    print(renames.filter(filters = {'Composer': 'Beethoven, Ludwig Van'}, 
+                         return_cols = ['composer', 'album'], 
+                         boolean = "AND", 
+                         rc = "columns"))
+    # renames.close()

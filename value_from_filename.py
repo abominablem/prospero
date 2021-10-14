@@ -33,19 +33,20 @@ class ValueFromFilename:
         self.row_iid = filename if row_iid is None else row_iid
         self.focus = treeview.focus()
         self._configure_last_called = datetime.min
+        self.filter_insight = True
         
         self.window = tk.Toplevel(self.tab, 
                                   background = self.pr.c.colour_background)
         self.window.title("Prospero - Decide tag value from filename - " 
                           + columnString)
         
-        button_additional_args = {"command" : self.pr.f.null_function}
-        
         entry_additional_args = {"font" : self.pr.c.font_prospero_box_header}
         """
         ### FRAMES ###
         """
-        self.window_InputOutputFrame = tk.Frame(self.window, background = self.pr.c.colour_background)
+        self.window_InputOutputFrame = tk.Frame(
+            self.window, background = self.pr.c.colour_background
+            )
         self.window_InputOutputFrame.grid(row = 0, column = 0)
         """
         ### VALUE ###
@@ -138,6 +139,7 @@ class ValueFromFilename:
         """
         # PREFIX        SUFFIX          REPLACE         SUBMIT
         # UPPERCASE     LOWERCASE       TITLE_CASE      CLEAR
+        # REMOVE DIACRITICS     REMATCH VALUE   TOGGLE FILTERS
         
         Actions:
             Prefix:         Insert the select text from txtFilename and add to the beginning of the txtTag value        <SELECTION> <CURRENT>
@@ -215,6 +217,16 @@ class ValueFromFilename:
                                             "<Shift-Button-1>"], 
                                   "function": [lambda event: self.btnRemoveDiacritics_Click(event, trace = trace_click("btnRemoveDiacritics")),
                                                lambda event: self.btnRemoveDiacritics_ShiftClick(event, trace = trace_shift_click("btnRemoveDiacritics"))]
+                                  },
+                    "btnRematchValue": {"event": ["<Button-1>",
+                                            "<Shift-Button-1>"], 
+                                  "function": [lambda event: self.btnRematchValue_Click(event, trace = trace_click("btnRematchValue")),
+                                               lambda event: self.btnRematchValue_ShiftClick(event, trace = trace_shift_click("btnRematchValue"))]
+                                  },
+                    "btnToggleFilters": {"event": ["<Button-1>",
+                                            "<Shift-Button-1>"], 
+                                  "function": [lambda event: self.btnToggleFilters_Click(event, trace = trace_click("btnToggleFilters")),
+                                               lambda event: self.btnToggleFilters_ShiftClick(event, trace = trace_shift_click("btnToggleFilters"))]
                                   }
                     }
         
@@ -225,7 +237,7 @@ class ValueFromFilename:
                                           "btnTitleCase", "btnClear", 
                                           "btnRemoveDiacritics", 
                                           "btnRematchValue", 
-                                          "btnToggleFilter"],
+                                          "btnToggleFilters"],
                                  labels = ["Prefix", "Suffix", 
                                            "Replace", "Submit", 
                                            "Uppercase", "Lowercase", 
@@ -581,7 +593,6 @@ class ValueFromFilename:
             self.txt_tag.insert("end", new_text)
             self.btnSubmit_Click(event, trace = inf_trace)
         
-        
     def btnRemoveDiacritics_ShiftClick(self, event, trace = None):
         self.pr.f._log_trace(self, "btnRemoveDiacritics_ShiftClick", trace)
         inf_trace = {"source": "function call", 
@@ -589,8 +600,47 @@ class ValueFromFilename:
                                 ".btnRemoveDiacritics_ShiftClick")}
         self.select_all(self.txt_tag, trace = inf_trace)
         self.btnRemoveDiacritics_Click(event, trace = inf_trace)
+      
         
-
+        
+    def btnRematchValue_Click(self, event, trace = None):
+        self.pr.f._log_trace(self, "btnRematchValue_Click", trace)
+        rematch = self.pr.f.suggest_value(self.filename, self.columnString)
+        if not rematch is None and rematch != "":
+            self.btnClear_Click(event)
+            self.txt_tag.insert("end", rematch)
+        return event
+        
+    def btnRematchValue_ShiftClick(self, event, trace = None):
+        self.pr.f._log_trace(self, "btnRematchValue_ShiftClick", trace)
+        inf_trace = {"source": "function call", 
+                     "parent": (self.class_name + 
+                                ".btnRematchValue_ShiftClick")}
+        self.btnRematchValue_Click(event, trace = inf_trace)
+        return event       
+       
+        
+        
+    def btnToggleFilters_Click(self, event, trace = None):
+        self.pr.f._log_trace(self, "btnToggleFilters_Click", trace)
+        inf_trace = {"source": "function call", 
+                     "parent": (self.class_name + 
+                                ".btnToggleFilters_Click")}
+        
+        self.filter_insight = not self.filter_insight
+        self.get_insight_values(trace = inf_trace)
+        self.populate_suggested_values(text = "", trace = inf_trace)
+        return event
+        
+    def btnToggleFilters_ShiftClick(self, event, trace = None):
+        self.pr.f._log_trace(self, "btnToggleFilters_ShiftClick", trace)
+        inf_trace = {"source": "function call", 
+                     "parent": (self.class_name + 
+                                ".btnRematchValue_ShiftClick")}
+        self.btnToggleFilters_Click(event, trace = inf_trace)
+        return event
+    
+    
     
     def whitespace_clean(self, objEntry, trace = None):
         self.pr.f._log_trace(self, "whitespace_clean", trace)
@@ -634,10 +684,16 @@ class ValueFromFilename:
         inf_trace = {"source": "function call", 
                      "parent": self.class_name + ".get_insight_values"}
         
-        values = self.pr.f.get_values_dict(treeview = self.treeview,
-                                           iid = self.row_iid,
-                                           columns = self.parent.treeview_info["headers"], 
-                                           trace = inf_trace)
+        if self.filter_insight:
+            values = self.pr.f.get_values_dict(
+                treeview = self.treeview,
+                iid = self.row_iid,
+                columns = self.parent.treeview_info["headers"], 
+                trace = inf_trace
+                )
+        else:
+            values = {}
+            
         # All columns we don't want to filter on
         for col in ["Done", "Final name", "Genre", 
                     "Performer(s)", "URL", "", "Original name"]:
@@ -649,7 +705,8 @@ class ValueFromFilename:
         insight_col = self.pr.insight_rn.map_field_names(self.columnString)
         
         query = self.pr.insight_rn.get_insight(values = values, 
-                                               column = insight_col, 
+                                               column = insight_col,
+                                               distinct = True,
                                                trace = inf_trace)
         #assume one column queried and one list returned
         self.insight_values = query[insight_col]
@@ -672,24 +729,24 @@ class ValueFromFilename:
         self.populate_suggested_values(trace = inf_trace)
         
     
-    def populate_suggested_values(self, trace = None):
+    def populate_suggested_values(self, text = None, trace = None):
         self.pr.f._log_trace(self, "populate_suggested_values", trace)
         inf_trace = {"source": "function call", 
                      "parent": self.class_name + ".populate_suggested_values"}
         
-        text = self.pr.f.clean_track_string(self.txt_tag.get(),
-                                            iterate = True,
-                                            trace = inf_trace)
+        if text is None:
+            text = self.pr.f.clean_track_string(self.txt_tag.get(),
+                                                iterate = True,
+                                                trace = inf_trace)
         
-        values = self.get_suggested_values(text = text, trace = inf_trace)
-        values = list(set(values)) #remove duplicates
+        values = self.get_suggested_values(text = text, 
+                                           trace = inf_trace)
         values = sorted(values)
         
         #Remove all current suggestions and add new suggestions
         self.suggested_values.delete(*self.suggested_values.get_children())
         for v in values:
-            self.suggested_values.insert("", index="end", 
-                                         text = v, iid = v)
+            self.suggested_values.insert("", index="end", text = v, iid = v)
     
     def _resize_treeview(self, event = None, trace = None):
         if not self.pr.running: return
@@ -724,12 +781,18 @@ class ValueFromFilename:
     def _treeview_mouse1_click(self, event, trace = None):
         self.pr.f._log_trace(self, "_treeview_mouse1_click", trace)
             
-        self._treeview_mouse1_click_column = self.suggested_values.identify_column(event.x)
-        self._treeview_mouse1_click_row = self.suggested_values.identify_row(event.y)
-        self._treeview_mouse1_click_cell = (self._treeview_mouse1_click_row if self._treeview_mouse1_click_column == "#0" 
-                                            else self.suggested_values.set(self._treeview_mouse1_click_row, 
-                                                                           self._treeview_mouse1_click_column)
-                                            )
+        self._treeview_mouse1_click_column = \
+            self.suggested_values.identify_column(event.x)
+            
+        self._treeview_mouse1_click_row = \
+            self.suggested_values.identify_row(event.y)
+            
+        self._treeview_mouse1_click_cell = \
+            (self._treeview_mouse1_click_row 
+             if self._treeview_mouse1_click_column == "#0" 
+             else self.suggested_values.set(self._treeview_mouse1_click_row, 
+                                            self._treeview_mouse1_click_column)
+             )
         return event
     
     def _treeview_double_click(self, event, trace = None):

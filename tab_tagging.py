@@ -8,7 +8,6 @@ Created on Tue Apr 20 19:45:18 2021
 import tkinter as tk
 from tkinter import ttk
 import os
-import eyed3
 import config
 from datetime import datetime
 from io_directory import IODirectory
@@ -281,14 +280,10 @@ class Tagging :
                                     sticky = "nesw",
                                     padx = self.pr.c.padding_small
                                     )
-        """
-        #############################################################################################################################################################################################################
-        ########################################################################### BOUND FUNCTIONS #################################################################################################################
-        #############################################################################################################################################################################################################
-        """
 
-        self.treeview_input_files.bind("<ButtonRelease-1>", lambda event: self.populate_current_tags_box(event, trace={"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<ButtonRelease-1>"})) #Also <ButtonPress-1>, <Double-1> for double click, etc. - bind the selection change event, updating the tag values 
-        self.treeview_input_files.bind("<KeyRelease-Up>", lambda event: self.populate_current_tags_box(event, trace={"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<KeyRelease-Up>"})) #refresh tags when moving up and down the file list with the arrow keys
+        self.treeview_input_files.bind("<ButtonRelease-1>", lambda event: self.populate_current_tags_box(event, trace={"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<ButtonRelease-1>"}))
+        #refresh tags when moving up and down the file list with the arrow keys
+        self.treeview_input_files.bind("<KeyRelease-Up>", lambda event: self.populate_current_tags_box(event, trace={"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<KeyRelease-Up>"}))
         self.treeview_input_files.bind("<KeyRelease-Down>", lambda event: self.populate_current_tags_box(event, trace={"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<KeyRelease-Down>"}))
         
         self.treeview_input_files.bind("<Configure>", lambda event: self._resize_treeview(event, trace={"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<Configure>"}))
@@ -296,21 +291,11 @@ class Tagging :
         self.treeview_suggested_tags.bind("<Configure>", lambda event: self._resize_treeview(event, trace={"source": "bound event", "widget": self.name + ".treeview_suggested_tags", "event": "<Configure>"}))
         self.tab.bind("<Configure>",lambda event:  self._resize_treeview(event, trace={"source": "bound event", "widget": self.name + ".tab_tagging", "event": "<Configure>"}))
         
-        """
-        ##########################################################################################
-        ################################ ALLOCATE SCALING ########################################
-        ##########################################################################################
-        """  
         self.tab.columnconfigure(0, weight=1)
         
         TreeviewFrame.columnconfigure(InputFilesGridColumn, weight=1)        
         TreeviewFrame.columnconfigure(CurrentTagsGridColumn, weight=1)      
         TreeviewFrame.columnconfigure(SuggestedTagsGridColumn, weight=1)      
-        """
-        ##########################################################################################
-        ################################ INITIALISE WIDGETS ######################################
-        ##########################################################################################
-        """   
         
         self.populate_file_list(trace = inf_trace)
         self._configure_last_called = datetime.min
@@ -347,63 +332,41 @@ class Tagging :
         Updates the current and suggested tags Treeviews for the selected file
         """
         #Remove the current contents of each treeview
-        self.treeview_suggested_tags.delete(*self.treeview_suggested_tags.get_children())
-        self.treeview_current_tags.delete(*self.treeview_current_tags.get_children())
+        for tv in [self.treeview_suggested_tags, self.treeview_current_tags]:
+            tv.delete(*tv.get_children())
         
         #Get the selected file in the inputs files treeview
-        if len(self.treeview_input_files.selection()) == 0: #exit if nothing is selected
+        #Exit if nothing is selected
+        if len(self.treeview_input_files.selection()) == 0:
             return
         
         filename = self.treeview_input_files.selection()[0]
         
-        #List of tags to look at
-        tag_list_alias = self.pr.c.tag_list_alias
-        
         #Add suggested values to the relevant treeview
-        tag_list_value = self.pr.f.SuggestTagsFromFinalFilename(filename, trace = inf_trace)
-        tag_list_value = ["" if t is None else t for t in tag_list_value]
-        for i in range(len(tag_list_alias)):
-            self.treeview_suggested_tags.insert("", 
-                                                index=i, 
-                                                text=tag_list_alias[i], 
-                                                values=(tag_list_value[i], ""), 
-                                                iid = tag_list_alias[i])
-            
+        suggested_tag_dict = \
+            self.pr.f.parse_tags_from_filename(filename, trace = inf_trace)
+        
         #Add current values to the relevant treeview
-        tag_list_value = self.get_file_tags(directory = self.txtInputDirectory.get(), 
-                                             filename = filename, 
-                                             extension = self.pr.c.file_extension, 
-                                             trace = inf_trace
-                                             )
-        for i in range(len(tag_list_alias)):
-            self.treeview_current_tags.insert("", 
-                                              index=i, 
-                                              text=tag_list_alias[i], 
-                                              values=(tag_list_value[i], ""), 
-                                              iid = tag_list_alias[i])
+        current_tag_dict = self.pr.f.get_tags(
+            directory = self.io_directory.input_directory, 
+            filename = filename + self.pr.c.file_extension, 
+            trace = inf_trace
+            )
+        
+        for dct in [suggested_tag_dict, current_tag_dict]:
+            for key, value in dct.items():
+                if value is None: value = ""
+                dct[key] = [value]
+        
+        self.pr.f.json_to_treeview(treeview = self.treeview_suggested_tags,
+                                   json_dict = suggested_tag_dict,
+                                   trace = inf_trace)
+        
+        self.pr.f.json_to_treeview(treeview = self.treeview_current_tags,
+                                   json_dict = current_tag_dict,
+                                   trace = inf_trace)
         return event
    
-    def get_file_tags(self, directory, filename, extension, trace = None):
-        self.pr.f._log_trace(self, "get_file_tags", trace)
-        """
-        Returns the currently set ID3v2 tags of the specified file
-        """
-        audiofile = eyed3.load(os.path.join(directory, filename + extension))
-        
-        tag_list_value = [audiofile.tag.album_artist,
-                          audiofile.tag.album,
-                          audiofile.tag.track_num[0],
-                          audiofile.tag.title,
-                          audiofile.tag.artist,
-                          audiofile.tag.recording_date.year if not audiofile.tag.recording_date is None else "",
-                          audiofile.tag.genre,
-                          audiofile.tag.artist_url]
-        
-        tag_list_value = ["" if tag_value is None else tag_value 
-                          for tag_value in tag_list_value] #replace None with empty string
-                
-        return tag_list_value
-
     def _resize_treeview(self, event = None, trace = None):
         if not self.pr.running: return
         inf_trace = {"source": "function call", 
@@ -411,9 +374,12 @@ class Tagging :
         """
         Resize all treeview columns according to the current widget size
         """
-        seconds_elapsed = (datetime.now() - self._configure_last_called).total_seconds()
+        seconds_elapsed = (datetime.now() - self._configure_last_called
+                           ).total_seconds()
         if seconds_elapsed >= self.pr.c.max_refresh_frequency_seconds:
-            self.pr.f._log_trace(self, "_resize_treeview", trace, add = " _configure_last_called was %f" % seconds_elapsed)
+            self.pr.f._log_trace(self, "_resize_treeview", trace, 
+                                 add = " _configure_last_called was %f" 
+                                     % seconds_elapsed)
             
             if self._configure_last_called == datetime.min:
                 self._configure_last_called = datetime.now()

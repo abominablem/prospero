@@ -16,6 +16,9 @@ import eyed3
 import unidecode
 
 class Functions:
+    """
+    Provides a variety of generic functions for use in Prospero modules
+    """
     def __init__(self, parent, trace = None):
         self.parent = parent
         self.root = parent.root
@@ -237,60 +240,63 @@ class Functions:
         outdict["parse"] = parse
         return outdict
     
-    def suggest_tags_from_final_filename(self, filename, trace = None):
+    def parse_tags_from_filename(self, filename, trace = None):
         self._log_trace(self, "suggest_tags_from_final_filename", trace)
         
         """
         Given a filename in an expected format (post-naming tab), suggests 
         suitable metadata tags
         """
-        tags_array = [None for i in range(8)]
+        tag_dict = {"Composer": None,
+                    "Album": None,
+                    "#": None,
+                    "Track": None,
+                    "Performers": None,
+                    "Year": None,
+                    "Genre": None,
+                    "URL": None
+                    }
         
         if filename is None or filename == "":
-            return tags_array
+            return tag_dict
         
-        # tag_list_value = #0 [audiofile.tag.album_artist,
-        #                  #1 audiofile.tag.album,
-        #                  #2 audiofile.tag.track_num,
-        #                  #3 audiofile.tag.title,
-        #                  #4 audiofile.tag.artist,
-        #                  #5 audiofile.tag.recording_date,
-        #                  #6 audiofile.tag.genre,
-        #                  #7 audiofile.tag.artist_url]
-        
-        #CONTRIBUTING ARTIST TAG - artist
         if re.search("\[.*\]$", filename) is not None:
-            #re.search returns the [full; text], and the first and last characters are then trimmed off
-            # "/" is used in the backend to separate multiple distinct artist, even though it appears as "; " in both
-            # the file name as we've set it, and the properties/tags window in Windows
-            tags_array[4] = re.search("\[.*\]$", 
-                                      filename)[0][1:-1].replace( "; ", "/") 
-            filename = filename.replace(re.search("\s?\[.*\]$", filename
-                                                  )[0], "")
+            """
+            re.search returns the [full; text], and the first and last 
+            characters are then trimmed off. "/" is used in the backend to 
+            separate multiple distinct artist, even though it appears as "; " 
+            in both the file name as we've set it, and the properties/tags 
+            window in Windows.
+            """
+            tag_dict["Performer(s)"] = \
+                re.search("\[.*\]$", filename)[0][1:-1].replace( "; ", "/")
+                
+            filename = filename.replace(
+                re.search("\s?\[.*\]$", filename)[0], "")
+        
+        #split at most 2 times, for album and then track
+        filename_parts = filename.split(" - ", 2) 
+        
+        if re.search("^[a-zA-z\']*, [a-zA-z\']* - ", filename) is not None: 
+            tag_dict["Composer"] = \
+                " ".join(filename_parts[0].split(", ")[::-1])
+        else:
+            tag_dict["Composer"] = filename_parts[0]
+        
+        if re.match("^\d+\.\b", filename_parts[-1]):
+            search = re.search("^(\d+)\.\s(.*)$", filename_parts[-1])
+            tag_dict["#"] = search.group(1)
+            tag_dict["Track"] = search.group(2)
+        else:
+            tag_dict["Track"] = filename_parts[-1]
             
-        filename = filename.replace("–", "-")        
-        filename_parts = filename.split(" - ", 2) #split at most 2 times, for album and then track
+        tag_dict["Album"] = "%s (%s)" % (filename_parts[1],
+                                        tag_dict["Composer"])
+        for k in tag_dict:
+            if k is None or k == "":
+                tag_dict[k] = self.suggest_value(filename, k)
         
-        #COMPOSER TAG - album_artist
-        if re.search("^[a-zA-z\']*, [a-zA-z\']* - ", filename) is not None: #check for multi-part composer name
-            tags_array[0] = filename_parts[0].split(", ")[1] + " " + filename_parts[0].split(", ")[0] #artist/composer
-        else:
-            tags_array[0] = filename_parts[0] #artist/composer
-        
-        #TRACK TAGS - track_num, title, album
-        if re.match("^[0-9]*\.\s", filename_parts[-1]): #Last section contains e.g 5. , i.e. is part of a larger work/album
-            tags_array[3] = filename_parts[-1].split(". ", 1)[1]                #title
-            tags_array[1] = filename_parts[1] + " (" + filename_parts[0] + ")"  #album
-            tags_array[2] = int(filename_parts[-1].split(". ", 1)[0])           #track_num
-        else:
-            tags_array[1] = filename_parts[1] + " (" + filename_parts[0] + ")"  #album
-            tags_array[3] = filename_parts[-1]                                  #title
-    
-        for regex_expr in config.genres_dict.keys():
-            if re.match(regex_expr, filename, re.IGNORECASE):
-                tags_array[6] = config.genres_dict[regex_expr]
-                break
-        return tags_array
+        return tag_dict
     
     def youtube_url_from_filename(self, filename, do_word_check = False, 
                                   trace = None):
@@ -310,7 +316,8 @@ class Functions:
         elif len(youtube_id) >= 12:
             #to account for old youtube-dl behaviour, where the filename 
             #format was <video title>-<video id>
-            youtube_id = youtube_id[-11:] if youtube_id[-12] == "-" else youtube_id
+            youtube_id = (youtube_id[-11:] if youtube_id[-12] == "-" 
+                          else youtube_id)
         
         #test for a valid id format 
         if not re.match("[0-9a-zA-Z_-]{11}", youtube_id): 
@@ -326,7 +333,8 @@ class Functions:
         
         return youtube_prefix + youtube_id
     
-    def pad_image_with_transparency(self, image, pixels, keep_size = False, trace = None):
+    def pad_image_with_transparency(self, image, pixels, 
+                                    keep_size = False, trace = None):
         self._log_trace(self, "pad_image_with_transparency", trace)
         """
         Pad around the outside of an image with the specified transparent 
@@ -431,9 +439,9 @@ class Functions:
             raise TypeError
             return
         
-        for key in json_dict.keys():
+        for key,value in json_dict.items():
             treeview.insert("", index="end", text = key, iid = key, 
-                            values = json_dict[key])
+                            values = value)
         return
 
     def configure_treeview_columns(self, treeview, columns, headers, widths, 
@@ -823,5 +831,5 @@ class Functions:
             if v is None: tag_dict[k] = ""
         
         return tag_dict
-
+    
 

@@ -14,12 +14,10 @@ class Constants:
         self.pr = parent.pr
         self.root = parent.root
         self.pr.f._log_trace(self, "__init__", trace)
-        inf_trace = {"source": "function call", "parent": self.class_name + ".__init__"}
+        
         """
         ### Constant definitions ###
         """
-        
-        
         self.padding_small = 5
         self.padding_medium = 8
         self.padding_large = 20
@@ -53,16 +51,15 @@ class Constants:
         self.treeview_header_height = 20
         
         self.file_extension = ".mp3"
-        self.tag_list_alias = ["Album artist", "Album", "Track Number", "Track Title", "Recording artists", "Year", "Genre", "URL"]
+        # self.tag_list_alias = ["Album artist", "Album", "Track Number", 
+        #                        "Track Title", "Recording artists", 
+        #                        "Year", "Genre", "URL"]
         
         self.max_refresh_frequency_seconds = 0.15
         
         """
-        #########################
-        ######## COLOURS ########
-        #########################
-        """
-        
+        ### COLOURS ###
+        """        
         self.colour_background = "#fdfcf3"
         self.colour_offwhite_text = "#fefefe"
         self.colour_interface_button = "#baccbe"
@@ -84,11 +81,9 @@ class Constants:
         self.font_prospero_interface_button = tk.font.Font(self.root, family="Helvetica", size=16, weight="bold")
         self.font_prospero_interface_button_light = tk.font.Font(self.root, family="Helvetica", size=10)
 
-        
         """
         ### KWARGS ###
         """        
-        
         self.label_standard_args = {"background" : self.colour_background,
                                     "font" : self.font_prospero_label_bold,
                                     "anchor" : "w"
