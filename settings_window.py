@@ -26,8 +26,10 @@ class Settings:
                                   background = self.pr.c.colour_background)
         self.window.title("Prospero - Settings and config")
         
-        self.title_frame = tk.Frame(self.window, 
-                                    background = self.pr.c.colour_prospero_blue)
+        self.title_frame = tk.Frame(
+            self.window, 
+            background = self.pr.c.colour_prospero_blue
+            )
         TitleFrameGridRow = 0
         TitleFrameGridColumn = 0
         TitleFrameColumnSpan = self.pr.c.columnspan_all
@@ -39,8 +41,10 @@ class Settings:
                               sticky = "nesw"
                               )
         
-        self.selection_frame = tk.Frame(self.window, 
-                                        background = self.pr.c.colour_background)
+        self.selection_frame = tk.Frame(
+            self.window, 
+            background = self.pr.c.colour_background
+            )
         SelectionFrameGridRow = TitleFrameGridRow + TitleFrameRowSpan
         SelectionFrameGridColumn = TitleFrameGridColumn
         SelectionFrameColumnSpan = 1
@@ -52,10 +56,13 @@ class Settings:
                               sticky = "nesw"
                               )
         
-        self.settings_frame = tk.Frame(self.window, 
-                                       background = self.pr.c.colour_background)
+        self.settings_frame = tk.Frame(
+            self.window, 
+            background = self.pr.c.colour_background
+            )
         SettingsFrameGridRow = SelectionFrameGridRow
-        SettingsFrameGridColumn = SelectionFrameGridColumn + SelectionFrameColumnSpan
+        SettingsFrameGridColumn = (SelectionFrameGridColumn 
+                                   + SelectionFrameColumnSpan)
         SettingsFrameColumnSpan = 1
         SettingsFrameRowSpan = SelectionFrameRowSpan
         self.settings_frame.grid(row = SettingsFrameGridRow,
@@ -132,7 +139,25 @@ class Settings:
                                       rowspan = self.pr.c.columnspan_all,
                                       sticky="nesw")
         
+        """
+        #######################################################################
+        ########################## SETTINGS TABS ##############################
+        #######################################################################
+        """
+        self.settings_tabs = ttk.Notebook(self.window)
         
+        nb_kwargs = {"master": self.settings_tabs, 
+                     "bg": self.pr.c.colour_background}
+        self.naming_settings = tk.Frame(**nb_kwargs)
+        self.audio_functions_settings = tk.Frame(**nb_kwargs)
+        self.tagging_settings = tk.Frame(**nb_kwargs)
+        
+        self.settings_tabs.add(self.naming_settings, text = "Naming")
+        self.settings_tabs.add(self.audio_functions_settings, 
+                               text = "Audio Functions")
+        self.settings_tabs.add(self.tagging_settings, text = "Tagging")
+        
+        self.settings_tabs.grid(row = 1, column = 1, sticky="nesw")
         
     def start(self, trace = None):
         self.pr.f._log_trace(self, "start", trace)

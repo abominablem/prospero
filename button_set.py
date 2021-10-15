@@ -132,11 +132,12 @@ class ButtonSet:
                     #if the space being overlaid is blank, continue
                     if list(set(layer[act_start:exp_start])) == [-1]:
                         pass
+                    else:
                     #TODO - work out how much space must be taken away from
                     # previous buttons. allocate that removed space so that
                     #proportions are preserved
-                    raise ValueError("Unable to draw button set. "
-                                      "Objects would overlap")
+                        raise ValueError("Unable to draw button set. "
+                                         "Objects would overlap")
                 elif act_start > exp_start:
                     pad_len = act_start - exp_start
                     if len(layer_out) == 0:
@@ -290,8 +291,7 @@ class ButtonSet:
         
     def _get_set_height(self, layout):
         return len(layout)
-        return
-    
+
     def _lcm(self, *args):
         lcm = 1
         for x in args:

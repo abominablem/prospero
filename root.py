@@ -4,11 +4,11 @@ Created on Wed Apr  7 23:22:23 2021
 
 @author: marcu
 """
-#package imports
+# package imports
 import tkinter as tk
 from tkinter import ttk
 
-#custom imports
+# custom imports
 import prospero_constants as prc
 import prospero_functions as prf
 import prospero_resources as prr
@@ -16,7 +16,8 @@ from tab_tagging import Tagging
 from tab_naming import Naming
 from tab_audio_functions import AudioFunctions
 from value_insight import Insight
-#function imports
+import config
+# function imports
 
 class Prospero:
     def __init__(self, trace):
@@ -32,7 +33,7 @@ class Prospero:
                                trace = {"source": "initialise class", 
                                         "parent": self.name})
         
-        self.c = prc.Constants(parent = self, 
+        self.c = prc.Constants(parent = self,
                                trace = {"source": "initialise class", 
                                         "parent": self.name})
         
@@ -40,7 +41,7 @@ class Prospero:
                                trace = {"source": "initialise class", 
                                         "parent": self.name})
         
-        self.insight_rn = Insight(type = "renames", 
+        self.insight_rn = Insight(type = "renames",
                                   debug = self.testing_mode,
                                   trace = {"source": "initialise class", 
                                            "parent": self.name})
@@ -147,12 +148,14 @@ class Prospero:
         SettingsIconRowSpan = MainLogoRowSpan
         
         if self.draw_logo:
-            self.icon_settings = tk.Label(self.header_frame, 
-                                          image = self.r.icon_settings_image, 
-                                          background = self.c.colour_prospero_blue, 
-                                          anchor = "e", 
-                                          padx = self.c.padding_large, 
-                                          pady = self.c.padding_small)
+            self.icon_settings = tk.Label(
+                self.header_frame, 
+                image = self.r.icon_settings_image, 
+                background = self.c.colour_prospero_blue, 
+                anchor = "e", 
+                padx = self.c.padding_large, 
+                pady = self.c.padding_small
+                )
             
             self.icon_settings.grid(row = SettingsIconGridRow,
                                     column = SettingsIconGridColumn,
@@ -207,13 +210,14 @@ class Prospero:
         
         AudioFunctionsGridRow = NotebookGridRow + 1
         AudioFunctionsGridColumn = taggingGridColumn
-        self.audio_functions = AudioFunctions(parent = self, 
-                                              grid_references = [AudioFunctionsGridRow, 
-                                                                 AudioFunctionsGridColumn
-                                                                 ], 
-                                              trace = {"source": "initialise class", 
-                                                       "parent": self.name})
-        
+        self.audio_functions = AudioFunctions(
+            parent = self, 
+            grid_references = [AudioFunctionsGridRow, 
+                               AudioFunctionsGridColumn
+                               ], 
+            trace = {"source": "initialise class", 
+                     "parent": self.name}
+            )
         """
         #######################################################################
         ################################ RESIZING RATIOS ######################
@@ -280,18 +284,15 @@ class Prospero:
         self.insight_rn.close()
         self.root.quit()
         self.root.destroy()
+        # dump config values for next time
+        config.config.dump_values()
+        config.composers_dict.dump_values()
+        config.keyword_dict.dump_values()
+        config.genres_dict.dump_values()
+        config.numerals_dict.dump_values()
         return event
     
 
-prospero = Prospero(trace = {"source": "initialise class", 
+prospero = Prospero(trace = {"source": "initialise class",
                              "parent": __name__})
 prospero.start()
-
-#dump config values for next time
-config.config.dump_values()
-config.composers_dict.dump_values()
-config.keyword_dict.dump_values()
-config.genres_dict.dump_values()
-config.numerals_dict.dump_values()
-
-
