@@ -47,7 +47,10 @@ class ValueFromFilename:
         self.window_InputOutputFrame = tk.Frame(
             self.window, background = self.pr.c.colour_background
             )
-        self.window_InputOutputFrame.grid(row = 0, column = 0)
+        self.window_InputOutputFrame.grid(
+            row = 0, column = 0,
+            **self.pr.c.grid_sticky_padding_small
+            )
         """
         ### VALUE ###
         """
@@ -309,7 +312,18 @@ class ValueFromFilename:
         self.suggested_values.bind("<Double-1>", lambda event: self._treeview_double_click(event, trace = {"source": "bound event", 
                                                                                                            "widget": self.class_name + ".suggested_values", 
                                                                                                            "event": "<Double-1>"}))
-        
+        """
+        ### ALLOCATE SCALING ###
+        """
+        self.window_InputOutputFrame.columnconfigure(0, weight = 0)
+        self.window_InputOutputFrame.columnconfigure(1, weight = 1)
+        self.window_InputOutputFrame.columnconfigure(2, weight = 1)
+        self.window.columnconfigure(0, weight = 1)
+        self.window.rowconfigure(0, weight = 0)
+        self.window.rowconfigure(1, weight = 1)
+        self.window.rowconfigure(2, weight = 5)
+
+
         """
         ### MAIN LOOP ###
         """
@@ -365,9 +379,11 @@ class ValueFromFilename:
             return event
         
         if self.columnString == "Composer":
-            new_text = ", " + self.Get_SelectedTextClean(self.txt_filename, trace = inf_trace)
+            new_text = ", " + self.Get_SelectedTextClean(
+                self.txt_filename, trace = inf_trace)
         else:
-            new_text = " " + self.Get_SelectedTextClean(self.txt_filename, trace = inf_trace)
+            new_text = " " + self.Get_SelectedTextClean(
+                self.txt_filename, trace = inf_trace)
             
         self.txt_tag.insert("end", new_text)
         self.whitespace_clean(self.txt_tag, trace = inf_trace)
@@ -383,11 +399,14 @@ class ValueFromFilename:
             return event
         
         if self.columnString == "Composer":
-            new_text = " " + self.Get_SelectedTextClean(self.txt_filename, trace = inf_trace)
+            new_text = " " + self.Get_SelectedTextClean(
+                self.txt_filename, trace = inf_trace)
         elif self.columnString == "Performer(s)":
-            new_text = "; " + self.Get_SelectedTextClean(self.txt_filename, trace = inf_trace)
+            new_text = "; " + self.Get_SelectedTextClean(
+                self.txt_filename, trace = inf_trace)
         else:
-            new_text = " (" + self.Get_SelectedTextClean(self.txt_filename, trace = inf_trace) + ")"
+            new_text = " (" + self.Get_SelectedTextClean(
+                self.txt_filename, trace = inf_trace) + ")"
             
         self.txt_tag.insert("end", new_text)
         self.whitespace_clean(self.txt_tag, trace = inf_trace)
@@ -404,7 +423,8 @@ class ValueFromFilename:
         if not self.txt_filename.selection_present():
             return event
         
-        new_text = self.Get_SelectedTextClean(self.txt_filename, trace = inf_trace)
+        new_text = self.Get_SelectedTextClean(
+            self.txt_filename, trace = inf_trace)
         self.txt_tag.delete(0, "end")
         self.txt_tag.insert(0, new_text)
         self.whitespace_clean(self.txt_tag, trace = inf_trace)
@@ -463,13 +483,17 @@ class ValueFromFilename:
         inf_trace = {"source": "function call", 
                      "parent": self.class_name + ".btnLowercase_Click"}
         
-        if not (self.txt_tag.selection_present() or self.txt_filename.selection_present()):
+        if not (self.txt_tag.selection_present()
+                or self.txt_filename.selection_present()):
             return event
         
-        if self.txt_tag.get() == "" and self.txt_filename.selection_present() == True:
-            new_text = self.Get_SelectedTextClean(self.txt_filename, trace = inf_trace)
+        if (self.txt_tag.get() == ""
+            and self.txt_filename.selection_present() == True):
+            new_text = self.Get_SelectedTextClean(
+                self.txt_filename, trace = inf_trace)
         else:
-            new_text = self.Get_SelectedTextClean(self.txt_tag, trace = inf_trace)
+            new_text = self.Get_SelectedTextClean(
+                self.txt_tag, trace = inf_trace)
         
         new_text = new_text.lower()
         
@@ -499,15 +523,18 @@ class ValueFromFilename:
             return event
         
         if self.txt_tag.get() == "" and self.txt_filename.selection_present():
-            new_text = self.Get_SelectedTextClean(self.txt_filename, trace = inf_trace)
+            new_text = self.Get_SelectedTextClean(
+                self.txt_filename, trace = inf_trace)
         else:
-            new_text = self.Get_SelectedTextClean(self.txt_tag, trace = inf_trace)
+            new_text = self.Get_SelectedTextClean(
+                self.txt_tag, trace = inf_trace)
             
         new_text = new_text.upper()
         
         if self.txt_tag.selection_present():
             self.replace_selected(self.txt_tag, new_text, trace = inf_trace)
-        elif self.txt_filename.selection_present() and self.txt_tag.get() == "":
+        elif (self.txt_filename.selection_present()
+              and self.txt_tag.get() == ""):
             self.txt_tag.insert("end", new_text)
             self.btnSubmit_Click(event, trace = inf_trace)
             
@@ -544,7 +571,8 @@ class ValueFromFilename:
         
         if self.txt_tag.selection_present():
             self.replace_selected(self.txt_tag, new_text, trace = inf_trace)
-        elif self.txt_filename.selection_present() and self.txt_tag.get() == "":
+        elif (self.txt_filename.selection_present()
+              and self.txt_tag.get() == ""):
             self.txt_tag.insert("end", new_text)
             self.btnSubmit_Click(event, trace = inf_trace)
             
@@ -589,7 +617,8 @@ class ValueFromFilename:
         
         if self.txt_tag.selection_present():
             self.replace_selected(self.txt_tag, new_text, trace = inf_trace)
-        elif self.txt_filename.selection_present() and self.txt_tag.get() == "":
+        elif (self.txt_filename.selection_present()
+              and self.txt_tag.get() == ""):
             self.txt_tag.insert("end", new_text)
             self.btnSubmit_Click(event, trace = inf_trace)
         
@@ -600,7 +629,7 @@ class ValueFromFilename:
                                 ".btnRemoveDiacritics_ShiftClick")}
         self.select_all(self.txt_tag, trace = inf_trace)
         self.btnRemoveDiacritics_Click(event, trace = inf_trace)
-      
+
         
         
     def btnRematchValue_Click(self, event, trace = None):
