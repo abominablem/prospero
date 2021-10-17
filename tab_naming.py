@@ -468,9 +468,13 @@ class Naming:
         #the row above. If multiple values are selected, this is the value in the
         #first selected row
         if len(selected_items) == 1:
-            value_to_copy = self.FileListTreeview.set(self.FileListTreeview.prev(selected_items[0]), clicked_column_id)
+            value_to_copy = self.FileListTreeview.set(
+                self.FileListTreeview.prev(selected_items[0]),
+                clicked_column_id
+                )
         else:
-            value_to_copy = self.FileListTreeview.set(selected_items[0], clicked_column_id)
+            value_to_copy = self.FileListTreeview.set(selected_items[0],
+                                                      clicked_column_id)
         
         #update the value of all cells in the selected rows and column
         for item in selected_items:
@@ -487,10 +491,12 @@ class Naming:
             
         self._treeview_mouse1_click_column = self.FileListTreeview.identify_column(event.x)
         self._treeview_mouse1_click_row = self.FileListTreeview.identify_row(event.y)
-        self._treeview_mouse1_click_cell = (self._treeview_mouse1_click_row if self._treeview_mouse1_click_column == "#0" 
-                                            else self.FileListTreeview.set(self._treeview_mouse1_click_row, 
-                                                                           self._treeview_mouse1_click_column)
-                                            )
+        self._treeview_mouse1_click_cell = (
+            self._treeview_mouse1_click_row
+            if self._treeview_mouse1_click_column == "#0"
+            else self.FileListTreeview.set(self._treeview_mouse1_click_row,
+                                           self._treeview_mouse1_click_column)
+            )
         return event
     
     def treeview_column_id_to_name(self, column_id, trace = None):
@@ -506,7 +512,8 @@ class Naming:
         seconds_elapsed = (datetime.now() - self._configure_last_called).total_seconds()
         if seconds_elapsed >= self.pr.c.max_refresh_frequency_seconds:
             self.pr.f._log_trace(self, "_resize_treeview", trace, 
-                                 add = " _configure_last_called was %f" % seconds_elapsed)
+                                 add = " _configure_last_called was %f"
+                                         % seconds_elapsed)
             
             if self._configure_last_called == datetime.min:
                 self._configure_last_called = datetime.now()
@@ -518,11 +525,13 @@ class Naming:
             #get new width of widget
             treeview_width = self.FileListTreeview.winfo_width()
             
-            #get array of the new width for each column, distributed according to their previous widths and any fixed width columns
-            new_widths = self.pr.f.distribute_width(treeview_width, 
-                                                    self.treeview_info["column_widths"], 
-                                                    self.treeview_info["fixed_width"], 
-                                                    trace = inf_trace)
+            # get array of the new width for each column, distributed
+            # according to their previous widths and any fixed width columns
+            new_widths = self.pr.f.distribute_width(
+                treeview_width,
+                self.treeview_info["column_widths"],
+                self.treeview_info["fixed_width"],
+                trace = inf_trace)
             
             #update the width for each column
             for i in range(len(self.treeview_info["columns"])):
@@ -531,20 +540,23 @@ class Naming:
                                              minwidth = new_widths[i], 
                                              stretch = tk.NO)
             
-            #update the treeview height (number of rows visible)
-            #calculate the available space by taking the coordinates of the top edge of the treeview
-            #minus the coordinates of the bottom edge of the whole window
+            # update the treeview height (number of rows visible)
+            # calculate the available space by taking the coordinates of the
+            # top edge of the treeview minus the coordinates of the bottom
+            # edge of the whole window
             treeview_topedge = self.FileListTreeview.winfo_rooty()
-            parent_bottomedge = self.root.winfo_rooty() + self.root.winfo_height()
+            parent_bottomedge = (self.root.winfo_rooty()
+                                 + self.root.winfo_height())
             
             #allocate the available empty space to the treeview
             available_height = round((parent_bottomedge - treeview_topedge))
             
-            #calculate the maximum rows that it's possible to show given the contraints
-            #if this is less than the specified minimum, take that minimum instead
+            # calculate the maximum rows that it's possible to show given
+            # the contraints if this is less than the specified minimum, take
+            # that minimum instead
             maximum_rows = int(available_height/self.treeview_info["row_height"])
             actual_rows = max(self.treeview_info["minimum_rows"], maximum_rows)
-            
+
             self.FileListTreeview["height"] = actual_rows
             
             #update the time the event was last called
