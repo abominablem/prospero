@@ -8,9 +8,9 @@ Created on Thu Jul 29 23:40:24 2021
 from datetime import datetime
 
 class Logging:
-    def __init__(self, parent, testing_mode = True, trace = None):
+    def __init__(self, parent, log = True, trace = None):
         self.p = parent
-        self.log = testing_mode
+        self.log = log
         self.log_trace(self, "__init__", trace)
         return
 
