@@ -5,11 +5,8 @@ Created on Tue Apr 20 23:51:25 2021
 @author: marcu
 """
 
-import prospero_constants as prc
 import tkinter as tk
 from tkinter import ttk
-import prospero_functions as prf
-import re
 from datetime import datetime
 from button_set import ButtonSet
 
