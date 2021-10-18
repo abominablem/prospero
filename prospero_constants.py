@@ -9,7 +9,7 @@ import tkinter as tk
 from tkinter import font
 
 class Constants:
-    def __init__(self, parent, trace):
+    def __init__(self, parent, trace = None):
         self.class_name = "Constants"
         self.pr = parent.pr
         self.root = parent.root
