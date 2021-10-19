@@ -16,6 +16,10 @@ import prospero_resources as prr
 
 
 class SettingsWidget:
+    """
+    Wraps a tkinter widget and provides generic getter/setter methods.
+    Must explicitly support a given tkinter widget type.
+    """
     def __init__(self, root, type, trace = None, **kwargs):
         self.root = root
         self.type = type.lower()
@@ -54,6 +58,12 @@ class SettingsWidget:
 
 
 class SettingsTab:
+    """
+    Given a structured list of dictionaries describing a set of widgets,
+    arranges the label/widget pairs in a frame. Provides methods to populate
+    widgets based on specified value locations in the config, and save the
+    updated values back to the config.
+    """
     def __init__(self, root, tab_list, kwargs_dict = None, trace = None):
         self.name = self.__class__.__name__
         inf_trace = {"source": "function call", 
@@ -114,6 +124,11 @@ class SettingsTab:
                     "widget": widget}
 
     def get_config_value(self, location, trace = None):
+        """
+        Get the value at a given location in the config. Location is a list, 
+        with the first entry specifying the file, and all others iterating
+        through dictionary layers.
+        """
         file = location[0]
         if file == "config":
             value = config.config.config_dict
@@ -126,6 +141,9 @@ class SettingsTab:
         return value
 
     def set_config_value(self, value, location, trace = None):
+        """
+        Set the value at a given location in the config.
+        """
         file = location[0]
         if file == "config":
             vdict = config.config.config_dict
@@ -140,12 +158,18 @@ class SettingsTab:
                 vdict[key] = value
 
     def save(self):
+        """
+        Save all updated values in the widgets to the config file.
+        """
         for label, widget in self.widgets.items():
             value = widget.get_value()
             location = self.locations[label]
             self.set_config_value(value, location)
 
     def populate(self):
+        """
+        Populate widgets with the current config values.
+        """
         for label, widget in self.widgets.items():
             location = self.locations[label]
             value = self.get_config_value(location)
@@ -153,6 +177,10 @@ class SettingsTab:
 
 
 class Settings:
+    """
+    Toplevel class wrapping the Settings window. This allows interaction with
+    the underlying config JSON.
+    """
     def __init__(self, parent, trace = None):
         self.parent = parent
         self.root = parent.root
