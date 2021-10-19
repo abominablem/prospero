@@ -48,5 +48,7 @@ class Logging:
             print(prnt)
         return
 
-log = Logging(__name__, log = False,
-              trace = {"source": "initialise class", "parent": __name__})
+if __name__ == "__main__":
+    log = Logging(__name__, log = False,
+                   trace = {"source": "initialise class",
+                            "parent": __name__})

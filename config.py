@@ -64,8 +64,7 @@ class JSONDict:
         """
         inf_trace = {"source": "function call",
                      "parent": self.__class__.__name__+".__init__"}
-        self.logging = Logging(parent = self,
-                               log = True,
+        self.logging = Logging(log = True,
                                trace = inf_trace)
         self.logging.log_trace(self, "__init__",
                                {"source": "initialise class",
