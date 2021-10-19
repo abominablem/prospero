@@ -14,15 +14,20 @@ import prospero_constants as prc
 import prospero_functions as prf
 import prospero_resources as prr
 
+from mh_logging import Logging
+
+log = Logging()
 
 class SettingsWidget:
     """
     Wraps a tkinter widget and provides generic getter/setter methods.
     Must explicitly support a given tkinter widget type.
     """
-    def __init__(self, root, type, trace = None, **kwargs):
+    def __init__(self, root, type, trace = None, datatype = str, **kwargs):
+        log.log_trace(self, "__init__", trace)
         self.root = root
         self.type = type.lower()
+        self.datatype = datatype
 
         if self.type == "entry":
             self.widget = tk.Entry(
@@ -39,21 +44,25 @@ class SettingsWidget:
         else:
             raise ValueError("Unsupported widget type %s" % type)
 
-    def get_value(self):
+    def get_value(self, trace = None):
+        log.log_trace(self, "get_value", trace)
         if self.type == "entry":
-            return self.widget.get()
-        elif self.type == "checkbox":
-            return (self.var.get() == 1)
+            v = self.widget.get()
+        elif self.type == "checkbutton":
+            v = (self.var.get() == 1)
+        return self.datatype(v)
 
-    def set_value(self, value):
+    def set_value(self, value, trace = None):
+        log.log_trace(self, "set_value", trace)
         if self.type == "entry":
             self.widget.delete(0, "end")
             self.widget.insert(0, value)
-        elif self.type == "checkbox":
+        elif self.type == "checkbutton":
             value = 1 if value == True else 0
-            return self.var.set(value)
+            self.var.set(value)
 
-    def grid(self, **kwargs):
+    def grid(self, trace = None, **kwargs):
+        log.log_trace(self, "grid", trace)
         self.widget.grid(**kwargs)
 
 
@@ -65,6 +74,7 @@ class SettingsTab:
     updated values back to the config.
     """
     def __init__(self, root, tab_list, kwargs_dict = None, trace = None):
+        log.log_trace(self, "__init__", trace)
         self.name = self.__class__.__name__
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".__init__"}
@@ -92,13 +102,14 @@ class SettingsTab:
 
         self.populate()
 
-    def create_row(self, label, type, location, trace = None,
-                   frame = None):
+    def create_row(self, label, type, location, datatype = str, frame = None,
+                   trace = None):
         """
         Create a label and widget pair tied to a specific location in the
         config file and widget type. Optionally, specify a frame to add the
         widget to for alignment purposes.
         """
+        log.log_trace(self, "create_row", trace)
         if frame is None:
             row_frame = tk.Frame(self.frame, **self.kwargs_dict["frame"])
         else:
@@ -106,9 +117,8 @@ class SettingsTab:
 
         label = tk.Label(row_frame, text = label, **self.kwargs_dict["label"])
 
-        # cur_value = self.get_value(location, trace = inf_trace)
-
-        widget = SettingsWidget(row_frame, type, **self.kwargs_dict[type])
+        widget = SettingsWidget(row_frame, type, datatype = datatype,
+                                **self.kwargs_dict[type])
 
         label.grid(row = 0, column = 0, **self.kwargs_dict["grid"])
         widget.grid(row = 0, column = 1, **self.kwargs_dict["grid"])
@@ -129,6 +139,8 @@ class SettingsTab:
         with the first entry specifying the file, and all others iterating
         through dictionary layers.
         """
+        log.log_trace(self, "get_config_value", trace)
+
         file = location[0]
         if file == "config":
             value = config.config.config_dict
@@ -144,32 +156,42 @@ class SettingsTab:
         """
         Set the value at a given location in the config.
         """
+        if value == "D:/Users/Marcus/Documents/R Documents/Music/Test":
+            print("123")
+            pass
+        log.log_trace(self, "set_config_value", trace,
+                      add = "Updated config value at location %s to %s"
+                          % (".".join(location), value)
+                      )
         file = location[0]
         if file == "config":
             vdict = config.config.config_dict
         else:
             raise ValueError("Unknown config location")
 
-        last_key = len(location[1:]) - 1
         for i, key in enumerate(location[1:]):
-            if i != last_key:
+            if i != len(location) - 2:
                 vdict = vdict[key]
             else:
                 vdict[key] = value
 
-    def save(self):
+    def save(self, trace = None):
         """
         Save all updated values in the widgets to the config file.
         """
+        log.log_trace(self, "save", trace)
+
         for label, widget in self.widgets.items():
             value = widget.get_value()
             location = self.locations[label]
             self.set_config_value(value, location)
 
-    def populate(self):
+    def populate(self, trace = None):
         """
         Populate widgets with the current config values.
         """
+        log.log_trace(self, "populate", trace)
+
         for label, widget in self.widgets.items():
             location = self.locations[label]
             value = self.get_config_value(location)
@@ -333,40 +355,67 @@ class Settings:
             self.settings_tabs.add(self.tabs_dict[tab],
                                    text = tab, **tab_kwargs)
 
-        self.settings_tabs.grid(row = 1, column = 1, sticky = "nesw")
+        self.settings_tabs.grid(row = 1, column = 1,
+                                columnspan = self.pr.c.columnspan_all,
+                                sticky = "nesw")
 
 
         self.entries = {
             "Naming": [
                 {"label": "Base input directory",
                  "type": "entry",
+                 "datatype": str,
                  "location": ["config", "Naming", "base_input_directory"]},
                 {"label": "Base output directory",
                  "type": "entry",
+                 "datatype": str,
                  "location": ["config", "Naming", "base_output_directory"]},
                 {"label": "Save table on close",
                  "type": "checkbutton",
+                 "datatype": bool,
                  "location": ["config", "Naming", "FileListTreeview",
                               "save_on_close"]},
                 {"label": "Check if URL is word",
                  "type": "checkbutton",
+                 "datatype": bool,
                  "location": ["config", "Naming", "do_url_word_check"]}
                 ],
             "Audio Functions": [
                 {"label": "Base input directory",
                  "type": "entry",
-                 "location": ["config", "Naming", "base_input_directory"]},
+                 "datatype": str,
+                 "location": ["config", "AudioFunctions",
+                              "base_input_directory"]},
                 {"label": "Base output directory",
                  "type": "entry",
-                 "location": ["config", "Naming", "base_output_directory"]}
+                 "datatype": str,
+                 "location": ["config", "AudioFunctions",
+                              "base_output_directory"]},
+                {"label": "Rewind seconds",
+                 "type": "entry",
+                 "datatype": int,
+                 "location": ["config", "AudioFunctions", "AudioInterface",
+                              "rewind_seconds"]},
+                {"label": "Fast forward seconds",
+                 "type": "entry",
+                 "datatype": int,
+                 "location": ["config", "AudioFunctions", "AudioInterface",
+                              "fast_forward_seconds"]},
+                {"label": "Breakpoint grace period",
+                 "type": "entry",
+                 "datatype": int,
+                 "location": ["config", "AudioFunctions", "AudioInterface",
+                              "breakpoint_grace_period"]}
                 ],
             "Tagging": [
                 {"label": "Base input directory",
                  "type": "entry",
-                 "location": ["config", "Naming", "base_input_directory"]},
+                 "datatype": str,
+                 "location": ["config", "Tagging", "base_input_directory"]},
                 {"label": "Base output directory",
                  "type": "entry",
-                 "location": ["config", "Naming", "base_output_directory"]}
+                 "datatype": str,
+                 "location": ["config", "Tagging", "base_output_directory"]}
                 ]
             }
 
@@ -388,6 +437,47 @@ class Settings:
                 trace = inf_trace
                 )
 
+        self.footer_frame = tk.Frame(
+            self.window,
+            background = self.pr.c.colour_prospero_blue
+            )
+
+        self.apply_button = tk.Button(
+            self.footer_frame,
+            text = "Apply",
+            **self.pr.c.button_light_standard_args,
+            command = self.apply_settings,
+            width = 8
+            )
+        self.apply_button.grid(row = 0, column = 1,
+                               **self.pr.c.grid_sticky_padding_small)
+
+        self.cencel_button = tk.Button(
+            self.footer_frame,
+            text = "Cancel",
+            **self.pr.c.button_light_standard_args,
+            command = self.destroy,
+            width = 8
+            )
+        self.cencel_button.grid(row = 0, column = 2,
+                               **self.pr.c.grid_sticky_padding_small)
+
+        self.ok_button = tk.Button(
+            self.footer_frame,
+            text = "OK",
+            **self.pr.c.button_light_standard_args,
+            command = self.apply_and_exit,
+            width = 8
+            )
+        self.ok_button.grid(row = 0, column = 3,
+                               **self.pr.c.grid_sticky_padding_small)
+
+        self.footer_frame.grid(row = 2, column = 0,
+                               columnspan = self.pr.c.columnspan_all,
+                               **self.pr.c.grid_sticky)
+
+
+
 
         """
         #######################################################################
@@ -400,6 +490,10 @@ class Settings:
         self.selection_frame.columnconfigure(0, weight=1)
         self.selection_frame.columnconfigure(1, weight=0)
         self.title_frame.columnconfigure(MainTitleGridColumn, weight=0)
+        self.footer_frame.columnconfigure(0, weight = 1)
+        self.footer_frame.columnconfigure(1, weight = 0)
+        self.footer_frame.columnconfigure(2, weight = 0)
+        self.footer_frame.columnconfigure(3, weight = 0)
 
         """
         #######################################################################
@@ -408,6 +502,20 @@ class Settings:
         """
         self.populate_settings_list()
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
+
+    def apply_settings(self, *args, trace = None):
+        self.pr.f._log_trace(self, "apply_settings", trace)
+        inf_trace = {"source": "function call", 
+                     "parent": self.name + ".apply_settings"}
+        for tab in self.SettingsTab_dict.values():
+            tab.save(trace = inf_trace)
+
+    def apply_and_exit(self, *args, trace = None):
+        self.pr.f._log_trace(self, "apply_and_exit", trace)
+        inf_trace = {"source": "function call", 
+                     "parent": self.name + ".apply_and_exit"}
+        self.apply_settings(*args, trace = inf_trace)
+        self.destroy(*args, trace = inf_trace)
 
     def populate_settings_list(self, trace = None):
         self.pr.f._log_trace(self, "populate_settings_list", trace)
@@ -420,7 +528,7 @@ class Settings:
         self.root.eval(f'tk::PlaceWindow {self.window} center')
         self.window.mainloop()
         
-    def destroy(self, trace = None):
+    def destroy(self, *args, trace = None):
         self.pr.f._log_trace(self, "destroy", trace)
         self.window.destroy()
         self.root.destroy()
@@ -440,4 +548,6 @@ if __name__ == "__main__":
             self.r = prr.Resources(parent = self)
             self.settings = Settings(self)
             self.settings.start()
+
+            config.config.dump_values()
     App()
