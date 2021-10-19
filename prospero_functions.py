@@ -68,7 +68,7 @@ class Functions:
         return [i*multiple for i in data]
     
     
-    def null_function(self, trace = None):
+    def null_function(self, trace = None, *args, **kwargs):
         return
     
     def true_titlecase(self, string, trace = None):
@@ -832,4 +832,3 @@ class Functions:
         
         return tag_dict
     
-
