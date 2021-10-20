@@ -15,8 +15,6 @@ def lcm(*args):
         lcm *= x//gcd(lcm, x)
     return lcm
 
-
-
 class WidgetLayout:
     """
     Private class containing layout logic for the WidgetSet classes. Should
