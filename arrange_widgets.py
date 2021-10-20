@@ -9,10 +9,10 @@ from math import gcd
 from functools import reduce
 import tkinter as tk
 
-def lcm(self, *args):
+def lcm(*args):
     lcm = 1
     for x in args:
-        lcm = lcm*x//gcd(lcm, x)
+        lcm *= x//gcd(lcm, x)
     return lcm
 
 
@@ -247,7 +247,6 @@ class WidgetSet(WidgetLayout):
             if key < 0: continue
 
             w_dict.setdefault("grid_kwargs", {})
-            print(w_dict, key)
             w = w_dict["widget"]
             w.grid(**self._get_grid_kwargs(key),
                    **w_dict["grid_kwargs"])
@@ -376,7 +375,6 @@ class ButtonSet(WidgetSet):
         for key in buttons:
              self.add_button(key)
         self.widgets = self.buttons
-        print(self.buttons)
         self.create_widgets()
 
     def add_button(self, key):
@@ -446,7 +444,7 @@ if __name__ == "__main__":
                    "grid_kwargs": {"sticky": "nesw"},
                    "stretch_width": False, "stretch_height": True},
                -1: {"grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": True, "stretch_height": True},
+                   "stretch_width": False, "stretch_height": True},
                }
 
     bs = ButtonSet(root,
@@ -455,14 +453,16 @@ if __name__ == "__main__":
                     frm_kwargs = {"bg": "black"},
                     spc_kwargs = {"bg": "black"},
                     set_width = 70)
-    
+
+    print(bs.layout)
+
     # bs._check_layout(bs.layout)
     
     bs.get_frame().grid(row = 1, column = 1, **{"sticky" : "nesw"})
-    root.rowconfigure(0, weight = 1)
-    root.columnconfigure(0, weight = 1)
+    root.rowconfigure(0, weight = 0)
+    root.columnconfigure(0, weight = 0)
     root.rowconfigure(1, weight = 1)
     root.columnconfigure(1, weight = 1)
-    root.rowconfigure(2, weight = 1)
-    root.columnconfigure(2, weight = 1)
+    root.rowconfigure(2, weight = 0)
+    root.columnconfigure(2, weight = 0)
     root.mainloop()

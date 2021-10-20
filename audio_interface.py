@@ -14,22 +14,23 @@ import config
 
 class AudioInterface:
     def __init__(self, parent, trace = None):
-        
+
+        self.name = self.__class__.__name__
         self.parent = parent
         self.root = parent.root
         self.pr = parent.pr
         self.tab = parent.tab
         
         self.pr.f._log_trace(self, "__init__", trace)
-        inf_trace = {"source": "function call", "parent": self.__class__.__name__ + ".__init__"}
+        inf_trace = {"source": "function call", "parent": self.name + ".__init__"}
         
         self.audio = None
         self.load_from_config(trace = inf_trace)
         
         """
-        #####################################################################################
-        ################################ BUTTONS ############################################
-        #####################################################################################
+        ######################################################################
+        ################################ BUTTONS #############################
+        ######################################################################
         """
         
         
@@ -43,63 +44,86 @@ class AudioInterface:
         self.btnSkipToNext_GridColumn = self.btnFastForward_GridColumn + 1
         self.AudioControlsSpacer2_GridColumn = self.btnSkipToNext_GridColumn + 1
         
-        self.audio_button_standard_args = {"background" : self.pr.c.colour_interface_button, 
-                                            "font" : self.pr.c.font_prospero_interface_button
-                                            }
+        self.audio_button_standard_args = {
+            "background" : self.pr.c.colour_interface_button,
+            "font" : self.pr.c.font_prospero_interface_button
+            }
                 
-        self.AudioControlsSpacer1 = tk.Label(self.frame, 
-                                             text="", 
-                                             bg = self.pr.c.colour_background)
-        self.btnSkipToPrevious = tk.Button(self.frame,
-                                            text="⏮", 
-                                            command = self._btnSkipToPrevious_Click,
-                                            **self.audio_button_standard_args
-                                            )
-        self.btnRewind = tk.Button(self.frame,
-                                            text="⏪",  
-                                            command = self._btnRewind_Click,
-                                            **self.audio_button_standard_args
-                                            )
-        self.btnTogglePlayPause = tk.Button(self.frame,
-                                            text="▶️", 
-                                            command = self._btnTogglePlayPause_Click,
-                                            **self.audio_button_standard_args
-                                            )
-        self.btnFastForward = tk.Button(self.frame,
-                                            text="⏩",  
-                                            command = self._btnFastForward_Click,
-                                            **self.audio_button_standard_args
-                                            )
-        self.btnSkipToNext = tk.Button(self.frame,
-                                            text="⏭", 
-                                            command = self._btnSkipToNext_Click,
-                                            **self.audio_button_standard_args
-                                            )
-        self.AudioControlsSpacer2 = tk.Label(self.frame, 
-                                             text="", 
-                                             bg = self.pr.c.colour_background)
-        
-        self.AudioControlsSpacer1.grid(row = 0, 
-                                       column = self.AudioControlsSpacer1_GridColumn, 
-                                       sticky = "nesw")
-        self.btnSkipToPrevious.grid(row = 0, 
-                                    column = self.btnSkipToPrevious_GridColumn, 
-                                    sticky = "nesw")
-        self.btnRewind.grid(row = 0, 
-                            column = self.btnRewind_GridColumn, 
-                            sticky = "nesw")
-        self.btnTogglePlayPause.grid(row = 0, 
-                                     column = self.btnTogglePlayPause_GridColumn, 
-                                     sticky = "nesw")
-        self.btnFastForward.grid(row = 0, 
-                                 column = self.btnFastForward_GridColumn, 
-                                 sticky = "nesw")
-        self.btnSkipToNext.grid(row = 0, 
-                                column = self.btnSkipToNext_GridColumn, 
-                                sticky = "nesw")
-        self.AudioControlsSpacer2.grid(row = 0, 
-                                       column = self.AudioControlsSpacer2_GridColumn, 
-                                       sticky = "nesw")
+        self.AudioControlsSpacer1 = tk.Label(
+            self.frame,
+            text="",
+            bg = self.pr.c.colour_background
+            )
+        self.btnSkipToPrevious = tk.Button(
+            self.frame,
+            text="⏮",
+            command = self._btnSkipToPrevious_Click,
+            **self.audio_button_standard_args
+            )
+        self.btnRewind = tk.Button(
+            self.frame,
+            text="⏪",
+            command = self._btnRewind_Click,
+            **self.audio_button_standard_args
+            )
+        self.btnTogglePlayPause = tk.Button(
+            self.frame,
+            text="▶️",
+            command = self._btnTogglePlayPause_Click,
+            **self.audio_button_standard_args
+            )
+        self.btnFastForward = tk.Button(
+            self.frame,
+            text="⏩",
+            command = self._btnFastForward_Click,
+            **self.audio_button_standard_args
+            )
+        self.btnSkipToNext = tk.Button(
+            self.frame,
+            text="⏭",
+            command = self._btnSkipToNext_Click,
+            **self.audio_button_standard_args
+            )
+        self.AudioControlsSpacer2 = tk.Label(
+            self.frame,
+            text="",
+            bg = self.pr.c.colour_background
+            )
+        self.AudioControlsSpacer1.grid(
+            row = 0,
+            column = self.AudioControlsSpacer1_GridColumn,
+            sticky = "nesw"
+            )
+        self.btnSkipToPrevious.grid(
+            row = 0,
+            column = self.btnSkipToPrevious_GridColumn,
+            sticky = "nesw"
+            )
+        self.btnRewind.grid(
+            row = 0,
+            column = self.btnRewind_GridColumn,
+            sticky = "nesw"
+            )
+        self.btnTogglePlayPause.grid(
+            row = 0,
+            column = self.btnTogglePlayPause_GridColumn,
+            sticky = "nesw"
+            )
+        self.btnFastForward.grid(
+            row = 0,
+            column = self.btnFastForward_GridColumn,
+            sticky = "nesw"
+            )
+        self.btnSkipToNext.grid(
+            row = 0,
+            column = self.btnSkipToNext_GridColumn,
+            sticky = "nesw"
+            )
+        self.AudioControlsSpacer2.grid(
+            row = 0,
+            column = self.AudioControlsSpacer2_GridColumn,
+            sticky = "nesw"
+            )
         
         """
         #######################################################################
@@ -132,7 +156,7 @@ class AudioInterface:
         """
         self.pr.f._log_trace(self, "refresh_breakpoints", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.__class__.__name__ + ".refresh_breakpoints"}
+                     "parent": self.name + ".refresh_breakpoints"}
         self.breakpoints = self.parent._true_breakpoints(scale_to_sound = True, 
                                                          trace = inf_trace)
     
@@ -142,7 +166,7 @@ class AudioInterface:
         """
         self.pr.f._log_trace(self, "_btnSkipToPrevious_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.__class__.__name__ + 
+                     "parent": self.name + 
                          "._btnSkipToPrevious_Click"}
         
         if self.audio is None: return
@@ -175,7 +199,7 @@ class AudioInterface:
         """
         self.pr.f._log_trace(self, "_btnRewind_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.__class__.__name__ + "._btnRewind_Click"}
+                     "parent": self.name + "._btnRewind_Click"}
         if self.audio is None: return
         if not self.playing:
             self.set_play_point(offset = -1*self.rewind_milliseconds, 
@@ -194,7 +218,7 @@ class AudioInterface:
         """
         self.pr.f._log_trace(self, "_btnTogglePlayPause_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.__class__.__name__ + 
+                     "parent": self.name + 
                          "._btnTogglePlayPause_Click"}
         self.refresh_breakpoints(trace = inf_trace)
         
@@ -225,7 +249,7 @@ class AudioInterface:
         """
         self.pr.f._log_trace(self, "_btnFastForward_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.__class__.__name__ + 
+                     "parent": self.name + 
                          "._btnFastForward_Click"}
         if self.audio is None: return
         if not self.playing:
@@ -245,13 +269,15 @@ class AudioInterface:
         """
         self.pr.f._log_trace(self, "_btnSkipToNext_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.__class__.__name__ + 
+                     "parent": self.name + 
                          "._btnSkipToNext_Click"}
         if self.audio is None or not self.playing: return
         
         self.end_audio_process(trace = inf_trace)
         self.set_play_point(trace = inf_trace)
-        breakpoint_range = self._get_breakpoint_index(self.get_play_point(trace = inf_trace), trace = inf_trace)
+        breakpoint_range = self._get_breakpoint_index(
+            self.get_play_point(trace = inf_trace), trace = inf_trace
+            )
         self.play_point = int(self.breakpoints[breakpoint_range[1]])
         self._start_audio_process(trace = inf_trace)
         return
@@ -287,9 +313,10 @@ class AudioInterface:
         
     def play_audio(self, trace = None):
         self.pr.f._log_trace(self, "play_audio", trace, 
-                             add = "Started playing audio at play_point %d" % self.play_point)
+                             add = "Started playing audio at play_point %d"
+                             % self.play_point)
         inf_trace = {"source": "function call", 
-                     "parent": self.__class__.__name__ + ".play_audio"}
+                     "parent": self.name + ".play_audio"}
         
         #pydub.playback.play
         play(self.audio[self.get_play_point():])
@@ -305,7 +332,7 @@ class AudioInterface:
         """
         self.pr.f._log_trace(self, "get_play_point", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.__class__.__name__ + ".get_play_point"}
+                     "parent": self.name + ".get_play_point"}
         self.refresh_breakpoints(trace = inf_trace)
         self.play_point = max(self.breakpoints[0], self.play_point)
         self.play_point = min(self.breakpoints[-1], self.play_point)
@@ -332,7 +359,7 @@ class AudioInterface:
         """
         self.pr.f._log_trace(self, "_get_breakpoint_index", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.__class__.__name__ + "._get_breakpoint_index"}
+                     "parent": self.name + "._get_breakpoint_index"}
         
         self.refresh_breakpoints(trace = inf_trace)
         num_breakpoints = len(self.breakpoints)
@@ -354,7 +381,7 @@ class AudioInterface:
         """
         self.pr.f._log_trace(self, "draw_progress_bar", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.__class__.__name__ + ".draw_progress_bar"}
+                     "parent": self.name + ".draw_progress_bar"}
         
         self.set_play_point(offset = 0, trace = inf_trace)
         self.parent.draw_playback_progress_bar(self.get_play_point(trace = inf_trace), trace = inf_trace)
