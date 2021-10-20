@@ -18,6 +18,10 @@ def lcm(self, *args):
 
 
 class WidgetLayout:
+    """
+    Private class containing layout logic for the WidgetSet classes. Should
+    not be instantiated directly.
+    """
     def __init__(self, layout):
         self.original_layout = layout
         self.span = self._get_set_width(layout)
@@ -194,16 +198,18 @@ class WidgetLayout:
                    "columnspan": self._get_column_span(num)
                    })
 
-    def _get_set_width(self, layout):
+    def _get_set_width(self, layout = None):
+        if layout is None: layout = self.layout
         lengths = [len(k) for k in layout]
         return lcm(*lengths)
         
-    def _get_set_height(self, layout):
+    def _get_set_height(self, layout = None):
+        if layout is None: layout = self.layout
         return len(layout)
 
 
 class WidgetSet(WidgetLayout):
-    def __init__(self, root, widgets, layout,
+    def __init__(self, root, widgets, layout, kwargs_dict = None,
                  frm_kwargs = None, grd_kwargs = None, spc_kwargs = None):
         """
         Parameters
@@ -310,40 +316,55 @@ class WidgetSet(WidgetLayout):
 
     def rc_configure(self):
         """
-        Configure the row/column allocation of scaling changes.
+        Configure the row/column allocation of scaling changes. Strictly
+        enforces fixed width assumptions. If unspecified, assume that the
+        widget should be fixed width.
         """
-        conf_list_c = []
-        conf_list_r = []
-
         grd_kw = {key: self._get_grid_kwargs(key) for key in self.widgets}
 
         w_bnd = {k: {"cmin": grd_kw[k]["column"],
-                      "cmax": grd_kw[k]["column"] + grd_kw[k]["columnspan"],
-                      "rmin": grd_kw[k]["row"],
-                      "rmax": grd_kw[k]["row"] + grd_kw[k]["rowspan"]
-                      } for k in grd_kw
+                     "cmax": grd_kw[k]["column"] + grd_kw[k]["columnspan"],
+                     "rmin": grd_kw[k]["row"],
+                     "rmax": grd_kw[k]["row"] + grd_kw[k]["rowspan"]
+                     } for k in grd_kw
                   }
 
-        for w in self.widgets:
-            if self.widgets[w]["stretch_width"]:
-                weight = 1
-            else:
-                weight = 0
-            for c in range(w_bnd[w]["cmin"], w_bnd[w]["cmax"]):
-                if c in conf_list_c: continue
-                conf_list_c.append(c)
-                self.frame.columnconfigure(c, weight = weight)
+        # dictionary of whether to allow each row or column to stretch
+        rc_cfg = {
+            "column": {c: True for c in range(self._get_set_width())},
+            "row": {r: True for r in range(self._get_set_height())}
+            }
 
-            if self.widgets[w]["stretch_height"]:
-                weight = 1
+        for w in self.widgets:
+            # do not stretch if unspecified
+            self.widgets[w].setdefault("stretch_width", False)
+            self.widgets[w].setdefault("stretch_height", False)
+
+            if not self.widgets[w]["stretch_width"]:
+                for c in range(w_bnd[w]["cmin"], w_bnd[w]["cmax"]):
+                    rc_cfg["column"][c] = False
+
+            if not self.widgets[w]["stretch_height"]:
+                for r in range(w_bnd[w]["rmin"], w_bnd[w]["rmax"]):
+                    rc_cfg["row"][r] = False
+
+        for c, bln in rc_cfg["column"].items():
+            if bln:
+                self.frame.columnconfigure(c, weight = 1)
             else:
-                weight = 0
-            for r in range(w_bnd[w]["rmin"], w_bnd[w]["rmax"]):
-                if r in conf_list_r: continue
-                conf_list_r.append(r)
-                self.frame.columnconfigure(r, weight = weight)
+                self.frame.columnconfigure(c, weight = 0)
+
+        for r, bln in rc_cfg["row"].items():
+            if bln:
+                self.frame.rowconfigure(r, weight = 1)
+            else:
+                self.frame.rowconfigure(r, weight = 0)
 
 class ButtonSet(WidgetSet):
+    """
+    Generate a bound button set from a dictionary of buttons and bindings and
+    corresponding layout matrix
+    """
     def __init__(self, root, buttons, set_width, layout, **kwargs):
         self.root = root
         self.buttons = buttons
@@ -402,7 +423,7 @@ if __name__ == "__main__":
                    "bindings": {"event": ["<Button-1>", "<Shift-Button-1>"],
                                 "function": [btn1, btn1_shift]},
                    "grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": True, "stretch_height": True},
+                   "stretch_width": False, "stretch_height": True},
                2: {"label": "btn2",
                    "grid_kwargs": {"sticky": "nesw"},
                    "stretch_width": True, "stretch_height": True},
@@ -417,13 +438,13 @@ if __name__ == "__main__":
                    "stretch_width": True, "stretch_height": True},
                6: {"label": "btn6",
                    "grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": True, "stretch_height": True},
+                   "stretch_width": True, "stretch_height": False},
                7: {"label": "btn7",
                    "grid_kwargs": {"sticky": "nesw"},
                    "stretch_width": True, "stretch_height": True},
                8: {"label": "btn8",
                    "grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": True, "stretch_height": True},
+                   "stretch_width": False, "stretch_height": True},
                -1: {"grid_kwargs": {"sticky": "nesw"},
                    "stretch_width": True, "stretch_height": True},
                }
