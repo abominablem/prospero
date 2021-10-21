@@ -8,7 +8,7 @@ Created on Tue Apr 20 23:51:25 2021
 import tkinter as tk
 from tkinter import ttk
 from datetime import datetime
-from button_set import ButtonSet
+from arrange_widgets import WidgetSet, ButtonSet
 
 class ValueFromFilename:
     def __init__(self, parent, filename, columnString, columnId, treeview, 
@@ -20,7 +20,7 @@ class ValueFromFilename:
         
         self.class_name = "ValueFromFilename"
         self.pr.f._log_trace(self, "__init__", trace)
-        inf_trace = {"source": "function call", 
+        inf_trace = {"source": "function call",
                      "parent": self.class_name + ".__init__"}
         
         self.columnString = columnString
@@ -36,18 +36,14 @@ class ValueFromFilename:
                                   background = self.pr.c.colour_background)
         self.window.title("Prospero - Decide tag value from filename - " 
                           + columnString)
-        
-        entry_additional_args = {"font" : self.pr.c.font_prospero_box_header}
-        """
-        ### FRAMES ###
-        """
-        self.window_InputOutputFrame = tk.Frame(
-            self.window, background = self.pr.c.colour_background
-            )
-        self.window_InputOutputFrame.grid(
-            row = 0, column = 0,
-            **self.pr.c.grid_sticky_padding_small
-            )
+
+        entry_kwargs = {"font" : self.pr.c.font_prospero_box_header}
+        frame_kwargs = {"bg": self.pr.c.colour_background}
+
+        # frame to contain all widgets in window
+        self.widget_frame = tk.Frame(self.window, **frame_kwargs)
+
+
         """
         ### VALUE ###
         """
@@ -55,73 +51,24 @@ class ValueFromFilename:
         """
         ### LABELS AND TEXT BOXES ###
         """
-    
-        labelFilenameGridRow = 0
-        labelFilenameGridColumn = 0
-        labelFilenameColumnSpan = 1
-        labelFilenameRowSpan = 1
+        lblFilename = tk.Label(self.widget_frame,
+                               text = "Filename",
+                               **self.pr.c.label_standard_args)
         
-        labelFilename = tk.Label(self.window_InputOutputFrame, 
-                                 text = "Filename",
-                                 **self.pr.c.label_standard_args)
+        lblTag = tk.Label(self.widget_frame,
+                          text = "Tag value",
+                          **self.pr.c.label_standard_args)
         
-        labelFilename.grid(row = labelFilenameGridRow, 
-                            column = labelFilenameGridColumn,
-                            columnspan = labelFilenameColumnSpan,
-                            rowspan = labelFilenameRowSpan,
-                            **self.pr.c.grid_sticky_padding_small
-                            )   
-        
-        labelTagGridRow = labelFilenameGridRow + 1
-        labelTagGridColumn = labelFilenameGridColumn
-        labelTagColumnSpan = labelFilenameColumnSpan
-        labelTagRowSpan = 1    
-        
-        labelTag = tk.Label(self.window_InputOutputFrame, 
-                            text = "Tag value", 
-                            **self.pr.c.label_standard_args) 
-        
-        labelTag.grid(row = labelTagGridRow, 
-                                          column = labelTagGridColumn,
-                                          columnspan = labelTagColumnSpan,
-                                          rowspan = labelTagRowSpan,
-                                          **self.pr.c.grid_sticky_padding_small
-                                          )      
-        
-        txtFilenameGridRow = labelFilenameGridRow
-        txtFilenameGridColumn = labelFilenameGridColumn + 1
-        txtFilenameColumnSpan = self.pr.c.columnspan_all
-        txtFilenameRowSpan = labelFilenameRowSpan
-        
-        self.txt_filename = tk.Entry(self.window_InputOutputFrame,
+        self.txt_filename = tk.Entry(self.widget_frame,
                                      **self.pr.c.entry_medium_args,
-                                     **entry_additional_args
+                                     **entry_kwargs
                                      )
-        
-        self.txt_filename.grid(row = txtFilenameGridRow, 
-                                column = txtFilenameGridColumn,
-                                columnspan = txtFilenameColumnSpan,
-                                rowspan = txtFilenameRowSpan,
-                                **self.pr.c.grid_sticky_padding_small
+
+        self.txt_tag = tk.Entry(self.widget_frame,
+                                **self.pr.c.entry_medium_args,
+                                **entry_kwargs,
+                                textvariable = self.value
                                 )
-        
-        txtTagGridRow = txtFilenameGridRow + 1
-        txtTagGridColumn = txtFilenameGridColumn
-        txtTagColumnSpan = txtFilenameColumnSpan
-        txtTagRowSpan = 1
-        
-        self.txt_tag = tk.Entry(self.window_InputOutputFrame,
-                            **self.pr.c.entry_medium_args,
-                            **entry_additional_args,
-                            textvariable = self.value
-                            )
-        
-        self.txt_tag.grid(row = txtTagGridRow, 
-                     column = txtTagGridColumn,
-                     columnspan = txtTagColumnSpan,
-                     rowspan = txtTagRowSpan,
-                     **self.pr.c.grid_sticky_padding_small
-                     )
         
         """
         ### POPULATE txtTAG WITH CURRENT VALUE ###
@@ -158,11 +105,7 @@ class ValueFromFilename:
                 Variant 1)      If the Shift key is held, convert the entire txtTag value to title case
             Clear:          Delete the txtTag value
         """
-        
-        grid_kwargs = self.pr.c.grid_sticky
-        frame_kwargs = {"bg": self.pr.c.colour_background}
-        button_kwargs = self.pr.c.button_standard_args
-        
+
         def trace_click(btn):
             return {"source": "bound event", 
                     "widget": self.class_name + ".%s" % btn, 
@@ -173,89 +116,118 @@ class ValueFromFilename:
                     "widget": self.class_name + ".%s" % btn, 
                     "event": "<Shift-Button-1>"}
         
-        bindings = {"btnPrefix": {"event": ["<Button-1>",
-                                            "<Shift-Button-1>"], 
-                                  "function": [lambda event: self.btnPrefix_Click(event, trace = trace_click("btnPrefix")),
-                                               lambda event: self.btnPrefix_ShiftClick(event, trace = trace_shift_click("btnPrefix"))]
-                                  },
-                    "btnSuffix": {"event": ["<Button-1>",
-                                            "<Shift-Button-1>"], 
-                                  "function": [lambda event: self.btnSuffix_Click(event, trace = trace_click("btnSuffix")),
-                                               lambda event: self.btnSuffix_ShiftClick(event, trace = trace_shift_click("btnSuffix"))]
-                                  },
-                    "btnReplace": {"event": ["<Button-1>",
-                                            "<Shift-Button-1>"], 
-                                  "function": [lambda event: self.btnReplace_Click(event, trace = trace_click("btnReplace")),
-                                               lambda event: self.btnReplace_ShiftClick(event, trace = trace_shift_click("btnReplace"))]
-                                  },
-                    "btnSubmit": {"event": ["<Button-1>",
-                                            "<Shift-Button-1>"], 
-                                  "function": [lambda event: self.btnSubmit_Click(event, trace = trace_click("btnSubmit")),
-                                               lambda event: self.btnSubmit_ShiftClick(event, trace = trace_shift_click("btnSubmit"))]
-                                  },
-                    "btnUppercase": {"event": ["<Button-1>",
-                                            "<Shift-Button-1>"], 
-                                  "function": [lambda event: self.btnUppercase_Click(event, trace = trace_click("btnUppercase")),
-                                               lambda event: self.btnUppercase_ShiftClick(event, trace = trace_shift_click("btnUppercase"))]
-                                  },
-                    "btnLowercase": {"event": ["<Button-1>",
-                                            "<Shift-Button-1>"], 
-                                  "function": [lambda event: self.btnLowercase_Click(event, trace = trace_click("btnLowercase")),
-                                               lambda event: self.btnLowercase_ShiftClick(event, trace = trace_shift_click("btnLowercase"))]
-                                  },
-                    "btnTitleCase": {"event": ["<Button-1>",
-                                            "<Shift-Button-1>"], 
-                                  "function": [lambda event: self.btnTitleCase_Click(event, trace = trace_click("btnTitleCase")),
-                                               lambda event: self.btnTitleCase_ShiftClick(event, trace = trace_shift_click("btnTitleCase"))]
-                                  },
-                    "btnClear": {"event": ["<Button-1>",
-                                            "<Shift-Button-1>"], 
-                                  "function": [lambda event: self.btnClear_Click(event, trace = trace_click("btnClear")),
-                                               lambda event: self.btnClear_ShiftClick(event, trace = trace_shift_click("btnClear"))]
-                                  },
-                    "btnRemoveDiacritics": {"event": ["<Button-1>",
-                                            "<Shift-Button-1>"], 
-                                  "function": [lambda event: self.btnRemoveDiacritics_Click(event, trace = trace_click("btnRemoveDiacritics")),
-                                               lambda event: self.btnRemoveDiacritics_ShiftClick(event, trace = trace_shift_click("btnRemoveDiacritics"))]
-                                  },
-                    "btnRematchValue": {"event": ["<Button-1>",
-                                            "<Shift-Button-1>"], 
-                                  "function": [lambda event: self.btnRematchValue_Click(event, trace = trace_click("btnRematchValue")),
-                                               lambda event: self.btnRematchValue_ShiftClick(event, trace = trace_shift_click("btnRematchValue"))]
-                                  },
-                    "btnToggleFilters": {"event": ["<Button-1>",
-                                            "<Shift-Button-1>"], 
-                                  "function": [lambda event: self.btnToggleFilters_Click(event, trace = trace_click("btnToggleFilters")),
-                                               lambda event: self.btnToggleFilters_ShiftClick(event, trace = trace_shift_click("btnToggleFilters"))]
-                                  }
+        buttons = {1: {"label": "Prefix",
+                       "bindings": {"event": ["<Button-1>",
+                                              "<Shift-Button-1>"],
+                                    "function": [lambda event: self.btnPrefix_Click(event, trace = trace_click("btnPrefix")),
+                                                 lambda event: self.btnPrefix_ShiftClick(event, trace = trace_shift_click("btnPrefix"))]
+                                    },
+                       "widget_kwargs": self.pr.c.button_standard_args,
+                       "grid_kwargs": self.pr.c.grid_sticky,
+                       "stretch_width": True, "stretch_height": True},
+                   2: {"label": "Suffix",
+                       "bindings": {"event": ["<Button-1>",
+                                              "<Shift-Button-1>"],
+                                    "function": [lambda event: self.btnSuffix_Click(event, trace = trace_click("btnSuffix")),
+                                                 lambda event: self.btnSuffix_ShiftClick(event, trace = trace_shift_click("btnSuffix"))]
+                              },
+                       "widget_kwargs": self.pr.c.button_standard_args,
+                       "grid_kwargs": self.pr.c.grid_sticky,
+                       "stretch_width": True, "stretch_height": True},
+                   3: {"label": "Replace",
+                       "bindings": {"event": ["<Button-1>",
+                                              "<Shift-Button-1>"],
+                                    "function": [lambda event: self.btnReplace_Click(event, trace = trace_click("btnReplace")),
+                                                 lambda event: self.btnReplace_ShiftClick(event, trace = trace_shift_click("btnReplace"))]
+                                    },
+                       "widget_kwargs": self.pr.c.button_standard_args,
+                       "grid_kwargs": self.pr.c.grid_sticky,
+                       "stretch_width": True, "stretch_height": True},
+                   4: {"label": "Submit",
+                       "bindings": {"event": ["<Button-1>",
+                                              "<Shift-Button-1>"],
+                                    "function": [lambda event: self.btnSubmit_Click(event, trace = trace_click("btnSubmit")),
+                                                 lambda event: self.btnSubmit_ShiftClick(event, trace = trace_shift_click("btnSubmit"))]
+                                    },
+                       "widget_kwargs": self.pr.c.button_standard_args,
+                       "grid_kwargs": self.pr.c.grid_sticky,
+                       "stretch_width": True, "stretch_height": True},
+                   5: {"label": "Uppercase",
+                       "bindings": {"event": ["<Button-1>",
+                                              "<Shift-Button-1>"],
+                                    "function": [lambda event: self.btnUppercase_Click(event, trace = trace_click("btnUppercase")),
+                                                 lambda event: self.btnUppercase_ShiftClick(event, trace = trace_shift_click("btnUppercase"))]
+                                    },
+                       "widget_kwargs": self.pr.c.button_standard_args,
+                       "grid_kwargs": self.pr.c.grid_sticky,
+                       "stretch_width": True, "stretch_height": True},
+                   6: {"label": "Lowercase",
+                       "bindings": {"event": ["<Button-1>",
+                                              "<Shift-Button-1>"],
+                                    "function": [lambda event: self.btnLowercase_Click(event, trace = trace_click("btnLowercase")),
+                                                 lambda event: self.btnLowercase_ShiftClick(event, trace = trace_shift_click("btnLowercase"))]
+                                    },
+                       "widget_kwargs": self.pr.c.button_standard_args,
+                       "grid_kwargs": self.pr.c.grid_sticky,
+                       "stretch_width": True, "stretch_height": True},
+                   7: {"label": "Title Case",
+                       "bindings": {"event": ["<Button-1>",
+                                              "<Shift-Button-1>"],
+                                    "function": [lambda event: self.btnTitleCase_Click(event, trace = trace_click("btnTitleCase")),
+                                                 lambda event: self.btnTitleCase_ShiftClick(event, trace = trace_shift_click("btnTitleCase"))]
+                                    },
+                       "widget_kwargs": self.pr.c.button_standard_args,
+                       "grid_kwargs": self.pr.c.grid_sticky,
+                       "stretch_width": True, "stretch_height": True},
+                   8: {"label": "Clear",
+                       "bindings": {"event": ["<Button-1>",
+                                              "<Shift-Button-1>"],
+                                    "function": [lambda event: self.btnClear_Click(event, trace = trace_click("btnClear")),
+                                                 lambda event: self.btnClear_ShiftClick(event, trace = trace_shift_click("btnClear"))]
+                                    },
+                       "widget_kwargs": self.pr.c.button_standard_args,
+                       "grid_kwargs": self.pr.c.grid_sticky,
+                       "stretch_width": True, "stretch_height": True},
+                   9: {"label": "Remove Diacritics",
+                       "bindings": {"event": ["<Button-1>",
+                                              "<Shift-Button-1>"],
+                                    "function": [lambda event: self.btnRemoveDiacritics_Click(event, trace = trace_click("btnRemoveDiacritics")),
+                                                 lambda event: self.btnRemoveDiacritics_ShiftClick(event, trace = trace_shift_click("btnRemoveDiacritics"))]
+                                    },
+                       "widget_kwargs": self.pr.c.button_standard_args,
+                       "grid_kwargs": self.pr.c.grid_sticky,
+                       "stretch_width": True, "stretch_height": True},
+                   10: {"label": "Rematch Value",
+                        "bindings": {"event": ["<Button-1>",
+                                               "<Shift-Button-1>"],
+                                     "function": [lambda event: self.btnRematchValue_Click(event, trace = trace_click("btnRematchValue")),
+                                                  lambda event: self.btnRematchValue_ShiftClick(event, trace = trace_shift_click("btnRematchValue"))]
+                                     },
+                       "widget_kwargs": self.pr.c.button_standard_args,
+                        "grid_kwargs": self.pr.c.grid_sticky,
+                        "stretch_width": True, "stretch_height": True},
+                   11: {"label": "Toggle Filters",
+                        "bindings": {"event": ["<Button-1>",
+                                               "<Shift-Button-1>"],
+                                     "function": [lambda event: self.btnToggleFilters_Click(event, trace = trace_click("btnToggleFilters")),
+                                                  lambda event: self.btnToggleFilters_ShiftClick(event, trace = trace_shift_click("btnToggleFilters"))]
+                                     },
+                       "widget_kwargs": self.pr.c.button_standard_args,
+                        "grid_kwargs": self.pr.c.grid_sticky,
+                        "stretch_width": True, "stretch_height": True},
                     }
-        
-        self.buttons = ButtonSet(root = self.window,
-                                 names = ["btnPrefix", "btnSuffix", 
-                                          "btnReplace", "btnSubmit", 
-                                          "btnUppercase", "btnLowercase", 
-                                          "btnTitleCase", "btnClear", 
-                                          "btnRemoveDiacritics", 
-                                          "btnRematchValue", 
-                                          "btnToggleFilters"],
-                                 labels = ["Prefix", "Suffix", 
-                                           "Replace", "Submit", 
-                                           "Uppercase", "Lowercase", 
-                                           "Titlecase", "Clear", 
-                                           "Remove Diacritics", 
-                                           "Rematch Value",
-                                           "Toggle Filters"],
-                                 layout = [[1, 2, 3, 4], 
+
+
+        self.button_set = ButtonSet(root = self.widget_frame,
+                                 buttons = buttons,
+                                 layout = [[1, 2, 3, 4],
                                            [5, 6, 7, 8], 
                                            [9, 10, 11]],
-                                 bindings = bindings,
-                                 grid_kwargs = grid_kwargs,
-                                 frame_kwargs = frame_kwargs,
-                                 button_kwargs = button_kwargs,
+                                 frm_kwargs = frame_kwargs,
                                  set_width = 70)
-        
-        self.buttons.frame.grid(row = 1, column = 0, 
-                                **self.pr.c.grid_sticky_padding_small)
+
+        # self.button_set.frame.grid(row = 1, column = 0,
+        #                            **self.pr.c.grid_sticky_padding_small)
         
         """
         ### SUGGESTED VALUES ###
@@ -266,23 +238,16 @@ class ValueFromFilename:
         self.suggested_values_column_widths = [self.pr.c.width_text_long]
         self.suggested_values_fixed_width = [False]
         
-        self.suggested_values = ttk.Treeview(self.window)
+        self.suggested_values = ttk.Treeview(self.widget_frame)
         
-        self.pr.f.configure_treeview_columns(treeview = self.suggested_values, 
-                                             columns = self.suggested_values_columns,
-                                             headers = self.suggested_values_headers,
-                                             widths = self.suggested_values_column_widths,
-                                             create_columns = True,
-                                             trace = inf_trace
-                                             )
-        self.suggested_values.grid(row = 2,
-                                    column = 0,
-                                    columnspan = self.pr.c.columnspan_all,
-                                    rowspan = 1,
-                                    **self.pr.c.grid_sticky_padding_small
-                                    ) 
-        #     # REMATCH VALUE BUTTON #
-        #     # UNDO BUTTON #
+        self.pr.f.configure_treeview_columns(
+            treeview = self.suggested_values,
+            columns = self.suggested_values_columns,
+            headers = self.suggested_values_headers,
+            widths = self.suggested_values_column_widths,
+            create_columns = True,
+            trace = inf_trace
+            )
         """
         ### POPULATE VALUES ###
         """
@@ -294,13 +259,13 @@ class ValueFromFilename:
         """
         ### BIND EVENTS ###
         """
-        self.window.bind("<Return>", lambda event: self.btnSubmit_Click(event, trace = {"source": "bound event", 
+        self.window.bind("<Return>", lambda event: self.btnSubmit_Click(event, trace = {"source": "bound event",
                                                                                         "widget": self.class_name + ".btnSubmit_Click", 
                                                                                         "event": "<Return>"}))
         self.value.trace_add("write", lambda *args: self._write_value(*args, trace = {"source": "bound event", 
                                                                                       "widget": self.class_name + "._write_value", 
                                                                                       "event": "write"}))
-        self.suggested_values.bind("<Configure>", lambda event: self._resize_treeview(event, trace={"source": "bound event", 
+        self.suggested_values.bind("<Configure>", lambda event: self._resize_treeview(event, trace={"source": "bound event",
                                                                                                     "widget": self.class_name + ".suggested_values", 
                                                                                                     "event": "<Configure>"}))
         self.suggested_values.bind("<1>", lambda event: self._treeview_mouse1_click(event, trace = {"source": "bound event", 
@@ -312,13 +277,34 @@ class ValueFromFilename:
         """
         ### ALLOCATE SCALING ###
         """
-        self.window_InputOutputFrame.columnconfigure(0, weight = 0)
-        self.window_InputOutputFrame.columnconfigure(1, weight = 1)
-        self.window_InputOutputFrame.columnconfigure(2, weight = 1)
+        widgets = {1: {'widget': lblFilename,
+                       'grid_kwargs': self.pr.c.grid_sticky_padding_small},
+                   2: {'widget': self.txt_filename,
+                       'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                       'stretch_width': True},
+                   3: {'widget': lblTag,
+                       'grid_kwargs': self.pr.c.grid_sticky_padding_small},
+                   4: {'widget': self.txt_tag,
+                       'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                       'stretch_width': True},
+                   5: {'widget': self.button_set.frame,
+                       'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                       'stretch_width': True},
+                   6: {'widget': self.suggested_values,
+                       'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                       'stretch_width': True, 'stretch_height': True},
+                   }
+
+        self.widget_set = WidgetSet(frame = self.widget_frame,
+                                    widgets = widgets,
+                                    layout = [[1, 2, 2, 2],
+                                              [3, 4, 4, 4],
+                                              [5],
+                                              [6]]
+                                    )
+        self.widget_set.frame.grid(row = 0, column = 0, sticky = "nesw")
         self.window.columnconfigure(0, weight = 1)
-        self.window.rowconfigure(0, weight = 0)
-        self.window.rowconfigure(1, weight = 1)
-        self.window.rowconfigure(2, weight = 5)
+        self.window.rowconfigure(0, weight = 1)
 
 
         """
@@ -593,7 +579,7 @@ class ValueFromFilename:
         
     def btnClear_ShiftClick(self, event, trace = None):
         self.pr.f._log_trace(self, "btnClear_ShiftClick", trace)
-        self.txt_tag(event)
+        self.btnClear_Click(event)
         return event
     
     
@@ -841,6 +827,5 @@ class ValueFromFilename:
         if column == "URL":
             value = value.replace(r"https://", "")
             value = value.replace(r"http://", "")
-            
         return value
         
