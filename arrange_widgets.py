@@ -215,10 +215,21 @@ class WidgetSet(WidgetLayout):
         root : tk.Frame
             master to add the frame to.
         widgets : dict
-            dict of tkinter widgets with keys the corresponding names.
+            dict of tkinter widgets with keys the corresponding numbers used
+            when specifying the layout
         layout : list
-            Up to 2-dimensional list corresponding to a layout of widgets in
-            a generated frame.
+            Up to 2-dimensional list defining the layout of the buttons. Use
+            sequential numbers aligning to the list of button names.
+            [[1, 2 , 2],[1, 3, 4],[5]] will result in a set of buttons that
+            looks like the following:
+            [1][  2 ]
+            ["][3][4]
+            [   5   ]
+            The number of entries in each row will weight the relative width of
+            each button.
+            Use negative numbers to insert a blank space in the button set. 
+            Where buttons span multiple rows, the button width is determined by 
+            the first row it appears.
         w_kwargs : dict
             Dictionary  of dictionaries to use as grid_kwargs
             when arranging the widgets. keys must be the widget names.
@@ -317,32 +328,20 @@ class WidgetSet(WidgetLayout):
         enforces fixed width assumptions. If unspecified, assume that the
         widget should be fixed width.
         """
-        grd_kw = {key: self._get_grid_kwargs(key) for key in self.widgets}
-
-        w_bnd = {k: {"cmin": grd_kw[k]["column"],
-                     "cmax": grd_kw[k]["column"] + grd_kw[k]["columnspan"],
-                     "rmin": grd_kw[k]["row"],
-                     "rmax": grd_kw[k]["row"] + grd_kw[k]["rowspan"]
-                     } for k in grd_kw
-                  }
-
         # dictionary of whether to allow each row or column to stretch
         rc_cfg = {
             "column": {c: True for c in range(self._get_set_width())},
             "row": {r: True for r in range(self._get_set_height())}
             }
 
-        for w in self.widgets:
-            # do not stretch if unspecified
-            self.widgets[w].setdefault("stretch_width", False)
-            self.widgets[w].setdefault("stretch_height", False)
-
-            if not self.widgets[w]["stretch_width"]:
-                for c in range(w_bnd[w]["cmin"], w_bnd[w]["cmax"]):
+        # Check each cell and fix width/height of those intersecting a fixed
+        # width/height widget
+        for r, layer in enumerate(self.layout):
+            for c, wdgt in enumerate(layer):
+                if not self.widgets[wdgt].get("stretch_width", False):
                     rc_cfg["column"][c] = False
 
-            if not self.widgets[w]["stretch_height"]:
-                for r in range(w_bnd[w]["rmin"], w_bnd[w]["rmax"]):
+                if not self.widgets[wdgt].get("stretch_height", False):
                     rc_cfg["row"][r] = False
 
         for c, bln in rc_cfg["column"].items():
@@ -443,11 +442,13 @@ if __name__ == "__main__":
                    "stretch_width": False, "stretch_height": True},
                -1: {"grid_kwargs": {"sticky": "nesw"},
                    "stretch_width": False, "stretch_height": True},
+               -2: {"grid_kwargs": {"sticky": "nesw"},
+                   "stretch_width": True, "stretch_height": True},
                }
 
     bs = ButtonSet(root,
                    buttons = buttons,
-                    layout = [[-1, 7, -1, 1, 2, 8],[6, 1, 2, 3, 4],[5]],
+                    layout = [[-1, 7, -2, 1, 2, 8],[6, 1, 2, 3, 4],[5]],
                     frm_kwargs = {"bg": "black"},
                     spc_kwargs = {"bg": "black"},
                     set_width = 70)
