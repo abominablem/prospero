@@ -392,6 +392,6 @@ class AudioInterface:
     
     def load_from_config(self, trace = None):
         self.pr.f._log_trace(self, "load_from_config", trace)
-        self.rewind_milliseconds = config.config.config_dict["AudioInterface"]["rewind_seconds"]*1000
-        self.fast_forward_milliseconds = config.config.config_dict["AudioInterface"]["fast_forward_seconds"]*1000
-        self.breakpoint_grace_period = config.config.config_dict["AudioInterface"]["breakpoint_grace_period"]*1000
+        self.rewind_milliseconds = config.config.config_dict["AudioFunctions"]["AudioInterface"]["rewind_seconds"]*1000
+        self.fast_forward_milliseconds = config.config.config_dict["AudioFunctions"]["AudioInterface"]["fast_forward_seconds"]*1000
+        self.breakpoint_grace_period = config.config.config_dict["AudioFunctions"]["AudioInterface"]["breakpoint_grace_period"]*1000

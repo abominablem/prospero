@@ -105,9 +105,9 @@ class Constants:
                                             }
         
         self.entry_medium_args = {"width" : 100, 
-                                   "borderwidth" : 2, 
-                                   "background" : self.colour_box_interior
-                                   }
+                                  "borderwidth" : 2,
+                                  "background" : self.colour_box_interior
+                                  }
         
         self.entry_large_args = {"width" : 150, 
                                 "borderwidth" : 2, 

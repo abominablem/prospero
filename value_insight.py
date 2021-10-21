@@ -25,8 +25,7 @@ class Insight(TableCon):
         inf_trace = {"source": "function call", 
                      "parent": self.name +".__init__"}
         
-        self.logging = Logging(parent = self, testing_mode = True, 
-                               trace = inf_trace)
+        self.logging = Logging(log = True, trace = inf_trace)
         self.logging.log_trace(self, "__init__", 
                                trace = {"source": "initialise class", 
                                         "parent": self.name})

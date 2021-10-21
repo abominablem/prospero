@@ -382,13 +382,14 @@ class Naming:
         if clicked_row is None or clicked_row == "":
             return event # exit if an empty row is clicked
         
-        ValueFromFilename(parent = self, 
-                          filename = clicked_row,
-                          columnString = self.treeview_column_id_to_name(clicked_column_id),
-                          columnId = clicked_column_id,
-                          treeview = self.FileListTreeview,
-                          trace = inf_trace
-                          )
+        ValueFromFilename(
+            parent = self,
+            filename = clicked_row,
+            columnString = self.treeview_column_id_to_name(clicked_column_id),
+            columnId = clicked_column_id,
+            treeview = self.FileListTreeview,
+            trace = inf_trace
+            )
         return event
     
     def match_keywords(self, filename, overwrite = False, trace = None):
