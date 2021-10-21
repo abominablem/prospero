@@ -207,16 +207,22 @@ class WidgetLayout:
 
 
 class WidgetSet(WidgetLayout):
-    def __init__(self, root, widgets, layout, kwargs_dict = None,
-                 frm_kwargs = None, grd_kwargs = None, spc_kwargs = None):
+    def __init__(self, root, widgets, layout, frm_kwargs = None):
         """
         Parameters
         ----------
         root : tk.Frame
             master to add the frame to.
         widgets : dict
-            dict of tkinter widgets with keys the corresponding numbers used
+            dict of dictionaries with keys the corresponding numbers used
             when specifying the layout
+
+            dict can have keys:
+                widget: tk.Widget object
+                grid_kwargs: kwargs to pass to tk.Widget.grid method
+                widget_kwargs: if widget is a spacer, kwargs to pass to the
+                               label widget used as a spacer
+                
         layout : list
             Up to 2-dimensional list defining the layout of the buttons. Use
             sequential numbers aligning to the list of button names.
@@ -230,10 +236,6 @@ class WidgetSet(WidgetLayout):
             Use negative numbers to insert a blank space in the button set. 
             Where buttons span multiple rows, the button width is determined by 
             the first row it appears.
-        w_kwargs : dict
-            Dictionary  of dictionaries to use as grid_kwargs
-            when arranging the widgets. keys must be the widget names.
-            Use key 'all' to apply the specified kwargs to all widgets.
         frm_kwargs : dict
             kwargs to pass to the frame object.
         """
@@ -242,10 +244,8 @@ class WidgetSet(WidgetLayout):
         self.root = root
 
         self.frm_kwargs = {} if frm_kwargs is None else frm_kwargs
-        self.grd_kwargs = {} if grd_kwargs is None else grd_kwargs
-        self.spc_kwargs = {} if spc_kwargs is None else spc_kwargs
 
-        self.frame = tk.Frame(self.root, **frm_kwargs)
+        self.frame = tk.Frame(self.root, **self.frm_kwargs)
         super().__init__(layout)
 
         if not widgets is None and widgets != {}:
@@ -305,21 +305,22 @@ class WidgetSet(WidgetLayout):
                 if x < 0:
                     self.widgets.setdefault(x, {})
                     self.widgets[x].setdefault("grid_kwargs", {})
-                    self._add_spacer(i, j, 1, 1,
-                                     self.widgets[x]["grid_kwargs"])
+                    self._add_spacer(row = i, column = j,
+                                     wdict = self.widgets[x])
     
-    def _add_spacer(self, row, column, rowspan = 1, columnspan = 1,
-                    grd_kwargs = None):
-        lbl_width = int(self.set_width/self.span*columnspan)
+    def _add_spacer(self, wdict, row, column, rowspan = 1, columnspan = 1):
+        # lbl_width = int(self.set_width/self.span*columnspan)
+        # spc = tk.Label(master = self.frame,
+        #                width = lbl_width,
+        #                 **self.spc_kwargs)
+        
         spc = tk.Label(master = self.frame,
-                       width = lbl_width,
-                        **self.spc_kwargs)
-        grd_kwargs = {} if grd_kwargs is None else grd_kwargs
+                       **wdict.get("widget_kwargs", {}))
         spc.grid(row = row,
                   column = column,
                   rowspan = rowspan,
                   columnspan = columnspan,
-                  **grd_kwargs
+                  **wdict.get("grid_kwargs", {})
                   )
 
     def rc_configure(self):
@@ -365,12 +366,16 @@ class ButtonSet(WidgetSet):
         self.root = root
         self.buttons = buttons
         self.set_width = set_width
-        grd_kwargs = {key: buttons[key].setdefault("grid_kwargs", {})
-                    for key in buttons}
-        super().__init__(root = root, widgets = {}, layout = layout,
-                         grd_kwargs = grd_kwargs, **kwargs)
-        for key in buttons:
-             self.add_button(key)
+        super().__init__(root = root, widgets = {}, layout = layout, **kwargs)
+        for key in self._get_indices(self.layout):
+            if key < 0:
+                self.buttons[key] = {
+                    "widget_kwargs": {
+                        "width": int(self.set_width/self.span)
+                                     }
+                    }
+            else:
+                self.add_button(key)
         self.widgets = self.buttons
         self.create_widgets()
 
@@ -404,58 +409,75 @@ class ButtonSet(WidgetSet):
 if __name__ == "__main__":
     root = tk.Tk()
     root.configure(background = "black", padx=15, pady=10)
-    
-    def btn1(*args):
-        print("btn1 click")
-        
-    def btn1_shift(*args):
-        print("btn1 shift click")
-    
-    bindings = {"btn1": {"event": ["<Button-1>", "<Shift-Button-1>"], 
-                         "function": [btn1, btn1_shift]}}
 
-    buttons = {1: {"label": "btn1",
-                   "bindings": {"event": ["<Button-1>", "<Shift-Button-1>"],
-                                "function": [btn1, btn1_shift]},
-                   "grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": False, "stretch_height": True},
-               2: {"label": "btn2",
-                   "grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": True, "stretch_height": True},
-               3: {"label": "btn3",
-                   "grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": True, "stretch_height": True},
-               4: {"label": "btn4",
-                   "grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": True, "stretch_height": True},
-               5: {"label": "btn5",
-                   "grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": True, "stretch_height": True},
-               6: {"label": "btn6",
-                   "grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": True, "stretch_height": False},
-               7: {"label": "btn7",
-                   "grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": True, "stretch_height": True},
-               8: {"label": "btn8",
-                   "grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": False, "stretch_height": True},
-               -1: {"grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": False, "stretch_height": True},
-               -2: {"grid_kwargs": {"sticky": "nesw"},
-                   "stretch_width": True, "stretch_height": True},
+    widgets = {1: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
+               2: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
+               3: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
+               4: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
+               5: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
+               6: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
+               7: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
+               8: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
+               -1: {"widget_kwargs": {"bg": "black"}}
                }
 
-    bs = ButtonSet(root,
-                   buttons = buttons,
-                    layout = [[-1, 7, -2, 1, 2, 8],[6, 1, 2, 3, 4],[5]],
-                    frm_kwargs = {"bg": "black"},
-                    spc_kwargs = {"bg": "black"},
-                    set_width = 70)
+    bs = WidgetSet(root,
+                    widgets = widgets,
+                    layout = [[-1, 7, -1, 1, 2, 8],[6, 1, 2, 3, 4],[5]],
+                    frm_kwargs = {"bg": "black"})
 
-    print(bs.layout)
+    # def btn1(*args):
+    #     print("btn1 click")
+        
+    # def btn1_shift(*args):
+    #     print("btn1 shift click")
+    
+    # bindings = {"btn1": {"event": ["<Button-1>", "<Shift-Button-1>"], 
+    #                       "function": [btn1, btn1_shift]}}
 
-    # bs._check_layout(bs.layout)
+    # buttons = {1: {"label": "btn1",
+    #                 "bindings": {"event": ["<Button-1>", "<Shift-Button-1>"],
+    #                             "function": [btn1, btn1_shift]},
+    #                 "grid_kwargs": {"sticky": "nesw"},
+    #                 "stretch_width": False, "stretch_height": True},
+    #             2: {"label": "btn2",
+    #                 "grid_kwargs": {"sticky": "nesw"},
+    #                 "stretch_width": True, "stretch_height": True},
+    #             3: {"label": "btn3",
+    #                 "grid_kwargs": {"sticky": "nesw"},
+    #                 "stretch_width": True, "stretch_height": True},
+    #             4: {"label": "btn4",
+    #                 "grid_kwargs": {"sticky": "nesw"},
+    #                 "stretch_width": True, "stretch_height": True},
+    #             5: {"label": "btn5",
+    #                 "grid_kwargs": {"sticky": "nesw"},
+    #                 "stretch_width": True, "stretch_height": True},
+    #             6: {"label": "btn6",
+    #                 "grid_kwargs": {"sticky": "nesw"},
+    #                 "stretch_width": True, "stretch_height": False},
+    #             7: {"label": "btn7",
+    #                 "grid_kwargs": {"sticky": "nesw"},
+    #                 "stretch_width": True, "stretch_height": True},
+    #             8: {"label": "btn8",
+    #                 "grid_kwargs": {"sticky": "nesw"},
+    #                 "stretch_width": False, "stretch_height": True},
+    #             -1: {"grid_kwargs": {"sticky": "nesw"},
+    #                 "stretch_width": False, "stretch_height": True,
+    #                 "widget_kwargs": {"bg": "black"}},
+    #             -2: {"grid_kwargs": {"sticky": "nesw"},
+    #                 "stretch_width": True, "stretch_height": True,
+    #                 "widget_kwargs": {"bg": "black"}},
+    #             }
+
+    # bs = ButtonSet(root,
+    #                 buttons = buttons,
+    #                 layout = [[-1, 7, -2, 1, 2, 8],[6, 1, 2, 3, 4],[5]],
+    #                 frm_kwargs = {"bg": "black"},
+    #                 set_width = 70)
+
+    # print(bs.layout)
+
+    # # bs._check_layout(bs.layout)
     
     bs.get_frame().grid(row = 1, column = 1, **{"sticky" : "nesw"})
     root.rowconfigure(0, weight = 0)
