@@ -207,22 +207,20 @@ class WidgetLayout:
 
 
 class WidgetSet(WidgetLayout):
-    def __init__(self, root, widgets, layout, frm_kwargs = None):
+    def __init__(self, frame, widgets, layout):
         """
         Parameters
         ----------
-        root : tk.Frame
-            master to add the frame to.
+        frame : tk.Frame
+            frame to arrange widgets inside.
         widgets : dict
             dict of dictionaries with keys the corresponding numbers used
             when specifying the layout
-
             dict can have keys:
                 widget: tk.Widget object
                 grid_kwargs: kwargs to pass to tk.Widget.grid method
-                widget_kwargs: if widget is a spacer, kwargs to pass to the
-                               label widget used as a spacer
-                
+                widget_kwargs: if widget is created at runtime, kwargs to pass 
+                               to the widget on creation
         layout : list
             Up to 2-dimensional list defining the layout of the buttons. Use
             sequential numbers aligning to the list of button names.
@@ -241,11 +239,7 @@ class WidgetSet(WidgetLayout):
         """
         self.name = self.__class__.__name__
         self.widgets = widgets
-        self.root = root
-
-        self.frm_kwargs = {} if frm_kwargs is None else frm_kwargs
-
-        self.frame = tk.Frame(self.root, **self.frm_kwargs)
+        self.frame = frame
         super().__init__(layout)
 
         if not widgets is None and widgets != {}:
@@ -296,9 +290,6 @@ class WidgetSet(WidgetLayout):
             except:
                 continue
 
-    def get_frame(self):
-        return self.frame
-
     def _create_spacers(self):
         for i, layer in enumerate(self.layout):
             for j, x in enumerate(layer):
@@ -309,11 +300,6 @@ class WidgetSet(WidgetLayout):
                                      wdict = self.widgets[x])
     
     def _add_spacer(self, wdict, row, column, rowspan = 1, columnspan = 1):
-        # lbl_width = int(self.set_width/self.span*columnspan)
-        # spc = tk.Label(master = self.frame,
-        #                width = lbl_width,
-        #                 **self.spc_kwargs)
-        
         spc = tk.Label(master = self.frame,
                        **wdict.get("widget_kwargs", {}))
         spc.grid(row = row,
@@ -357,16 +343,21 @@ class WidgetSet(WidgetLayout):
             else:
                 self.frame.rowconfigure(r, weight = 0)
 
+        self.rc_config = rc_cfg
+
 class ButtonSet(WidgetSet):
     """
     Generate a bound button set from a dictionary of buttons and bindings and
-    corresponding layout matrix
+    corresponding layout matrix.
+
+    Creates a frame which contains the button set.
     """
-    def __init__(self, root, buttons, set_width, layout, **kwargs):
-        self.root = root
+    def __init__(self, root, buttons, set_width, layout, frm_kwargs):
         self.buttons = buttons
         self.set_width = set_width
-        super().__init__(root = root, widgets = {}, layout = layout, **kwargs)
+        self.frame = tk.Frame(root, **frm_kwargs)
+        super().__init__(frame = self.frame, widgets = {}, layout = layout)
+
         for key in self._get_indices(self.layout):
             if key < 0:
                 self.buttons[key] = {
@@ -384,13 +375,13 @@ class ButtonSet(WidgetSet):
         btn_width = int(self.set_width*self._get_column_span(key)/self.span)
 
         btn_args = self.buttons[key]
-        btn_args.setdefault("kwargs", {})
+        btn_args.setdefault("widget_kwargs", {})
 
         # Create tk button
         btn = tk.Button(master = self.frame,
                         text = btn_args["label"],
                         width = btn_width,
-                        **btn_args["kwargs"]
+                        **btn_args["widget_kwargs"]
                         )
 
         bindings = btn_args.get("bindings")
@@ -420,11 +411,10 @@ if __name__ == "__main__":
                8: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
                -1: {"widget_kwargs": {"bg": "black"}}
                }
-
-    bs = WidgetSet(root,
+    frame = tk.Frame(root, **{"bg": "black"})
+    bs = WidgetSet(frame,
                     widgets = widgets,
-                    layout = [[-1, 7, -1, 1, 2, 8],[6, 1, 2, 3, 4],[5]],
-                    frm_kwargs = {"bg": "black"})
+                    layout = [[-1, 7, -1, 1, 2, 8],[6, 1, 2, 3, 4],[5]])
 
     # def btn1(*args):
     #     print("btn1 click")
@@ -479,7 +469,7 @@ if __name__ == "__main__":
 
     # # bs._check_layout(bs.layout)
     
-    bs.get_frame().grid(row = 1, column = 1, **{"sticky" : "nesw"})
+    bs.frame.grid(row = 1, column = 1, **{"sticky" : "nesw"})
     root.rowconfigure(0, weight = 0)
     root.columnconfigure(0, weight = 0)
     root.rowconfigure(1, weight = 1)
