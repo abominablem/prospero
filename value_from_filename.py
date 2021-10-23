@@ -289,10 +289,12 @@ class ValueFromFilename:
                        'stretch_width': True},
                    5: {'widget': self.button_set.frame,
                        'grid_kwargs': self.pr.c.grid_sticky_padding_small,
-                       'stretch_width': True},
+                       'stretch_width': True, 'stretch_height': True,
+                       "stretch_height_weight": 1},
                    6: {'widget': self.suggested_values,
                        'grid_kwargs': self.pr.c.grid_sticky_padding_small,
-                       'stretch_width': True, 'stretch_height': True},
+                       'stretch_width': True, 'stretch_height': True,
+                       'stretch_height_weight': 5},
                    }
 
         self.widget_set = WidgetSet(frame = self.widget_frame,
@@ -315,12 +317,12 @@ class ValueFromFilename:
         
         return
     
-    def Get_SelectedTextClean(self, objEntry, trace = None):
+    def Get_SelectedTextClean(self, tk_entry, trace = None):
         self.pr.f._log_trace(self, "Get_SelectedTextClean", trace)
         inf_trace = {"source": "function call", 
                      "parent": self.class_name + ".Get_SelectedTextClean"}
         
-        new_text = objEntry.selection_get()
+        new_text = tk_entry.selection_get()
         new_text = self.pr.f.clean_track_string(new_text, 
                                                 iterate = True,
                                                 trace = inf_trace)

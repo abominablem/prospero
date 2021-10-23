@@ -9,7 +9,12 @@ from math import gcd
 from functools import reduce
 import tkinter as tk
 
-def lcm(*args):
+from mh_logging import Logging
+
+log = Logging()
+
+def lcm(*args, trace = None):
+    log.log_trace(None, "lcm", trace)
     lcm = 1
     for x in args:
         lcm *= x//gcd(lcm, x)
@@ -20,13 +25,16 @@ class WidgetLayout:
     Private class containing layout logic for the WidgetSet classes. Should
     not be instantiated directly.
     """
-    def __init__(self, layout):
+    def __init__(self, layout, trace = None):
+        log.log_trace(self, "__init__", trace)
         self.original_layout = layout
-        self.span = self._get_set_width(layout)
-        self.height = self._get_set_height(layout)
+        self.span, self.height = None, None
+
+        self.span = self.get_span(layout)
+        self.height = self.get_height(layout)
         self.layout = self._normalise_layout(layout)
 
-    def _normalise_layout(self, layout):
+    def _normalise_layout(self, layout, trace = None):
         """
         Clean the specified layout. If all values are non-lists, assume all
         buttons should be placed on a single line. Otherwise, take a non-list 
@@ -38,6 +46,7 @@ class WidgetLayout:
         to prioritise the scaling in earlier rows and then allocate/trim any 
         extra/missing space from re-distributing later button spacing.
         """
+        log.log_trace(self, "_normalise_layout", trace)
         has_list = False
         for k in layout:
             if isinstance(k, list):
@@ -51,7 +60,6 @@ class WidgetLayout:
         else:
             layout = [layout]
 
-        
         span_dict = {}
         
         for i, layer in enumerate(layout):
@@ -82,6 +90,10 @@ class WidgetLayout:
                     # proportions are preserved
                         raise ValueError("Unable to draw button set. "
                                           "Objects would overlap")
+                # if the actual start is beyond the expected start, then the
+                # gap in between must be padded out. Where possible, stretch
+                # the button to the left over to fill the gap. Otherwise,
+                # fill it with a spacer.
                 elif act_start > exp_start:
                     pad_len = act_start - exp_start
                     if len(layer_out) == 0:
@@ -102,12 +114,12 @@ class WidgetLayout:
                     self.span *= scale
                     
                 available_span = self.span - len(layer_out)
-                if x == -1:
+                if x < 0:
                     count = self._count_sequence(layer, x, start = j)
                 else:
                     count = layer.count(x)
                 exp_span = int(count/len(layer[j:]) * available_span)
-                act_span = (span_dict[x] if x in span_dict.keys() and x != -1 
+                act_span = (span_dict[x] if x in span_dict.keys() and x >= 0
                             else exp_span)
                 span_diff = exp_span - act_span
                 
@@ -146,17 +158,19 @@ class WidgetLayout:
         # self.span_dict = {k: int(span_dict[k]/span_gcd) for k in span_dict}
         return layout
 
-    def _scale_list(self, lst, scale):
+    def _scale_list(self, lst, scale, trace = None):
+        log.log_trace(self, "_scale_list", trace)
         lst_out = []
         for x in lst:
             lst_out += [x]*scale
         return lst_out
     
-    def _reduce_layout(self, layout):
+    def _reduce_layout(self, layout, trace = None):
         """
         Reduce a layout to the smallest possible version which preserves all
         scaling.
         """
+        log.log_trace(self, "_reduce_layout", trace)
         counts = []
         for i in self._get_indices(layout):
             for layer in layout:
@@ -165,11 +179,12 @@ class WidgetLayout:
         count_gcd = reduce(gcd, counts)
         return [layer[::count_gcd] for layer in layout], count_gcd
     
-    def _count_sequence(self, lst, value, start = 0):
+    def _count_sequence(self, lst, value, start = 0, trace = None):
         """
         Count the number of sequential occurrences of a value in a list after
         a defined point.
         """
+        log.log_trace(self, "_count_sequence", trace)
         lst = lst[start:]
         try:
             lst = lst[lst.index(value):]
@@ -180,10 +195,12 @@ class WidgetLayout:
         except ValueError:
             return 0
 
-    def _get_indices(self, layout):
+    def _get_indices(self, layout, trace = None):
+        log.log_trace(self, "_get_indices", trace)
         return list(set([i for layer in layout for i in layer if i >= 0]))
 
-    def _check_layout(self, layout):
+    def _check_layout(self, layout, trace = None):
+        log.log_trace(self, "_check_layout", trace)
         for i, layer in enumerate(layout):
             vdict = {x: layer.count(x) for x in set(layer)}
             print("Layer %s: %s, " % (i, len(layer)), vdict, layer)
@@ -196,18 +213,78 @@ class WidgetLayout:
                    "columnspan": self._get_column_span(num)
                    })
 
-    def _get_set_width(self, layout = None):
-        if layout is None: layout = self.layout
-        lengths = [len(k) for k in layout]
-        return lcm(*lengths)
-        
-    def _get_set_height(self, layout = None):
-        if layout is None: layout = self.layout
-        return len(layout)
+    def get_span(self, layout = None, trace = None):
+        log.log_trace(self, "get_span", trace)
+        if self.span is None:
+            if layout is None: layout = self.layout
+            lengths = [len(k) for k in layout]
+            self.span = lcm(*lengths)
+        return self.span
+
+    def get_height(self, layout = None, trace = None):
+        log.log_trace(self, "get_height", trace)
+        if self.height is None:
+            if layout is None: layout = self.layout
+            self.height = len(layout)
+        return self.height
+
+class WidgetSetComponent:
+    """
+    Container for attributes of a widget. Grid references must be set
+    externally.
+    """
+    def __init__(self, id, wdict, trace = None):
+        log.log_trace(self, "__init__", trace)
+        self.name = __class__.__name__
+        self.id = id
+        self.widget = wdict.get("widget", None)
+        self.grid_kwargs = wdict.get("grid_kwargs", {})
+        self.widget_kwargs = wdict.get("widget_kwargs", {})
+
+        self.stretch_height = wdict.get("stretch_height", False)
+        self.stretch_width = wdict.get("stretch_width", False)
+
+        self.stretch_height_weight = wdict.get("stretch_height_weight", 1)
+        self.stretch_width_weight = wdict.get("stretch_width_weight", 1)
+
+        self.row = None
+        self.column = None
+        self.rowspan = None
+        self.columnspan = None
+
+        self.is_spacer = (self.id < 0)
+
+    def set_grid_refs(self, trace = None, **kwargs):
+        log.log_trace(self, "set_grid_refs", trace)
+        self.__dict__.update(kwargs)
+
+    def grid_refs(self):
+        return {"row": self.row,
+                "column": self.column,
+                "rowspan": self.rowspan,
+                "columnspan": self.columnspan}
+
+    def grid(self, trace = None, **kwargs):
+        log.log_trace(self, "grid", trace)
+        self.widget.grid(**kwargs)
+
+    def check_collision(self, rc, trace = None):
+        log.log_trace(self, "check_collision", trace)
+        assert len(rc) == 2
+        r = rc[0]
+        c = rc[1]
+        row_collides = True
+        col_collides = True
+        if r is not None:
+            row_collides = (self.row <= r <= self.row + self.rowspan)
+        if c is not None:
+            col_collides = (self.column <= c <= self.row + self.columnspan)
+        return row_collides and col_collides
 
 
 class WidgetSet(WidgetLayout):
-    def __init__(self, frame, widgets, layout):
+    def __init__(self, frame, widgets, layout, trace = None):
+        log.log_trace(self, "__init__", trace)
         """
         Parameters
         ----------
@@ -238,49 +315,59 @@ class WidgetSet(WidgetLayout):
             kwargs to pass to the frame object.
         """
         self.name = self.__class__.__name__
-        self.widgets = widgets
-        self.frame = frame
         super().__init__(layout)
+        self.frame = frame
 
-        if not widgets is None and widgets != {}:
-            self.create_widgets()
+        self.widgets = {key: WidgetSetComponent(key, widgets[key])
+                        for key in widgets}
 
-    def create_widgets(self):
-        for key, w_dict in self.widgets.items():
-            if key < 0: continue
+        self.create_widgets()
 
-            w_dict.setdefault("grid_kwargs", {})
-            w = w_dict["widget"]
-            w.grid(**self._get_grid_kwargs(key),
-                   **w_dict["grid_kwargs"])
+    def set_widgets(self, wdict, trace = None):
+        log.log_trace(self, "set_widgets", trace)
+        self.widgets = {key: WidgetSetComponent(key, wdict[key])
+                        for key in wdict}
+
+    def create_widgets(self, trace = None):
+        log.log_trace(self, "create_widgets", trace)
+        if self.widgets == {}: return
+        for wdgt in self.widgets.values():
+            if wdgt.is_spacer: continue
+            wdgt.set_grid_refs(**self._get_grid_refs(wdgt.id))
+            wdgt.grid(**wdgt.grid_refs(), **wdgt.grid_kwargs)
 
         self._create_spacers()
         self.rc_configure()
 
-    def _get_grid_kwargs(self, key):
+    def _get_grid_refs(self, key, trace = None):
+        log.log_trace(self, "_get_grid_refs", trace)
         return {"row": self._get_grid_row(key),
                 "column": self._get_grid_column(key),
                 "rowspan": self._get_row_span(key),
                 "columnspan": self._get_column_span(key)}
 
-    def _get_row_span(self, key):
+    def _get_row_span(self, key, trace = None):
+        log.log_trace(self, "_get_row_span", trace)
         i = 0
         for n, layer in enumerate(self.layout):
             if key in layer:
                 i += 1
         return None if i == 0 else i
     
-    def _get_column_span(self, key):
+    def _get_column_span(self, key, trace = None):
+        log.log_trace(self, "_get_column_span", trace)
         for layer in self.layout:
             count = layer.count(key)
             if count != 0: return count
             
-    def _get_grid_row(self, key):
+    def _get_grid_row(self, key, trace = None):
+        log.log_trace(self, "_get_grid_row", trace)
         for n, layer in enumerate(self.layout):
             if key in layer:
                 return n
 
-    def _get_grid_column(self, key):
+    def _get_grid_column(self, key, trace = None):
+        log.log_trace(self, "_get_grid_column", trace)
         """
         Return index of first column widget appears
         """
@@ -290,26 +377,27 @@ class WidgetSet(WidgetLayout):
             except:
                 continue
 
-    def _create_spacers(self):
+    def _create_spacers(self, trace = None):
+        log.log_trace(self, "_create_spacers", trace)
         for i, layer in enumerate(self.layout):
             for j, x in enumerate(layer):
                 if x < 0:
-                    self.widgets.setdefault(x, {})
-                    self.widgets[x].setdefault("grid_kwargs", {})
-                    self._add_spacer(row = i, column = j,
-                                     wdict = self.widgets[x])
-    
-    def _add_spacer(self, wdict, row, column, rowspan = 1, columnspan = 1):
-        spc = tk.Label(master = self.frame,
-                       **wdict.get("widget_kwargs", {}))
-        spc.grid(row = row,
-                  column = column,
-                  rowspan = rowspan,
-                  columnspan = columnspan,
-                  **wdict.get("grid_kwargs", {})
-                  )
+                    if not x in self.widgets:
+                        self.widgets[x] = WidgetSetComponent(
+                            x, {'widget':tk.Label(self.label)}
+                            )
+                    else:
+                        self.widgets[x].widget = tk.Label(
+                            self.label,
+                            **self.widgets[x].widget_kwargs
+                            )
+                    widget = self.widgets[x]
+                    widget.set_grid_refs(row = i, column = j,
+                                         rowspan = 1, columnspan = 1)
+                    widget.grid(**widget.grid_refs(), **widget.grid_kwargs)
 
-    def rc_configure(self):
+    def rc_configure(self, trace = None):
+        log.log_trace(self, "rc_configure", trace)
         """
         Configure the row/column allocation of scaling changes. Strictly
         enforces fixed width assumptions. If unspecified, assume that the
@@ -317,33 +405,45 @@ class WidgetSet(WidgetLayout):
         """
         # dictionary of whether to allow each row or column to stretch
         rc_cfg = {
-            "column": {c: True for c in range(self._get_set_width())},
-            "row": {r: True for r in range(self._get_set_height())}
+            "column": {c: True for c in range(self.get_span())},
+            "row": {r: True for r in range(self.get_height())}
             }
 
         # Check each cell and fix width/height of those intersecting a fixed
         # width/height widget
         for r, layer in enumerate(self.layout):
-            for c, wdgt in enumerate(layer):
-                if not self.widgets[wdgt].get("stretch_width", False):
-                    rc_cfg["column"][c] = False
-
-                if not self.widgets[wdgt].get("stretch_height", False):
+            for c, key in enumerate(layer):
+                if not self.widgets[key].stretch_height:
                     rc_cfg["row"][r] = False
 
+                if not self.widgets[key].stretch_width:
+                    rc_cfg["column"][c] = False
+
         for c, bln in rc_cfg["column"].items():
+            weights = [0]
+            for widget in self.widgets.values():
+                if widget.check_collision((None, c)):
+                    weights.append(widget.stretch_width_weight)
+
             if bln:
-                self.frame.columnconfigure(c, weight = 1)
+                self.frame.columnconfigure(c, weight = max(weights))
             else:
                 self.frame.columnconfigure(c, weight = 0)
 
         for r, bln in rc_cfg["row"].items():
+            weights = [0]
+            for widget in self.widgets.values():
+                if widget.check_collision((r, None)):
+                    weights.append(widget.stretch_width_weight)
+
             if bln:
-                self.frame.rowconfigure(r, weight = 1)
+                self.frame.rowconfigure(r, weight = max(weights))
             else:
                 self.frame.rowconfigure(r, weight = 0)
 
-        self.rc_config = rc_cfg
+        self._rc_config = rc_cfg
+
+
 
 class ButtonSet(WidgetSet):
     """
@@ -352,7 +452,9 @@ class ButtonSet(WidgetSet):
 
     Creates a frame which contains the button set.
     """
-    def __init__(self, root, buttons, set_width, layout, frm_kwargs):
+    def __init__(self, root, buttons, set_width, layout, frm_kwargs,
+                 trace = None):
+        log.log_trace(self, "__init__", trace)
         self.buttons = buttons
         self.set_width = set_width
         self.frame = tk.Frame(root, **frm_kwargs)
@@ -367,10 +469,11 @@ class ButtonSet(WidgetSet):
                     }
             else:
                 self.add_button(key)
-        self.widgets = self.buttons
+        self.set_widgets(self.buttons)
         self.create_widgets()
 
-    def add_button(self, key):
+    def add_button(self, key, trace = None):
+        log.log_trace(self, "add_button", trace)
         if key < 0: return
         btn_width = int(self.set_width*self._get_column_span(key)/self.span)
 
@@ -396,84 +499,3 @@ class ButtonSet(WidgetSet):
                 btn.bind(event, function)
 
         self.buttons[key]["widget"] = btn
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.configure(background = "black", padx=15, pady=10)
-
-    widgets = {1: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
-               2: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
-               3: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
-               4: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
-               5: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
-               6: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
-               7: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
-               8: {'widget': tk.Entry(root), "stretch_width": True, "stretch_height": True, "grid_kwargs": {"sticky": "nesw"}},
-               -1: {"widget_kwargs": {"bg": "black"}}
-               }
-    frame = tk.Frame(root, **{"bg": "black"})
-    bs = WidgetSet(frame,
-                    widgets = widgets,
-                    layout = [[-1, 7, -1, 1, 2, 8],[6, 1, 2, 3, 4],[5]])
-
-    # def btn1(*args):
-    #     print("btn1 click")
-        
-    # def btn1_shift(*args):
-    #     print("btn1 shift click")
-    
-    # bindings = {"btn1": {"event": ["<Button-1>", "<Shift-Button-1>"], 
-    #                       "function": [btn1, btn1_shift]}}
-
-    # buttons = {1: {"label": "btn1",
-    #                 "bindings": {"event": ["<Button-1>", "<Shift-Button-1>"],
-    #                             "function": [btn1, btn1_shift]},
-    #                 "grid_kwargs": {"sticky": "nesw"},
-    #                 "stretch_width": False, "stretch_height": True},
-    #             2: {"label": "btn2",
-    #                 "grid_kwargs": {"sticky": "nesw"},
-    #                 "stretch_width": True, "stretch_height": True},
-    #             3: {"label": "btn3",
-    #                 "grid_kwargs": {"sticky": "nesw"},
-    #                 "stretch_width": True, "stretch_height": True},
-    #             4: {"label": "btn4",
-    #                 "grid_kwargs": {"sticky": "nesw"},
-    #                 "stretch_width": True, "stretch_height": True},
-    #             5: {"label": "btn5",
-    #                 "grid_kwargs": {"sticky": "nesw"},
-    #                 "stretch_width": True, "stretch_height": True},
-    #             6: {"label": "btn6",
-    #                 "grid_kwargs": {"sticky": "nesw"},
-    #                 "stretch_width": True, "stretch_height": False},
-    #             7: {"label": "btn7",
-    #                 "grid_kwargs": {"sticky": "nesw"},
-    #                 "stretch_width": True, "stretch_height": True},
-    #             8: {"label": "btn8",
-    #                 "grid_kwargs": {"sticky": "nesw"},
-    #                 "stretch_width": False, "stretch_height": True},
-    #             -1: {"grid_kwargs": {"sticky": "nesw"},
-    #                 "stretch_width": False, "stretch_height": True,
-    #                 "widget_kwargs": {"bg": "black"}},
-    #             -2: {"grid_kwargs": {"sticky": "nesw"},
-    #                 "stretch_width": True, "stretch_height": True,
-    #                 "widget_kwargs": {"bg": "black"}},
-    #             }
-
-    # bs = ButtonSet(root,
-    #                 buttons = buttons,
-    #                 layout = [[-1, 7, -2, 1, 2, 8],[6, 1, 2, 3, 4],[5]],
-    #                 frm_kwargs = {"bg": "black"},
-    #                 set_width = 70)
-
-    # print(bs.layout)
-
-    # # bs._check_layout(bs.layout)
-    
-    bs.frame.grid(row = 1, column = 1, **{"sticky" : "nesw"})
-    root.rowconfigure(0, weight = 0)
-    root.columnconfigure(0, weight = 0)
-    root.rowconfigure(1, weight = 1)
-    root.columnconfigure(1, weight = 1)
-    root.rowconfigure(2, weight = 0)
-    root.columnconfigure(2, weight = 0)
-    root.mainloop()
