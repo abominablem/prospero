@@ -244,8 +244,14 @@ class WidgetSetComponent:
         self.stretch_height = wdict.get("stretch_height", False)
         self.stretch_width = wdict.get("stretch_width", False)
 
-        self.stretch_height_weight = wdict.get("stretch_height_weight", 1)
-        self.stretch_width_weight = wdict.get("stretch_width_weight", 1)
+        self.stretch_height_weight = wdict.get(
+            "stretch_height_weight",
+            1 if self.stretch_height  else 0
+            )
+        self.stretch_width_weight = wdict.get(
+            "stretch_width_weight",
+            1 if self.stretch_width  else 0
+            )
 
         self.row = None
         self.column = None
@@ -420,26 +426,24 @@ class WidgetSet(WidgetLayout):
                     rc_cfg["column"][c] = False
 
         for c, bln in rc_cfg["column"].items():
-            weights = [0]
-            for widget in self.widgets.values():
-                if widget.check_collision((None, c)):
-                    weights.append(widget.stretch_width_weight)
-
-            if bln:
-                self.frame.columnconfigure(c, weight = max(weights))
-            else:
+            if not bln:
                 self.frame.columnconfigure(c, weight = 0)
+            else:
+                weights = [0]
+                for widget in self.widgets.values():
+                    if widget.check_collision((None, c)):
+                        weights.append(widget.stretch_width_weight)
+                self.frame.columnconfigure(c, weight = max(weights))
 
         for r, bln in rc_cfg["row"].items():
-            weights = [0]
-            for widget in self.widgets.values():
-                if widget.check_collision((r, None)):
-                    weights.append(widget.stretch_width_weight)
-
-            if bln:
-                self.frame.rowconfigure(r, weight = max(weights))
-            else:
+            if not bln:
                 self.frame.rowconfigure(r, weight = 0)
+            else:
+                weights = [0]
+                for widget in self.widgets.values():
+                    if widget.check_collision((r, None)):
+                        weights.append(widget.stretch_height_weight)
+                self.frame.rowconfigure(r, weight = max(weights))
 
         self._rc_config = rc_cfg
 
