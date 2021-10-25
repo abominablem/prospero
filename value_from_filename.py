@@ -313,10 +313,14 @@ class ValueFromFilename:
         ### MAIN LOOP ###
         """
         self.root.eval(f'tk::PlaceWindow {self.window} center')
-        self.window.mainloop()
-        
+        self.start()
         return
-    
+
+    def start(self):
+        self.window.transient(self.tab)
+        self.window.grab_set()
+        self.window.mainloop()
+
     def Get_SelectedTextClean(self, tk_entry, trace = None):
         self.pr.f._log_trace(self, "Get_SelectedTextClean", trace)
         inf_trace = {"source": "function call", 
@@ -354,7 +358,7 @@ class ValueFromFilename:
         return event
     
     
-    
+
     def btnSuffix_Click(self, event, trace = None):
         self.pr.f._log_trace(self, "btnSuffix_Click", trace)
         inf_trace = {"source": "function call", 
