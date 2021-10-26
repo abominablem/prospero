@@ -16,6 +16,7 @@ from tab_tagging import Tagging
 from tab_naming import Naming
 from tab_audio_functions import AudioFunctions
 from value_insight import Insight
+from settings_window import Settings
 import config
 # function imports
 
@@ -40,7 +41,7 @@ class Prospero:
         self.r = prr.Resources(parent = self, 
                                trace = {"source": "initialise class", 
                                         "parent": self.name})
-        
+
         self.insight_rn = Insight(type = "renames",
                                   debug = self.testing_mode,
                                   trace = {"source": "initialise class", 
@@ -162,6 +163,16 @@ class Prospero:
                                     columnspan = SettingsIconColumnSpan,
                                     rowspan = SettingsIconRowSpan, 
                                     sticky = "nsew")
+
+            self.icon_settings.bind(
+                "<1>",
+                lambda event: self.open_settings(
+                    event,
+                    trace = {"source": "bound event",
+                             "widget": self.name + ".icon_settings",
+                             "event": "<1>"}
+                    )
+                )
         """
         #######################################################################
         ############################ NOTEBOOK #################################
@@ -291,7 +302,31 @@ class Prospero:
         config.genres_dict.dump_values()
         config.numerals_dict.dump_values()
         return event
-    
+
+    def open_settings(self, event = None, trace = None):
+        self.pr.f._log_trace(self, "open_settings", trace)
+        inf_trace = {"source": "function call",
+                     "parent": self.name + ".open_settings"}
+        self.settings = Settings(self, trace = inf_trace,
+                                 run_on_destroy = self.apply_settings)
+        self.settings.start(trace = inf_trace)
+
+    def apply_settings(self, event = None, trace = None):
+        self.pr.f._log_trace(self, "apply_settings", trace)
+        inf_trace = {"source": "open_settings call",
+                     "parent": self.name + ".apply_settings"}
+        # Update the settings changed for each tab
+        self.audio_functions.load_from_config(trace = inf_trace)
+        self.audio_functions.audio_interface.load_from_config(trace = inf_trace)
+        self.naming.load_from_config(trace = inf_trace)
+        self.tagging.load_from_config(trace = inf_trace)
+
+        self.audio_functions.io_directory.load_from_config(trace = inf_trace)
+        self.naming.io_directory.load_from_config(trace = inf_trace)
+        self.tagging.io_directory.load_from_config(trace = inf_trace)
+
+
+
 
 prospero = Prospero(trace = {"source": "initialise class",
                              "parent": __name__})

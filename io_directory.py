@@ -144,6 +144,10 @@ class IODirectory():
         self.pr.f._log_trace(self, "load_from_config", trace)
         self.input_directory = config.config.config_dict[self.parent.__class__.__name__]['input_directory']
         self.output_directory = config.config.config_dict[self.parent.__class__.__name__]['output_directory']
+        
+        self.txt_input.delete(0, "end")
+        self.txt_output.delete(0, "end")
+
         self.txt_input.insert(0, self.input_directory)
         self.txt_output.insert(0, self.output_directory)
 

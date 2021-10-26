@@ -66,6 +66,7 @@ class SettingsWidget:
         self.widget.grid(**kwargs)
 
 
+
 class SettingsTab:
     """
     Given a structured list of dictionaries describing a set of widgets,
@@ -198,12 +199,13 @@ class SettingsTab:
             widget.set_value(value)
 
 
+
 class Settings:
     """
     Toplevel class wrapping the Settings window. This allows interaction with
     the underlying config JSON.
     """
-    def __init__(self, parent, trace = None):
+    def __init__(self, parent, run_on_destroy = None, trace = None):
         self.parent = parent
         self.root = parent.root
         self.pr = parent.pr
@@ -211,8 +213,10 @@ class Settings:
         self.pr.f._log_trace(self, "__init__", trace)
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".__init__"}
-        
-        self.window = tk.Toplevel(self.root, 
+
+        self.run_on_destroy = run_on_destroy
+
+        self.window = tk.Toplevel(self.root,
                                   background = self.pr.c.colour_background)
         self.window.title("Prospero - Settings and config")
 
@@ -310,7 +314,7 @@ class Settings:
                             column = MainTitleGridColumn,
                             columnspan = MainTitleColumnSpan,
                             rowspan = MainLogoRowSpan, 
-                            sticky = "nsew")
+                            sticky = "nesw")
 
         """
         #######################################################################
@@ -452,14 +456,14 @@ class Settings:
         self.apply_button.grid(row = 0, column = 1,
                                **self.pr.c.grid_sticky_padding_small)
 
-        self.cencel_button = tk.Button(
+        self.cancel_button = tk.Button(
             self.footer_frame,
             text = "Cancel",
             **self.pr.c.button_light_standard_args,
             command = self.destroy,
             width = 8
             )
-        self.cencel_button.grid(row = 0, column = 2,
+        self.cancel_button.grid(row = 0, column = 2,
                                **self.pr.c.grid_sticky_padding_small)
 
         self.ok_button = tk.Button(
@@ -476,9 +480,6 @@ class Settings:
                                columnspan = self.pr.c.columnspan_all,
                                **self.pr.c.grid_sticky)
 
-
-
-
         """
         #######################################################################
         ######################## ALLOCATE SCALING #############################
@@ -490,10 +491,16 @@ class Settings:
         self.selection_frame.columnconfigure(0, weight=1)
         self.selection_frame.columnconfigure(1, weight=0)
         self.title_frame.columnconfigure(MainTitleGridColumn, weight=0)
+
+        # Fix the widths of the three buttons
         self.footer_frame.columnconfigure(0, weight = 1)
         self.footer_frame.columnconfigure(1, weight = 0)
         self.footer_frame.columnconfigure(2, weight = 0)
         self.footer_frame.columnconfigure(3, weight = 0)
+        
+        self.window.rowconfigure(SelectionFrameGridRow, weight=1)
+        self.selection_frame.rowconfigure(0, weight=1)
+        self.selection_frame.rowconfigure(1, weight=0)
 
         """
         #######################################################################
@@ -501,7 +508,7 @@ class Settings:
         #######################################################################
         """
         self.populate_settings_list()
-        self.root.protocol("WM_DELETE_WINDOW", self.destroy)
+        self.window.protocol("WM_DELETE_WINDOW", self.destroy)
 
     def apply_settings(self, *args, trace = None):
         self.pr.f._log_trace(self, "apply_settings", trace)
@@ -525,13 +532,16 @@ class Settings:
 
     def start(self, trace = None):
         self.pr.f._log_trace(self, "start", trace)
-        self.root.eval(f'tk::PlaceWindow {self.window} center')
+        self.root.eval('tk::PlaceWindow %s center' % str(self.window))
+        self.window.attributes('-topmost', 'true')
+        self.window.transient(self.root)
+        self.window.grab_set()
         self.window.mainloop()
         
     def destroy(self, *args, trace = None):
         self.pr.f._log_trace(self, "destroy", trace)
+        self.run_on_destroy()
         self.window.destroy()
-        self.root.destroy()
 
 
 if __name__ == "__main__":
