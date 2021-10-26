@@ -399,4 +399,7 @@ class Tagging :
             self._configure_last_called = datetime.now()
             return event
         return
+        
+    def load_from_config(self, trace = None):
+        self.pr.f._log_trace(self, "load_from_config", trace)
     

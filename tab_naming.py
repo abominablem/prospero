@@ -742,4 +742,5 @@ class Naming:
         values["date_created"] = ctime
         self.pr.insight_rn.add_row(**values, trace = inf_trace)
         
-        
+    def load_from_config(self, trace = None):
+        self.pr.f._log_trace(self, "load_from_config", trace)
