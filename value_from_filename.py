@@ -711,17 +711,23 @@ class ValueFromFilename:
                 )
         else:
             values = {}
-            
+
+        invalid_cols = ["Done", "Final name", "Genre", "Performer(s)", "URL",
+                        "", "Original name"]
+
         # All columns we don't want to filter on
-        for col in ["Done", "Final name", "Genre", 
-                    "Performer(s)", "URL", "", "Original name"]:
+        for col in invalid_cols:
             try:
                 del values[col]
             except KeyError:
                 pass
         
         insight_col = self.pr.insight_rn.map_field_names(self.columnString)
-        
+
+        if insight_col in invalid_cols:
+            self.insight_values = []
+            return
+
         query = self.pr.insight_rn.get_insight(values = values, 
                                                column = insight_col,
                                                distinct = True,
