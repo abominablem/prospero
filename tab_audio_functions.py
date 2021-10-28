@@ -157,9 +157,9 @@ class AudioFunctions():
         self._initialise_canvas(trace = inf_trace)
         
         """
-        ##########################################################################################
-        ################################ INPUT FILES #############################################
-        ##########################################################################################
+        ######################################################################
+        ################################ INPUT FILES #########################
+        ######################################################################
         """         
 
         self.treeview_input_files_columns = ["#0"]
@@ -189,9 +189,9 @@ class AudioFunctions():
         
         
         """
-        #############################################################################################################################################################################################################
-        ###################################################################### ACTION BUTTONS #######################################################################################################################
-        #############################################################################################################################################################################################################
+        ###################################################
+        ################## ACTION BUTTONS #################
+        ###################################################
         """
         
         """
@@ -270,8 +270,14 @@ class AudioFunctions():
         ##########################################################################################
         """      
         
-        self.treeview_info = {"columns" : ["#0", "Composer", "Album", "Track", "#", "Performer(s)", "Year", "Genre", "URL", "Final name", "Done"],
-                              "headers" : ["", "Composer", "Album", "Track", "#", "Performer(s)", "Year", "Genre", "URL", "Final name", "Done"],
+        self.treeview_info = {"columns" : ["#0", "Composer", "Album", "Track",
+                                           "#", "Performer(s)", "Year",
+                                           "Genre", "URL", "Final name",
+                                           "Done"],
+                              "headers" : ["", "Composer", "Album", "Track",
+                                           "#", "Performer(s)", "Year",
+                                           "Genre", "URL", "Final name",
+                                           "Done"],
                               "column_widths" : {"#0": self.pr.c.width_text_tiny, 
                                                  "Composer": self.pr.c.width_text_short, 
                                                  "Album": self.pr.c.width_text_short, 
@@ -1172,8 +1178,10 @@ class AudioFunctions():
             #number column case
             if len(selected_items) == 1:
                 #increment from row above
-                value_to_copy = int(self.treeview_file_names.set(self.treeview_file_names.prev(selected_items[0]), 
-                                                                 clicked_column_id)) + 1
+                value_to_copy = int(self.treeview_file_names.set(
+                    self.treeview_file_names.prev(selected_items[0]),
+                    clicked_column_id)
+                    ) + 1
             else:
                 #list of incrementing values starting from first row
                 start_value = self.treeview_file_names.set(selected_items[0], 
@@ -1186,8 +1194,9 @@ class AudioFunctions():
                     value_to_copy = ["" for i in selection_iter]
         else:
             if len(selected_items) == 1:
-                value_to_copy = self.treeview_file_names.set(self.treeview_file_names.prev(selected_items[0]), 
-                                                             clicked_column_id)
+                value_to_copy = self.treeview_file_names.set(
+                    self.treeview_file_names.prev(selected_items[0]),
+                    clicked_column_id)
             else:
                 value_to_copy = self.treeview_file_names.set(selected_items[0], 
                                                              clicked_column_id)
