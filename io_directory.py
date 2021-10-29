@@ -9,7 +9,7 @@ import tkinter as tk
 import config
 
 class IODirectory():
-    def __init__(self, parent,
+    def __init__(self, parent, master,
                  call_after_input = None,
                  call_after_input_kwargs = None,
                  call_after_output = None,
@@ -21,22 +21,21 @@ class IODirectory():
         be called after the user changes the input/output directory
         respectively.
         """
-        self.class_name = self.__class__.__name__
+        self.name = self.__class__.__name__
         self.pr = parent.pr
-        self.root = parent.root
-        self.parent = parent
+        self.parent_class = parent.__class__.__name__
+        self.master = master
 
         self.pr.f._log_trace(self, "__init__", trace)
         inf_trace = {"source": "function call",
-                     "parent": self.class_name + ".__init__"}
+                     "parent": self.name + ".__init__"}
 
         self.call_after_input = call_after_input
         self.call_after_input_kwargs = call_after_input_kwargs
         self.call_after_output = call_after_output
         self.call_after_output_kwargs = call_after_output_kwargs
 
-        self.frame = tk.Frame(self.parent.tab,
-                              background = self.pr.c.colour_background)
+        self.frame = tk.Frame(self.master, bg = self.pr.c.colour_background)
 
         self.place_widgets(trace = inf_trace)
         self.load_from_config(trace= inf_trace)
@@ -101,7 +100,7 @@ class IODirectory():
     def _btnInputDirectory_Click(self, trace = None):
         self.pr.f._log_trace(self, "_btnInputDirectory_Click", trace)
         inf_trace = {"source": "function call",
-                     "parent": self.class_name + "._btnInputDirectory_Click"}
+                     "parent": self.name + "._btnInputDirectory_Click"}
 
         #Ask for the input directory and populate the textbox. Then pull the file list
         self.input_directory = tk.filedialog.askdirectory(initialdir="../../../../Music",
@@ -109,7 +108,7 @@ class IODirectory():
         self.txt_input.delete(0, "end")
         self.txt_input.insert(0, self.input_directory)
         # self.populate_file_list(event = None)
-        config.config.config_dict[self.parent.__class__.__name__]['input_directory'] = self.input_directory
+        config.config.config_dict[self.parent_class]['input_directory'] = self.input_directory
 
         if not self.call_after_input is None:
             if self.call_after_input_kwargs is None:
@@ -121,14 +120,14 @@ class IODirectory():
     def _btnOutputDirectory_Click(self, trace = None):
         self.pr.f._log_trace(self, "_btnOutputDirectory_Click", trace)
         inf_trace = {"source": "function call",
-                     "parent": self.class_name + "._btnOutputDirectory_Click"}
+                     "parent": self.name + "._btnOutputDirectory_Click"}
 
         #Ask for the output directory and populate the textbox
         self.output_directory = tk.filedialog.askdirectory(initialdir="../../../../Music",  
                                                            title='Select the output directory')
         self.txt_output.delete(0, "end")
         self.txt_output.insert(0, self.output_directory)
-        config.config.config_dict[self.parent.__class__.__name__]['output_directory'] = self.output_directory
+        config.config.config_dict[self.parent_class]['output_directory'] = self.output_directory
 
         if not self.call_after_output is None:
             if self.call_after_output_kwargs is None:
@@ -142,8 +141,8 @@ class IODirectory():
 
     def load_from_config(self, trace = None):
         self.pr.f._log_trace(self, "load_from_config", trace)
-        self.input_directory = config.config.config_dict[self.parent.__class__.__name__]['input_directory']
-        self.output_directory = config.config.config_dict[self.parent.__class__.__name__]['output_directory']
+        self.input_directory = config.config.config_dict[self.parent_class]['input_directory']
+        self.output_directory = config.config.config_dict[self.parent_class]['output_directory']
         
         self.txt_input.delete(0, "end")
         self.txt_output.delete(0, "end")

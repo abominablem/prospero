@@ -14,9 +14,7 @@ from datetime import datetime
 from search_box import SearchBox
 from io_directory import IODirectory
 from arrange_widgets import WidgetSet
-
-#function imports
-from value_from_filename import ValueFromFilename 
+from value_from_filename import ValueFromFilename
 
 class Naming:
     column_map = {'composer': 'Composer',
@@ -96,7 +94,7 @@ class Naming:
                                 }
         
         self.file_list_treeview = ttk.Treeview(
-            self.tab, height = self.treeview_info["requested_rows"])
+            self.widget_frame, height = self.treeview_info["requested_rows"])
         self.file_list_treeview['columns'] = self.treeview_info["columns"][1:]
         
         for i in range(len(self.treeview_info["columns"])):
@@ -176,26 +174,24 @@ class Naming:
         ################## BUILD WIDGET SET ###############
         ###################################################
         """  
-
-
         widgets = {1: {'widget': self.io_directory,
                        'grid_kwargs': self.pr.c.grid_sticky,
-                       'stretch_width': True, 'stretch_height': False},
+                       'stretch_width': True},
                    2: {'widget': self.file_list_treeview,
                        'grid_kwargs': self.pr.c.grid_sticky_padding_small,
                        'stretch_width': True, 'stretch_height': True},
                    3: {'widget': self.search_box,
                        'grid_kwargs': self.pr.c.grid_sticky,
-                       'stretch_width': True, 'stretch_height': False},
+                       'stretch_width': True},
                    }
 
         self.widget_set = WidgetSet(self.widget_frame,
                                     widgets,
                                     layout = [[1], [2], [3]])
         self.widget_set.grid(row = 0, column = 0, **self.pr.c.grid_sticky)
-        self.widget_set.rowconfigure(0, weight = 1)
-        self.widget_set.columnconfigure(0, weight = 1)
-        
+        self.tab.rowconfigure(index = 0, weight = 1)
+        self.tab.columnconfigure(index = 0, weight = 1)
+
         """
         #############################################################
         ####################### INITIALISE WIDGETS ##################
@@ -206,7 +202,6 @@ class Naming:
         
         if "FileListTreeview" in config.config.config_dict[self.name].keys():
             if treeview_config["load_from_json"] == True:
-                    
                 if "treeview_values" in treeview_config.keys():
                     self.pr.f.json_to_treeview(
                         treeview = self.file_list_treeview,

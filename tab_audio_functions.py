@@ -24,7 +24,7 @@ from io_directory import IODirectory
 from value_from_filename import ValueFromFilename
 from audio_interface import AudioInterface
 from search_box import SearchBox
-# from arrange_widgets import WidgetSet
+from arrange_widgets import WidgetSet
 import config
 
 # #### REQUIRED ####
@@ -47,98 +47,30 @@ class AudioFunctions():
         self.executing = False
 
         #Horrific UI code below.
-        self.io_directory = IODirectory(parent = self, trace = inf_trace)
-        self.IODirectoryGridRow = grid_references[0]
-        self.IODirectoryGridColumn = grid_references[1]
-        self.IODirectoryColumnSpan = self.pr.c.columnspan_all
-        self.IODirectoryRowSpan = 1
-        
-        self.io_directory.grid(row = self.IODirectoryGridRow, 
-                                column = self.IODirectoryGridColumn, 
-                                columnspan = self.IODirectoryColumnSpan,
-                                rowspan = self.IODirectoryRowSpan,
-                                sticky = "nesw"
-                                )        
+        frame_kwargs = {"bg": self.pr.c.colour_background}
+        self.widget_frame = tk.Frame(self.tab, **frame_kwargs)
+
+        self.io_directory = IODirectory(parent = self,
+                                        master = self.widget_frame,
+                                        trace = inf_trace)
 
         self._colour_breakpoint = "#bfb598"
         self._colour_waveform = parent.pr.c.colour_prospero_blue_pastel
         self._plot_background_colour = parent.pr.c.colour_background
         
-        self.InputFilesFrameGridRow = (self.IODirectoryGridRow 
-                                       + self.IODirectoryRowSpan)
-        self.InputFilesFrameGridColumn = self.IODirectoryGridColumn
-        self.InputFilesFrameColumnSpan = 1
-        self.InputFilesFrameRowSpan = 1
-        
-        self.input_files_frame = tk.Frame(self.tab, background = 
-                                          self.pr.c.colour_background)
-        
-        self.input_files_frame.grid(row = self.InputFilesFrameGridRow,
-                                    column = self.InputFilesFrameGridColumn,
-                                    columnspan = self.InputFilesFrameColumnSpan,
-                                    rowspan = self.InputFilesFrameRowSpan,
-                                    **self.pr.c.grid_sticky_padding_small)
-        
-        self.VisualFrameGridRow = self.InputFilesFrameGridRow
-        self.VisualFrameGridColumn = (self.InputFilesFrameGridColumn 
-                                      + self.InputFilesFrameColumnSpan)
-        
-        self.VisualFrameColumnSpan = 1
-        self.VisualFrameRowSpan = self.InputFilesFrameRowSpan
-        
-        self.visual_frame = tk.Frame(self.tab, 
-                                     background = self.pr.c.colour_background, 
-                                     highlightthickness = 1, 
-                                     highlightcolor = self.pr.c.colour_selection_background)
-        self.visual_frame.grid(row = self.VisualFrameGridRow, 
-                                column = self.VisualFrameGridColumn, 
-                                columnspan = self.VisualFrameColumnSpan,
-                                rowspan = self.VisualFrameRowSpan,
-                                sticky = "nesw"
-                                )
-        
-        self.AudioControlsGridRow = self.VisualFrameGridRow + self.VisualFrameRowSpan
-        self.AudioControlsGridColumn = self.InputFilesFrameGridColumn + self.InputFilesFrameGridColumn
-        self.AudioControlsColumnSpan = self.pr.c.columnspan_all
-        self.AudioControlsRowSpan = 1
-        
         self.audio_interface = AudioInterface(
             self, trace = {"source": "initialise class", "parent": self.name})
 
-        self.audio_controls_frame = self.audio_interface.frame
-        self.audio_controls_frame.grid(row = self.AudioControlsGridRow, 
-                              column = self.AudioControlsGridColumn, 
-                              columnspan = self.AudioControlsColumnSpan,
-                              rowspan = self.AudioControlsRowSpan,
-                              sticky = "nesw"
-                              )
-        
-        self.NamesFrameGridRow = self.AudioControlsGridRow + self.AudioControlsRowSpan
-        self.NamesFrameGridColumn = self.InputFilesFrameGridColumn + self.InputFilesFrameGridColumn
-        self.NamesFrameColumnSpan = self.pr.c.columnspan_all
-        self.NamesFrameRowSpan = 1
-        
-        self.names_frame = tk.Frame(self.tab, background = self.pr.c.colour_background)
-        self.names_frame.grid(row = self.NamesFrameGridRow, 
-                              column = self.NamesFrameGridColumn, 
-                              columnspan = self.NamesFrameColumnSpan,
-                              rowspan = self.NamesFrameRowSpan,
-                              sticky = "nesw"
-                              )
-        
-        self.search_box_gridrow = self.NamesFrameGridRow + self.NamesFrameRowSpan
-        self.search_box_gridcolumn = self.NamesFrameGridColumn
-        self.search_box_columnspan = self.pr.c.columnspan_all
-        self.search_box_rowspan = 1
-        
-        self.search_box = SearchBox(parent = self,
-                                    trace = inf_trace,
-                                    row = self.search_box_gridrow, 
-                                    column = self.search_box_gridcolumn, 
-                                    columnspan = self.search_box_columnspan,
-                                    rowspan = self.search_box_rowspan,
-                                    sticky = "nesw"
-                                    )
+        self.search_box = SearchBox(parent = self, trace = inf_trace)
+
+        self.visual_frame = tk.Frame(
+            self.widget_frame,
+            bg = self.pr.c.colour_background,
+            highlightthickness = 1,
+            highlightcolor = self.pr.c.colour_selection_background)
+
+        self.visual_frame.rowconfigure(0, weight = 1)
+        self.visual_frame.columnconfigure(0, weight = 1)
         
         self.breakpoints = [] #list of mpl Line2D objects (breakpoints) for addition and removal to figure
         self.breakpoints_x = [] #list of x coordinates of the breakpoint
@@ -157,246 +89,197 @@ class AudioFunctions():
         self._initialise_canvas(trace = inf_trace)
         
         """
-        ######################################################################
-        ################################ INPUT FILES #########################
-        ######################################################################
-        """         
+        ### INPUT FILES TREEVIEW ###
+        """
 
         self.treeview_input_files_columns = ["#0"]
         self.treeview_input_files_headers = ["Filename"]
         self.treeview_input_files_column_widths = [self.pr.c.width_text_long]
         self.treeview_input_files_fixed_width = [False]
         
-        self.treeview_input_files = ttk.Treeview(self.input_files_frame)
+        self.treeview_input_files = ttk.Treeview(self.widget_frame)
         
-        self.pr.f.configure_treeview_columns(treeview = self.treeview_input_files, 
-                                             columns = self.treeview_input_files_columns,
-                                             headers = self.treeview_input_files_headers,
-                                             widths = self.treeview_input_files_column_widths,
-                                             create_columns = True,
-                                             trace = inf_trace
-                                             )
-        self.InputFilesTreeviewGridRow = 0
-        self.InputFilesTreeviewGridColumn = 0
-        self.InputFilesTreeviewColumnSpan = 1
-        self.InputFilesTreeviewRowSpan = 1
-        self.treeview_input_files.grid(row = self.InputFilesTreeviewGridRow,
-                                    column = self.InputFilesTreeviewGridColumn,
-                                    columnspan = self.InputFilesTreeviewColumnSpan,
-                                    rowspan = self.InputFilesTreeviewRowSpan,
-                                    **self.pr.c.grid_sticky_padding_small
-                                    ) 
-        
-        
-        """
-        ###################################################
-        ################## ACTION BUTTONS #################
-        ###################################################
-        """
-        
-        """
-        #################################
-        ########## INPUT FILES ##########
-        #################################
-        """
-        btnImportFiles = tk.Button(self.io_directory.frame,
-                                    text = "Import Files", 
-                                    background = self.pr.c.colour_interface_button, 
-                                    command = self._btnImportFiles_Click
-                                    )
+        self.pr.f.configure_treeview_columns(
+            treeview = self.treeview_input_files,
+            columns = self.treeview_input_files_columns,
+            headers = self.treeview_input_files_headers,
+            widths = self.treeview_input_files_column_widths,
+            create_columns = True,
+            trace = inf_trace
+            )
+
+        btnImportFiles = tk.Button(
+            self.io_directory.frame,
+            text = "Import Files",
+            background = self.pr.c.colour_interface_button,
+            command = self._btnImportFiles_click
+            )
         self.io_directory.add_widget(widget = btnImportFiles, 
                                      fixed_width = True, trace = inf_trace, 
                                      row = "input", column = "end")
         
-        """
-        #################################
-        ###### EXECUTE BREAKPOINTS ######
-        #################################
-        """
-        btnExecuteBreakpoints = tk.Button(self.io_directory.frame,
-                                            text="Execute Breakpoints", 
-                                            background = self.pr.c.colour_interface_button, 
-                                            command = self._btnExecuteBreakpoints_Click
-                                            )
+        btnExecuteBreakpoints = tk.Button(
+            self.io_directory.frame,
+            text="Execute Breakpoints",
+            background = self.pr.c.colour_interface_button,
+            command = self._btnExecuteBreakpoints_click
+            )
         self.io_directory.add_widget(widget = btnExecuteBreakpoints, 
                                      fixed_width = True, trace = inf_trace, 
                                      row = "output", column = btnImportFiles)
         
-        """
-        #################################
-        ######## DISPLAY WAVEFORM #######
-        #################################
-        """
+        self.btn_display_waveform = tk.Button(
+            self.widget_frame,
+            text="Display Waveform",
+            background = self.pr.c.colour_interface_button,
+            command = self._btn_display_waveform_click
+            )
+
+        self.btn_import_breakpoints = tk.Button(
+            self.widget_frame,
+            text="Import Breakpoints",
+            background = self.pr.c.colour_interface_button,
+            command = self._btn_import_breakpoints_click
+            )
+
+        self.treeview_info = {
+            "columns" : ["#0", "Composer", "Album", "Track",
+                         "#", "Performer(s)", "Year",
+                         "Genre", "URL", "Final name",
+                         "Done"],
+            "headers" : ["", "Composer", "Album", "Track",
+                         "#", "Performer(s)", "Year",
+                         "Genre", "URL", "Final name",
+                         "Done"],
+            "column_widths" : {"#0": self.pr.c.width_text_tiny,
+                               "Composer": self.pr.c.width_text_short,
+                               "Album": self.pr.c.width_text_short,
+                               "Track": self.pr.c.width_text_short,
+                               "#": self.pr.c.width_text_tiny,
+                               "Performer(s)": self.pr.c.width_text_short,
+                               "Year": self.pr.c.width_text_tiny,
+                               "Genre": self.pr.c.width_text_veryshort,
+                               "URL": self.pr.c.width_text_short,
+                               "Final name": self.pr.c.width_text_long,
+                               "Done": self.pr.c.width_text_tiny
+                               },
+            "fixed_width" : {"#0": True,
+                             "Composer": False,
+                             "Album": False,
+                             "Track": False,
+                             "#": True,
+                             "Performer(s)": False,
+                             "Year": True,
+                             "Genre": False,
+                             "URL": False,
+                             "Final name": False,
+                             "Done": True
+                             },
+            "centering" : {"#0": "center",
+                           "Composer": "w",
+                           "Album": "w",
+                           "Track": "w",
+                           "#": "center",
+                           "Performer(s)": "w",
+                           "Year": "center",
+                           "Genre": "w",
+                           "URL": "w",
+                           "Final name": "w",
+                           "Done": "center"
+                           },
+            "copy_from_above" : {"#0": True,
+                                 "Composer": True,
+                                 "Album": True,
+                                 "Track": False,
+                                 "#": False,
+                                 "Performer(s)": True,
+                                 "Year": True,
+                                 "Genre": True,
+                                 "URL": True,
+                                 "Final name": False,
+                                 "Done": False
+                                 },
+            "minimum_rows" : 1,
+            "requested_rows" : 10,
+            "row_height" : self.pr.c.width_text_tiny
+            }
         
-        self.DisplayWaveformGridRow = self.InputFilesTreeviewGridRow + self.InputFilesTreeviewRowSpan
-        self.DisplayWaveformGridColumn = self.InputFilesTreeviewGridColumn
-        self.DisplayWaveformColumnSpan = self.InputFilesTreeviewColumnSpan
-        self.DisplayWaveformRowSpan = 1
-        self.btnDisplayWaveform = tk.Button(self.input_files_frame,
-                                            text="Display Waveform", 
-                                            background = self.pr.c.colour_interface_button, 
-                                            command = self._btnDisplayWaveform_Click
-                                            )
-        self.btnDisplayWaveform.grid(row = self.DisplayWaveformGridRow,
-                                     column = self.DisplayWaveformGridColumn,
-                                     columnspan = self.DisplayWaveformColumnSpan,
-                                     rowspan = self.DisplayWaveformRowSpan,
-                                     sticky = "nesw",
-                                     padx = self.pr.c.padding_small,
-                                     pady = self.pr.c.padding_small_bottom_only
-                                     ) 
-        
-        self.ImportBreakpointsGridRow = self.DisplayWaveformGridRow + self.DisplayWaveformRowSpan
-        self.ImportBreakpointsGridColumn = self.InputFilesTreeviewGridColumn
-        self.ImportBreakpointsColumnSpan = self.InputFilesTreeviewColumnSpan
-        self.ImportBreakpointsRowSpan = 1
-        self.btnImportBreakpoints = tk.Button(self.input_files_frame,
-                                            text="Import Breakpoints", 
-                                            background = self.pr.c.colour_interface_button, 
-                                            command = self._btnImportBreakpoints_Click
-                                            )
-        self.btnImportBreakpoints.grid(row = self.ImportBreakpointsGridRow,
-                                     column = self.ImportBreakpointsGridColumn,
-                                     columnspan = self.ImportBreakpointsColumnSpan,
-                                     rowspan = self.ImportBreakpointsRowSpan,
-                                     sticky = "nesw",
-                                     padx = self.pr.c.padding_small,
-                                     pady = self.pr.c.padding_small_bottom_only
-                                     ) 
-        
-        """
-        ##########################################################################################
-        ################################ NAMES INPUT #############################################
-        ##########################################################################################
-        """      
-        
-        self.treeview_info = {"columns" : ["#0", "Composer", "Album", "Track",
-                                           "#", "Performer(s)", "Year",
-                                           "Genre", "URL", "Final name",
-                                           "Done"],
-                              "headers" : ["", "Composer", "Album", "Track",
-                                           "#", "Performer(s)", "Year",
-                                           "Genre", "URL", "Final name",
-                                           "Done"],
-                              "column_widths" : {"#0": self.pr.c.width_text_tiny, 
-                                                 "Composer": self.pr.c.width_text_short, 
-                                                 "Album": self.pr.c.width_text_short, 
-                                                 "Track": self.pr.c.width_text_short, 
-                                                 "#": self.pr.c.width_text_tiny, 
-                                                 "Performer(s)": self.pr.c.width_text_short, 
-                                                 "Year": self.pr.c.width_text_tiny, 
-                                                 "Genre": self.pr.c.width_text_veryshort, 
-                                                 "URL": self.pr.c.width_text_short, 
-                                                 "Final name": self.pr.c.width_text_long, 
-                                                 "Done": self.pr.c.width_text_tiny
-                                                 },
-                              "fixed_width" : {"#0": True, 
-                                                "Composer": False, 
-                                                "Album": False, 
-                                                "Track": False, 
-                                                "#": True, 
-                                                "Performer(s)": False, 
-                                                "Year": True, 
-                                                "Genre": False, 
-                                                "URL": False, 
-                                                "Final name": False, 
-                                                "Done": True
-                                                 },
-                              "centering" : {"#0": "center", 
-                                                "Composer": "w", 
-                                                "Album": "w", 
-                                                "Track": "w", 
-                                                "#": "center", 
-                                                "Performer(s)": "w", 
-                                                "Year": "center", 
-                                                "Genre": "w", 
-                                                "URL": "w", 
-                                                "Final name": "w", 
-                                                "Done": "center"
-                                                 },
-                              "copy_from_above" : {"#0": True, 
-                                                    "Composer": True, 
-                                                    "Album": True, 
-                                                    "Track": False, 
-                                                    "#": False, 
-                                                    "Performer(s)": True, 
-                                                    "Year": True, 
-                                                    "Genre": True, 
-                                                    "URL": True, 
-                                                    "Final name": False, 
-                                                    "Done": False
-                                                 },
-                                "minimum_rows" : 1,
-                                "requested_rows" : 10,
-                                "row_height" : self.pr.c.width_text_tiny
-                                }
-        
-        self.FileNamesTreeviewGridRow = 0
-        self.FileNamesTreeviewGridColumn = 0
-        self.FileNamesTreeviewColumnSpan = 1
-        self.FileNamesTreeviewRowSpan = 1
-        
-        self.treeview_file_names = ttk.Treeview(self.names_frame, 
-                                                height = self.treeview_info["requested_rows"])
+        self.treeview_file_names = ttk.Treeview(
+            self.widget_frame, height = self.treeview_info["requested_rows"])
+
         self.treeview_file_names['columns'] = self.treeview_info["columns"][1:]
         
         for i in range(len(self.treeview_info["columns"])):
-            columnName = self.treeview_info["columns"][i]
-            columnHeader = self.treeview_info["headers"][i]
-            columnWidth = self.treeview_info["column_widths"][columnName]
-            columnCentering = self.treeview_info["centering"][columnName]
+            column_name = self.treeview_info["columns"][i]
+            column_header = self.treeview_info["headers"][i]
+            column_width = self.treeview_info["column_widths"][column_name]
+            column_centering = self.treeview_info["centering"][column_name]
             
-            self.treeview_file_names.column(columnName, 
-                                            width = columnWidth, 
-                                            minwidth = columnWidth, 
-                                            stretch = tk.NO, 
-                                            anchor = columnCentering)
-            self.treeview_file_names.heading(columnName, text = columnHeader)
+            self.treeview_file_names.column(column_name, 
+                                            width = column_width, 
+                                            minwidth = column_width, 
+                                            stretch = tk.NO,
+                                            anchor = column_centering)
+            self.treeview_file_names.heading(column_name, text = column_header)
             
-        self.treeview_file_names.grid(row = self.FileNamesTreeviewGridRow, 
-                                        column = self.FileNamesTreeviewGridColumn, 
-                                        columnspan = self.FileNamesTreeviewColumnSpan,
-                                        rowspan = self.FileNamesTreeviewRowSpan,
-                                        **self.pr.c.grid_sticky_padding_small
-                                        )
+        widgets = {
+            1: {'widget': self.io_directory.frame,
+                'grid_kwargs': self.pr.c.grid_sticky,
+                'stretch_width': True},
+            2: {'widget': self.treeview_input_files,
+                'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                'stretch_height': True
+                },
+            3: {'widget': self.btn_display_waveform,
+                'grid_kwargs': {
+                    **self.pr.c.grid_sticky,
+                    "padx": self.pr.c.padding_small,
+                    "pady": self.pr.c.padding_small_bottom_only
+                    }
+                },
+            4: {'widget': self.btn_import_breakpoints,
+                'grid_kwargs': {
+                    **self.pr.c.grid_sticky,
+                    "padx": self.pr.c.padding_small
+                    }
+                },
+            5: {'widget': self.visual_frame,
+                'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                'stretch_width': True,
+                'stretch_height': True
+                },
+            6: {'widget': self.treeview_file_names,
+                'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                'stretch_width': True,
+                'stretch_height': True
+                },
+            7: {'widget': self.search_box,
+                'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                'stretch_width': True
+                },
+            }
+        self.widget_set = WidgetSet(self.widget_frame,
+                                    widgets,
+                                    layout = [[1],
+                                              [2, 5],
+                                              [3, 5],
+                                              [4, 5],
+                                              [6],
+                                              [7]]
+                                    )
 
-        # btn_grid_kw = self.pr.c.grid_sticky.update({
-        #     "padx": self.pr.c.padding_small,
-        #     "pady": self.pr.c.padding_small_bottom_only
-        #     })
+        self.widget_set.grid(row = 0, column = 0, **self.pr.c.grid_sticky,
+                             trace = inf_trace)
+        # self.widget_set.columnconfigure(
+        #     index = 0, weight = 1, trace = inf_trace)
+        # self.widget_set.rowconfigure(
+        #     index = 0, weight = 1, trace = inf_trace)
 
-        # widgets = {1: {'widget': self.io_directory.frame,
-        #                'grid_kwargs': self.pr.c.grid_sticky},
-        #            2: {'widget': self.treeview_input_files,
-        #                'grid_kwargs': self.pr.c.grid_sticky_padding_small,
-        #                'stretch_width': True},
-        #            3: {'widget': self.btnDisplayWaveform,
-        #                'grid_kwargs': btn_grid_kw,
-        #                'stretch_width': True},
-        #            4: {'widget': self.btnImportBreakpoints,
-        #                'grid_kwargs': btn_grid_kw,
-        #                'stretch_width': True},
-        #            5: {'widget': self.visual_frame,
-        #                'grid_kwargs': self.pr.c.grid_sticky_padding_small},
-        #            6: {'widget': self.treeview_file_names,
-        #                'grid_kwargs': self.pr.c.grid_sticky_padding_small,
-        #                'stretch_width': True},
-        #            }
-
-        # self.widget_set = WidgetSet(self.widget_frame,
-        #                             widgets,
-        #                             layout = [[1],
-        #                                       [2, 5],
-        #                                       [3, 5],
-        #                                       [4, 5],
-        #                                       [6]])
-        # self.widget_set.grid(row = 0, column = 0, **self.pr.c.grid_sticky)
-
+        self.tab.columnconfigure(index = 0, weight = 1)
+        self.tab.rowconfigure(index = 0, weight = 1)
 
         """
-        ########################################
-        ########## BOUND FUNCTIONS #############
-        ########################################
+        ### BOUND FUNCTIONS ###
         """
 
         self.treeview_input_files.bind("<Configure>", lambda event: self._resize_treeview(event, trace={"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<Configure>"}))
@@ -417,25 +300,13 @@ class AudioFunctions():
         self.treeview_input_files.bind("<KeyRelease-Alt_L>", lambda event: self._key_release_alt(event, trace = {"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<KeyRelease-Alt_L>"}))
         self.treeview_input_files.bind("<Alt-1>", lambda event: self._alt_mouse_1(event, trace = {"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<Alt-1>"}))
         
-        """
-        ######################################################################
-        ################################ ALLOCATE SCALING ####################
-        ######################################################################
-        """
-        self.names_frame.columnconfigure(self.FileNamesTreeviewGridColumn,
-                                         weight=1)
-        self.visual_frame.columnconfigure(self.VisualFrameGridColumn, weight=1)
-        
-        self.tab.columnconfigure(0, weight=0)
-        self.tab.columnconfigure(1, weight=1)
-        
         self.load_from_config(trace = inf_trace)
         self.populate_input_files(trace = inf_trace)
     
-    def _btnImportFiles_Click(self, trace = None):
-        self.pr.f._log_trace(self, "_btnImportFiles_Click", trace)
+    def _btnImportFiles_click(self, trace = None):
+        self.pr.f._log_trace(self, "_btnImportFiles_click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.name + "._btnImportFiles_Click"}
+                     "parent": self.name + "._btnImportFiles_click"}
         
         self.populate_input_files(trace = inf_trace)
     
@@ -444,7 +315,8 @@ class AudioFunctions():
         """
         Populate the treeview with file names
         """
-        self.treeview_input_files.delete(*self.treeview_input_files.get_children())
+        self.treeview_input_files.delete(
+            *self.treeview_input_files.get_children())
         try:
             file_list = os.listdir(self.io_directory.input_directory)
         except FileNotFoundError:
@@ -457,10 +329,10 @@ class AudioFunctions():
                                                  text = filename, 
                                                  iid = filename)
     
-    def _btnExecuteBreakpoints_Click(self, trace = None):
-        self.pr.f._log_trace(self, "_btnExecuteBreakpoints_Click", trace)
+    def _btnExecuteBreakpoints_click(self, trace = None):
+        self.pr.f._log_trace(self, "_btnExecuteBreakpoints_click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.name + "._btnExecuteBreakpoints_Click"}
+                     "parent": self.name + "._btnExecuteBreakpoints_click"}
 
         if self.executing: return
 
@@ -548,10 +420,10 @@ class AudioFunctions():
         audio.export(os.path.join(self.io_directory.output_directory, name),
                      format = "mp3")
     
-    def _btnDisplayWaveform_Click(self, trace = None):
-        self.pr.f._log_trace(self, "_btnDisplayWaveform_Click", trace)
+    def _btn_display_waveform_click(self, trace = None):
+        self.pr.f._log_trace(self, "_btn_display_waveform_click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.name + "._btnDisplayWaveform_Click"}
+                     "parent": self.name + "._btn_display_waveform_click"}
         
         if self.executing: return
         if len(self.treeview_input_files.selection()) == 0: return
@@ -564,7 +436,7 @@ class AudioFunctions():
         self.audio_interface.end_audio_process(trace = inf_trace)
         self.audio_interface.load_audio(self.sound, trace = inf_trace)
     
-    def _btnImportBreakpoints_Click(self, trace = None):
+    def _btn_import_breakpoints_click(self, trace = None):
         """
         Open a text input for the user to input either a list of timecodes
         of the format XX:XX or XX:XX:XX separated by commas, or a block of
@@ -576,9 +448,9 @@ class AudioFunctions():
         """
         if self.executing: return
 
-        self.pr.f._log_trace(self, "_btnImportBreakpoints", trace)
+        self.pr.f._log_trace(self, "_btn_import_breakpoints", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.name + "._btnImportBreakpoints"}
+                     "parent": self.name + "._btn_import_breakpoints"}
         if self.waveform is None: return
         timecodes = tk.simpledialog.askstring(title = "Import Breakpoints",
                                               prompt = "Enter a list of "
@@ -618,8 +490,8 @@ class AudioFunctions():
                         #exclude matched string
                         trk_num = str(config.numerals_dict.regex_dict[regex])
                         trk_name = trk[:match.start()] + trk[match.end():]
-                        trk_name = self.pr.f.clean_track_string(trk_name, 
-                                                                trace = inf_trace)
+                        trk_name = self.pr.f.clean_track_string(
+                            trk_name, trace = inf_trace)
                         track_dict[trk_num] = trk_name
             
             track_list = [self.pr.f.clean_track_string(trk, trace = inf_trace) 
@@ -689,10 +561,6 @@ class AudioFunctions():
                                 self._on_button_press(event, trace = key_trace))
         self.canvas.mpl_connect("key_release_event", lambda event: 
                                 self._on_key_release(event, trace = key_trace))
-        
-        #must use .pack() here to avoid conflict with matplotlib backend
-        self.tk_canvas = self.canvas.get_tk_widget()
-        self.tk_canvas.pack(side=tk.TOP, fill = "x", expand = 0)
 
         #add toolbar below plot
         self.toolbar = NavigationToolbar2Tk(self.canvas, self.visual_frame)
@@ -700,7 +568,8 @@ class AudioFunctions():
         self.toolbar._message_label.config(
             background = self.pr.c.colour_background)
         self.toolbar.update()
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill = "x", expand = 0)
+        #must use .pack() here to avoid conflict with matplotlib backend
+        self.canvas.get_tk_widget().pack(side=tk.TOP, fill = tk.BOTH, expand = 1)
     
     def display_waveform(self, filepath, trace = None):
         self.pr.f._log_trace(self, "display_waveform", trace)
@@ -739,7 +608,8 @@ class AudioFunctions():
         self.canvas.draw()
         self.toolbar.update() #update toolbar, including home view
         
-        self.treeview_file_names.delete(*self.treeview_file_names.get_children())
+        self.treeview_file_names.delete(
+            *self.treeview_file_names.get_children())
         self.fresh_waveform = True
         self.update_treeview_numbers(trace = inf_trace)
     
@@ -1039,23 +909,28 @@ class AudioFunctions():
             #update the treeview height (number of rows visible)
             #match this to the height of the waveform
             available_height = self.visual_frame.winfo_height()
-            self.treeview_input_files["height"] = int(available_height/self.pr.c.treeview_item_height) - 5
+            self.treeview_input_files["height"] = \
+                int(available_height/self.pr.c.treeview_item_height) - 5
             
             #get new width of widget
             treeview_width = self.treeview_file_names.winfo_width()
             
             #get array of the new width for each column, distributed according to their previous widths and any fixed width columns
-            new_widths = self.pr.f.distribute_width(treeview_width, 
-                                                    list(self.treeview_info["column_widths"].values()), 
-                                                    list(self.treeview_info["fixed_width"].values()), 
-                                                    trace = inf_trace)
+            new_widths = self.pr.f.distribute_width(
+                treeview_width,
+                list(self.treeview_info["column_widths"].values()),
+                list(self.treeview_info["fixed_width"].values()),
+                trace = inf_trace
+                )
             
             #update the width for each column
             for i in range(len(self.treeview_info["columns"])):
-                self.treeview_file_names.column(self.treeview_info["columns"][i], 
-                                                width = new_widths[i], 
-                                                minwidth = new_widths[i], 
-                                                stretch = tk.NO)
+                self.treeview_file_names.column(
+                    self.treeview_info["columns"][i],
+                    width = new_widths[i],
+                    minwidth = new_widths[i],
+                    stretch = tk.NO
+                    )
             
             #update the time the event was last called
             self._configure_last_called = datetime.now()
@@ -1108,14 +983,15 @@ class AudioFunctions():
         if clicked_row is None or clicked_row == "":
             return event # exit if an empty row is clicked
         
-        ValueFromFilename(parent = self, 
-                          filename = self.filename,
-                          columnString = self.treeview_column_id_to_name(clicked_column_id),
-                          columnId = clicked_column_id,
-                          treeview = self.treeview_file_names,
-                          row_iid = clicked_row,
-                          trace = inf_trace
-                          )
+        ValueFromFilename(
+            parent = self,
+            filename = self.filename,
+            columnString = self.treeview_column_id_to_name(clicked_column_id),
+            columnId = clicked_column_id,
+            treeview = self.treeview_file_names,
+            row_iid = clicked_row,
+            trace = inf_trace
+            )
         return event
 
     def update_treeview_numbers(self, trace = None):

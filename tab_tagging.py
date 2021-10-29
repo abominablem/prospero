@@ -29,8 +29,12 @@ class Tagging :
         ############# FRAMES ##############
         ###################################
         """
-        self.io_directory = IODirectory(parent = self, 
-                                        trace = inf_trace, 
+        frame_kwargs = {"bg": self.pr.c.colour_background}
+        self.widget_frame = tk.Frame(self.tab, **frame_kwargs)
+
+        self.io_directory = IODirectory(parent = self,
+                                        master = self.widget_frame,
+                                        trace = inf_trace,
                                         call_after_input = 
                                             self.populate_file_list)
         TreeviewFrame = tk.Frame(self.tab,
