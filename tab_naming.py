@@ -13,6 +13,7 @@ import re
 from datetime import datetime
 from search_box import SearchBox
 from io_directory import IODirectory
+from arrange_widgets import WidgetSet
 
 #function imports
 from value_from_filename import ValueFromFilename 
@@ -44,55 +45,19 @@ class Naming:
         #################### FRAMES ##################
         ##############################################
         """
+
+        frame_kwargs = {"bg": self.pr.c.colour_background}
+        self.widget_frame = tk.Frame(self.tab, **frame_kwargs)
         
         self.io_directory = IODirectory(
-            parent = self, 
+            parent = self,
+            master = self.widget_frame,
             trace = inf_trace, 
             call_after_input = self.populate_treeview, 
             call_after_input_kwargs = {"populate_values": False}
             )
         
-        self.TreeviewFrame = tk.Frame(self.tab, 
-                                      background = self.pr.c.colour_background)
-        
-        self.IODirectoryGridRow = grid_references[0]
-        self.IODirectoryGridColumn = grid_references[1]
-        self.IODirectoryColumnSpan = self.pr.c.columnspan_all
-        self.IODirectoryRowSpan = 1
-        
-        self.TreeviewFrameGridRow = self.IODirectoryGridRow + 1
-        self.TreeviewFrameGridColumn = self.IODirectoryGridColumn
-        self.TreeviewFrameColumnSpan = self.pr.c.columnspan_all
-        self.TreeviewFrameRowSpan = 1     
-        
-        self.search_box_gridrow = self.TreeviewFrameGridRow + 1
-        self.search_box_gridcolumn = self.IODirectoryGridColumn
-        self.search_box_columnspan = self.pr.c.columnspan_all
-        self.search_box_rowspan = 1
-        
-        self.io_directory.grid(row = self.IODirectoryGridRow, 
-                                column = self.IODirectoryGridColumn, 
-                                columnspan = self.IODirectoryColumnSpan,
-                                rowspan = self.IODirectoryRowSpan,
-                                sticky = "nesw"
-                                )
-        
-        self.TreeviewFrame.grid(row = self.TreeviewFrameGridRow, 
-                                column = self.TreeviewFrameGridColumn, 
-                                columnspan = self.TreeviewFrameColumnSpan,
-                                rowspan = self.TreeviewFrameRowSpan,
-                                sticky = "nesw"
-                                )
-        
-        self.search_box = SearchBox(parent = self,
-                                    trace = inf_trace,
-                                    row = self.search_box_gridrow, 
-                                    column = self.search_box_gridcolumn, 
-                                    columnspan = self.search_box_columnspan,
-                                    rowspan = self.search_box_rowspan,
-                                    sticky = "nesw"
-                                    )
-
+        self.search_box = SearchBox(parent = self, trace = inf_trace)
         """
         ##############################################
         ############# FILE LIST TREEVIEW #############
@@ -130,14 +95,9 @@ class Naming:
                                 "unsaved_changes" : False 
                                 }
         
-        FileListTreeviewGridRow = 0
-        FileListTreeviewGridColumn = 0
-        FileListTreeviewColumnSpan = 1
-        FileListTreeviewRowSpan = 1
-        
-        self.FileListTreeview = ttk.Treeview(
-            self.TreeviewFrame, height = self.treeview_info["requested_rows"])
-        self.FileListTreeview['columns'] = self.treeview_info["columns"][1:]
+        self.file_list_treeview = ttk.Treeview(
+            self.tab, height = self.treeview_info["requested_rows"])
+        self.file_list_treeview['columns'] = self.treeview_info["columns"][1:]
         
         for i in range(len(self.treeview_info["columns"])):
             columnName = self.treeview_info["columns"][i]
@@ -145,20 +105,13 @@ class Naming:
             columnHeader = self.treeview_info["headers"][i]
             columnCentering = self.treeview_info["centering"][i]
             
-            self.FileListTreeview.column(columnName, 
+            self.file_list_treeview.column(columnName, 
                                          width = columnWidth, 
                                          minwidth = columnWidth, 
                                          stretch = tk.NO, 
                                          anchor = columnCentering)
-            self.FileListTreeview.heading(columnName, text = columnHeader)
+            self.file_list_treeview.heading(columnName, text = columnHeader)
             
-        self.FileListTreeview.grid(row = FileListTreeviewGridRow, 
-                                   column = FileListTreeviewGridColumn, 
-                                   columnspan = FileListTreeviewColumnSpan,
-                                   rowspan = FileListTreeviewRowSpan,
-                                   **self.pr.c.grid_sticky_padding_small
-                                   )
-        
         """
         ######################################################################
         ######################### ACTION BUTTONS #############################
@@ -202,37 +155,51 @@ class Naming:
         """
         
         #search box
-        self.FileListTreeview.bind("<KeyPress-Alt_L>", lambda event: self._key_press_alt(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<KeyPress-Alt_L>"}))
-        self.FileListTreeview.bind("<KeyRelease-Alt_L>", lambda event: self._key_release_alt(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<KeyRelease-Alt_L>"}))
-        self.FileListTreeview.bind("<Alt-1>", lambda event: self._alt_mouse_1(event, trace = {"source": "bound event", "widget": "Naming.FileListTreeview", "event": "<Alt-1>"}))
+        self.file_list_treeview.bind("<KeyPress-Alt_L>", lambda event: self._key_press_alt(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<KeyPress-Alt_L>"}))
+        self.file_list_treeview.bind("<KeyRelease-Alt_L>", lambda event: self._key_release_alt(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<KeyRelease-Alt_L>"}))
+        self.file_list_treeview.bind("<Alt-1>", lambda event: self._alt_mouse_1(event, trace = {"source": "bound event", "widget": "Naming.FileListTreeview", "event": "<Alt-1>"}))
         
         #treeview values
-        self.FileListTreeview.bind("<1>", lambda event: self._treeview_mouse1_click(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<1>"}))
-        self.FileListTreeview.bind("<Double-1>", lambda event: self.edit_value_via_interface(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Double-1>"}))
-        self.FileListTreeview.bind("<Control-d>", lambda event: self.copy_from_above(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
-        self.FileListTreeview.bind("<Control-s>", lambda event: self.save_treeview(event, trace = {"source": "bound event", "widget": self.name + ".save_treeview", "event": "<Control-s>"}))
+        self.file_list_treeview.bind("<1>", lambda event: self._treeview_mouse1_click(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<1>"}))
+        self.file_list_treeview.bind("<Double-1>", lambda event: self.edit_value_via_interface(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Double-1>"}))
+        self.file_list_treeview.bind("<Control-d>", lambda event: self.copy_from_above(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
+        self.file_list_treeview.bind("<Control-s>", lambda event: self.save_treeview(event, trace = {"source": "bound event", "widget": self.name + ".save_treeview", "event": "<Control-s>"}))
         
         #Resize treeview
-        self.FileListTreeview.bind("<Control-w>", lambda event: self._resize_treeview(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-w>"}))
-        self.FileListTreeview.bind("<Map>", lambda event: self._resize_treeview(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Map>"}))
+        self.file_list_treeview.bind("<Control-w>", lambda event: self._resize_treeview(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-w>"}))
+        self.file_list_treeview.bind("<Map>", lambda event: self._resize_treeview(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Map>"}))
         self.tab.bind("<Configure>", lambda event: self._resize_treeview(event, trace = {"source": "bound event", "widget": self.name + ".tab_naming", "event": "<Configure>"}))
-        self.FileListTreeview.bind("<Configure>", lambda event: self._resize_treeview(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Configure>"}))
+        self.file_list_treeview.bind("<Configure>", lambda event: self._resize_treeview(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Configure>"}))
 
-        
         """
-        ######################################################################
-        ################################ ALLOCATE SCALING ####################
-        ######################################################################
+        ###################################################
+        ################## BUILD WIDGET SET ###############
+        ###################################################
         """  
-        
-        self.tab.columnconfigure(0, weight=1)
-        self.TreeviewFrame.columnconfigure(FileListTreeviewGridColumn, 
-                                           weight=1)
+
+
+        widgets = {1: {'widget': self.io_directory,
+                       'grid_kwargs': self.pr.c.grid_sticky,
+                       'stretch_width': True, 'stretch_height': False},
+                   2: {'widget': self.file_list_treeview,
+                       'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                       'stretch_width': True, 'stretch_height': True},
+                   3: {'widget': self.search_box,
+                       'grid_kwargs': self.pr.c.grid_sticky,
+                       'stretch_width': True, 'stretch_height': False},
+                   }
+
+        self.widget_set = WidgetSet(self.widget_frame,
+                                    widgets,
+                                    layout = [[1], [2], [3]])
+        self.widget_set.grid(row = 0, column = 0, **self.pr.c.grid_sticky)
+        self.widget_set.rowconfigure(0, weight = 1)
+        self.widget_set.columnconfigure(0, weight = 1)
         
         """
-        ######################################################################
-        ################################ INITIALISE WIDGETS ##################
-        ######################################################################
+        #############################################################
+        ####################### INITIALISE WIDGETS ##################
+        #############################################################
         """        
         treeview_config = \
             config.config.config_dict[self.name]["FileListTreeview"]
@@ -242,7 +209,7 @@ class Naming:
                     
                 if "treeview_values" in treeview_config.keys():
                     self.pr.f.json_to_treeview(
-                        treeview = self.FileListTreeview,
+                        treeview = self.file_list_treeview,
                         json_dict = treeview_config["treeview_values"],
                         trace = inf_trace
                         )
@@ -285,7 +252,7 @@ class Naming:
         Populate the treeview with file names, and optionally with 
         suggested values
         """
-        current_filenames = list(self.FileListTreeview.get_children())
+        current_filenames = list(self.file_list_treeview.get_children())
         file_list = os.listdir(self.io_directory.input_directory)
         new_filenames = [file[:-4] for file in file_list 
                          if file[-4:] == self.pr.c.file_extension]
@@ -332,7 +299,7 @@ class Naming:
             if add:
                 values = self.get_values_from_filename(new_name, 
                                                        trace = inf_trace)
-                self.FileListTreeview.insert("", 
+                self.file_list_treeview.insert("", 
                                              index=j, 
                                              text = new_name, 
                                              iid = new_name, 
@@ -344,13 +311,13 @@ class Naming:
                 i+=0
                 j+=1
             elif remove:
-                self.FileListTreeview.delete(cur_name)
+                self.file_list_treeview.delete(cur_name)
                 i+=1
                 j+=0
             elif populate_values:
                 values = self.get_values_from_filename(new_name, 
                                                        trace = inf_trace)
-                self.FileListTreeview.item(new_name, values = values)
+                self.file_list_treeview.item(new_name, values = values)
                 self.match_filename_pattern(new_name, trace = inf_trace)
                 self.match_keywords(new_name, trace = inf_trace)
                 self.set_final_name(new_name, trace = inf_trace)
@@ -387,7 +354,7 @@ class Naming:
             filename = clicked_row,
             columnString = self.treeview_column_id_to_name(clicked_column_id),
             columnId = clicked_column_id,
-            treeview = self.FileListTreeview,
+            treeview = self.file_list_treeview,
             trace = inf_trace
             )
         return event
@@ -401,7 +368,7 @@ class Naming:
         self.pr.f._log_trace(self, "match_keywords", trace)
         values_dict = {}
         for field in ["Composer", "Album", "#", "Genre", "Year", "Track"]:
-            values_dict[field] = self.FileListTreeview.set(filename, field)
+            values_dict[field] = self.file_list_treeview.set(filename, field)
             
         keyword_dicts = config.keyword_dict.regex_dict
 
@@ -421,7 +388,7 @@ class Naming:
             #run only once a full set of valid pattern matches has been made    
             for field in compare_dict['value'].keys():
                 if values_dict[field] == "" or overwrite:
-                    self.FileListTreeview.set(filename, field, 
+                    self.file_list_treeview.set(filename, field, 
                                               compare_dict['value'][field])
                     values_dict[field] = compare_dict['value'][field]
         return values_dict
@@ -435,11 +402,11 @@ class Naming:
         for k in match:
             coln = self.column_map[k]
             if overwrite:
-                self.FileListTreeview.set(filename, coln, match[k])
+                self.file_list_treeview.set(filename, coln, match[k])
             else:
-                cur_v = self.FileListTreeview.set(filename, coln)
+                cur_v = self.file_list_treeview.set(filename, coln)
                 if cur_v.strip() == "" or cur_v is None:
-                    self.FileListTreeview.set(filename, coln, match[k])
+                    self.file_list_treeview.set(filename, coln, match[k])
         
     
     def get_values_from_filename(self, filename, trace = None):
@@ -459,7 +426,7 @@ class Naming:
         """
         Copies a value down to all selected rows in certain column
         """
-        selected_items = self.FileListTreeview.selection()
+        selected_items = self.file_list_treeview.selection()
         clicked_column_id = self._treeview_mouse1_click_column
         if clicked_column_id == "#0":
             #cancel if the filename ID column was the last column clicked
@@ -469,17 +436,17 @@ class Naming:
         #the row above. If multiple values are selected, this is the value in the
         #first selected row
         if len(selected_items) == 1:
-            value_to_copy = self.FileListTreeview.set(
-                self.FileListTreeview.prev(selected_items[0]),
+            value_to_copy = self.file_list_treeview.set(
+                self.file_list_treeview.prev(selected_items[0]),
                 clicked_column_id
                 )
         else:
-            value_to_copy = self.FileListTreeview.set(selected_items[0],
+            value_to_copy = self.file_list_treeview.set(selected_items[0],
                                                       clicked_column_id)
         
         #update the value of all cells in the selected rows and column
         for item in selected_items:
-            self.FileListTreeview.set(item, clicked_column_id, value_to_copy)
+            self.file_list_treeview.set(item, clicked_column_id, value_to_copy)
             self.match_filename_pattern(item, trace = inf_trace)
             self.match_keywords(item, trace = inf_trace)
             self.set_final_name(item, trace = inf_trace)
@@ -490,12 +457,12 @@ class Naming:
     def _treeview_mouse1_click(self, event, trace = None):
         self.pr.f._log_trace(self, "_treeview_mouse1_click", trace)
             
-        self._treeview_mouse1_click_column = self.FileListTreeview.identify_column(event.x)
-        self._treeview_mouse1_click_row = self.FileListTreeview.identify_row(event.y)
+        self._treeview_mouse1_click_column = self.file_list_treeview.identify_column(event.x)
+        self._treeview_mouse1_click_row = self.file_list_treeview.identify_row(event.y)
         self._treeview_mouse1_click_cell = (
             self._treeview_mouse1_click_row
             if self._treeview_mouse1_click_column == "#0"
-            else self.FileListTreeview.set(self._treeview_mouse1_click_row,
+            else self.file_list_treeview.set(self._treeview_mouse1_click_row,
                                            self._treeview_mouse1_click_column)
             )
         return event
@@ -520,11 +487,11 @@ class Naming:
                 self._configure_last_called = datetime.now()
                 
             #update widget info
-            self.FileListTreeview.update()
+            self.file_list_treeview.update()
             self.root.update()
             
             #get new width of widget
-            treeview_width = self.FileListTreeview.winfo_width()
+            treeview_width = self.file_list_treeview.winfo_width()
             
             # get array of the new width for each column, distributed
             # according to their previous widths and any fixed width columns
@@ -536,7 +503,7 @@ class Naming:
             
             #update the width for each column
             for i in range(len(self.treeview_info["columns"])):
-                self.FileListTreeview.column(self.treeview_info["columns"][i], 
+                self.file_list_treeview.column(self.treeview_info["columns"][i], 
                                              width = new_widths[i], 
                                              minwidth = new_widths[i], 
                                              stretch = tk.NO)
@@ -545,7 +512,7 @@ class Naming:
             # calculate the available space by taking the coordinates of the
             # top edge of the treeview minus the coordinates of the bottom
             # edge of the whole window
-            treeview_topedge = self.FileListTreeview.winfo_rooty()
+            treeview_topedge = self.file_list_treeview.winfo_rooty()
             parent_bottomedge = (self.root.winfo_rooty()
                                  + self.root.winfo_height())
             
@@ -558,7 +525,7 @@ class Naming:
             maximum_rows = int(available_height/self.treeview_info["row_height"])
             actual_rows = max(self.treeview_info["minimum_rows"], maximum_rows)
 
-            self.FileListTreeview["height"] = actual_rows
+            self.file_list_treeview["height"] = actual_rows
             
             #update the time the event was last called
             self._configure_last_called = datetime.now()
@@ -608,12 +575,12 @@ class Naming:
         
         if message_box == "yes":
             self.pr.f._log_trace(self, "rename_valid_files", trace)
-            for filename in self.FileListTreeview.get_children():
-                new_filename = self.FileListTreeview.set(filename, "Final name")
+            for filename in self.file_list_treeview.get_children():
+                new_filename = self.file_list_treeview.set(filename, "Final name")
                 inf_trace = {"source": "function call", 
                              "parent": self.name + ".rename_valid_files", 
                              "add": f"Tagged file {filename}, and renamed to {new_filename}."}
-                if (new_filename != "" and not new_filename is None) and (self.FileListTreeview.set(filename, "Done") != "✓"):
+                if (new_filename != "" and not new_filename is None) and (self.file_list_treeview.set(filename, "Done") != "✓"):
                     exception = False
                     #File operation related exceptions, can be raised at any
                     #point
@@ -672,7 +639,7 @@ class Naming:
                         done_text = "✘ - " + text
                     else:
                         done_text = "✓"
-                    self.FileListTreeview.set(filename, "Done", done_text)
+                    self.file_list_treeview.set(filename, "Done", done_text)
                         
             self.save_treeview(None, trace = inf_trace)
         return
@@ -682,14 +649,14 @@ class Naming:
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".tag_file"}
         
-        tags = {"composer": self.FileListTreeview.set(filename, "Composer"),
-                "album": self.FileListTreeview.set(filename, "Album"),
-                "track": self.FileListTreeview.set(filename, "Track"),
-                "number": self.FileListTreeview.set(filename, "#"),
-                "performer(s)": self.FileListTreeview.set(filename, "Performer(s)"),
-                "year": self.FileListTreeview.set(filename, "Year"),
-                "genre": self.FileListTreeview.set(filename, "Genre"),
-                "url": self.FileListTreeview.set(filename, "URL"),
+        tags = {"composer": self.file_list_treeview.set(filename, "Composer"),
+                "album": self.file_list_treeview.set(filename, "Album"),
+                "track": self.file_list_treeview.set(filename, "Track"),
+                "number": self.file_list_treeview.set(filename, "#"),
+                "performer(s)": self.file_list_treeview.set(filename, "Performer(s)"),
+                "year": self.file_list_treeview.set(filename, "Year"),
+                "genre": self.file_list_treeview.set(filename, "Genre"),
+                "url": self.file_list_treeview.set(filename, "URL"),
                 }
         self.pr.f.tag_file(directory = self.io_directory.input_directory,
                            filename = filename,
@@ -702,19 +669,19 @@ class Naming:
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".save_treeview"}
         
-        config.config.config_dict[self.name]["FileListTreeview"]["treeview_values"] = self.pr.f.treeview_to_json(self.FileListTreeview, trace = inf_trace)
+        config.config.config_dict[self.name]["FileListTreeview"]["treeview_values"] = self.pr.f.treeview_to_json(self.file_list_treeview, trace = inf_trace)
         config.config.dump_values()
         
     def set_final_name(self, filename, trace = None):
         self.pr.f._log_trace(self, "set_final_name", trace)
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".set_final_name"}
-        parts = [filename] + list(self.FileListTreeview.item(filename,'values'))
+        parts = [filename] + list(self.file_list_treeview.item(filename,'values'))
         final_name = self.pr.f.filename_from_parts(parts = parts, 
                                                    headers = self.treeview_info["headers"], 
                                                    trace = inf_trace
                                                    )
-        self.FileListTreeview.set(filename, 'Final name', final_name)
+        self.file_list_treeview.set(filename, 'Final name', final_name)
         
     def add_keyword_matching(self, filename, trace = None):
         self.pr.f._log_trace(self, "add_keyword_matching", trace)
@@ -722,7 +689,7 @@ class Naming:
                      "parent": self.name + ".add_keyword_matching"}
         values_dict = {}
         for field in ["Composer", "Album", "#", "Genre", "Year", "Track"]:
-            values_dict[field] = self.FileListTreeview.set(filename, field)
+            values_dict[field] = self.file_list_treeview.set(filename, field)
         
         self.pr.f.add_keyword_pattern(values_dict, trace = inf_trace)
         
@@ -731,7 +698,7 @@ class Naming:
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".add_insight"}
         
-        values = self.pr.f.get_values_dict(self.FileListTreeview, filename, 
+        values = self.pr.f.get_values_dict(self.file_list_treeview, filename, 
                                            self.treeview_info["headers"])
         del values["Done"]
         values["original_path"] = self.io_directory.input_directory
