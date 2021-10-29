@@ -447,6 +447,8 @@ class WidgetSet(WidgetLayout):
 
         self._rc_config = rc_cfg
 
+    def grid(self, trace = None, **kwargs):
+        self.frame.grid(**kwargs)
 
 
 class ButtonSet(WidgetSet):

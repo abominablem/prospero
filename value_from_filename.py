@@ -18,10 +18,10 @@ class ValueFromFilename:
         self.root = parent.root
         self.pr = parent.pr
         
-        self.class_name = "ValueFromFilename"
+        self.name = "ValueFromFilename"
         self.pr.f._log_trace(self, "__init__", trace)
         inf_trace = {"source": "function call",
-                     "parent": self.class_name + ".__init__"}
+                     "parent": self.name + ".__init__"}
         
         self.columnString = columnString
         self.filename = filename
@@ -108,12 +108,12 @@ class ValueFromFilename:
 
         def trace_click(btn):
             return {"source": "bound event", 
-                    "widget": self.class_name + ".%s" % btn, 
+                    "widget": self.name + ".%s" % btn, 
                     "event": "<Button-1>"}
         
         def trace_shift_click(btn):
             return {"source": "bound event", 
-                    "widget": self.class_name + ".%s" % btn, 
+                    "widget": self.name + ".%s" % btn, 
                     "event": "<Shift-Button-1>"}
         
         buttons = {1: {"label": "Prefix",
@@ -260,19 +260,19 @@ class ValueFromFilename:
         ### BIND EVENTS ###
         """
         self.window.bind("<Return>", lambda event: self.btnSubmit_Click(event, trace = {"source": "bound event",
-                                                                                        "widget": self.class_name + ".btnSubmit_Click", 
+                                                                                        "widget": self.name + ".btnSubmit_Click", 
                                                                                         "event": "<Return>"}))
         self.value.trace_add("write", lambda *args: self._write_value(*args, trace = {"source": "bound event", 
-                                                                                      "widget": self.class_name + "._write_value", 
+                                                                                      "widget": self.name + "._write_value", 
                                                                                       "event": "write"}))
         self.suggested_values.bind("<Configure>", lambda event: self._resize_treeview(event, trace={"source": "bound event",
-                                                                                                    "widget": self.class_name + ".suggested_values", 
+                                                                                                    "widget": self.name + ".suggested_values", 
                                                                                                     "event": "<Configure>"}))
         self.suggested_values.bind("<1>", lambda event: self._treeview_mouse1_click(event, trace = {"source": "bound event", 
-                                                                                                    "widget": self.class_name + ".suggested_values", 
+                                                                                                    "widget": self.name + ".suggested_values", 
                                                                                                     "event": "<1>"}))
         self.suggested_values.bind("<Double-1>", lambda event: self._treeview_double_click(event, trace = {"source": "bound event", 
-                                                                                                           "widget": self.class_name + ".suggested_values", 
+                                                                                                           "widget": self.name + ".suggested_values", 
                                                                                                            "event": "<Double-1>"}))
         """
         ### ALLOCATE SCALING ###
@@ -304,7 +304,8 @@ class ValueFromFilename:
                                               [5],
                                               [6]]
                                     )
-        self.widget_set.frame.grid(row = 0, column = 0, sticky = "nesw")
+        self.widget_set.grid(row = 0, column = 0,
+                             sticky = "nesw")
         self.window.columnconfigure(0, weight = 1)
         self.window.rowconfigure(0, weight = 1)
 
@@ -324,7 +325,7 @@ class ValueFromFilename:
     def Get_SelectedTextClean(self, tk_entry, trace = None):
         self.pr.f._log_trace(self, "Get_SelectedTextClean", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".Get_SelectedTextClean"}
+                     "parent": self.name + ".Get_SelectedTextClean"}
         
         new_text = tk_entry.selection_get()
         new_text = self.pr.f.clean_track_string(new_text, 
@@ -336,7 +337,7 @@ class ValueFromFilename:
     def btnPrefix_Click(self, event, trace = None):
         self.pr.f._log_trace(self, "btnPrefix_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnPrefix_Click"}
+                     "parent": self.name + ".btnPrefix_Click"}
         
         if not self.txt_filename.selection_present():
             return event
@@ -352,7 +353,7 @@ class ValueFromFilename:
     def btnPrefix_ShiftClick(self, event, trace = None):
         self.pr.f._log_trace(self, "btnPrefix_ShiftClick", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnPrefix_ShiftClick"}
+                     "parent": self.name + ".btnPrefix_ShiftClick"}
         
         self.btnPrefix_Click(event, trace = inf_trace)
         return event
@@ -362,7 +363,7 @@ class ValueFromFilename:
     def btnSuffix_Click(self, event, trace = None):
         self.pr.f._log_trace(self, "btnSuffix_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnSuffix_Click"}
+                     "parent": self.name + ".btnSuffix_Click"}
         
         if not self.txt_filename.selection_present():
             return event
@@ -382,7 +383,7 @@ class ValueFromFilename:
     def btnSuffix_ShiftClick(self, event, trace = None):
         self.pr.f._log_trace(self, "btnSuffix_ShiftClick", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnSuffix_ShiftClick"}
+                     "parent": self.name + ".btnSuffix_ShiftClick"}
         
         if not self.txt_filename.selection_present():
             return event
@@ -407,7 +408,7 @@ class ValueFromFilename:
     def btnReplace_Click(self, event, trace = None):
         self.pr.f._log_trace(self, "btnReplace_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnReplace_Click"}
+                     "parent": self.name + ".btnReplace_Click"}
         
         if not self.txt_filename.selection_present():
             return event
@@ -423,7 +424,7 @@ class ValueFromFilename:
     def btnReplace_ShiftClick(self, event, trace = None):
         self.pr.f._log_trace(self, "btnReplace_ShiftClick", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnReplace_ShiftClick"}
+                     "parent": self.name + ".btnReplace_ShiftClick"}
         
         self.btnReplace_Click(event, trace = inf_trace)
         return event    
@@ -433,7 +434,7 @@ class ValueFromFilename:
     def btnSubmit_Click(self, event, trace = None):
         self.pr.f._log_trace(self, "btnSubmit_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnSubmit_Click"}
+                     "parent": self.name + ".btnSubmit_Click"}
         
         if self.txt_tag.get() == "" and self.txt_filename.selection_present():
             set_text = self.Get_SelectedTextClean(self.txt_filename)
@@ -460,7 +461,7 @@ class ValueFromFilename:
     def btnSubmit_ShiftClick(self, event, trace = None):
         self.pr.f._log_trace(self, "btnSubmit_ShiftClick", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnSubmit_ShiftClick"}
+                     "parent": self.name + ".btnSubmit_ShiftClick"}
         
         self.btnSubmit_Click(event, trace = inf_trace)
         return event
@@ -470,7 +471,7 @@ class ValueFromFilename:
     def btnLowercase_Click(self, event, trace = None):
         self.pr.f._log_trace(self, "btnLowercase_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnLowercase_Click"}
+                     "parent": self.name + ".btnLowercase_Click"}
         
         if not (self.txt_tag.selection_present()
                 or self.txt_filename.selection_present()):
@@ -496,7 +497,7 @@ class ValueFromFilename:
     def btnLowercase_ShiftClick(self, event, trace = None):
         self.pr.f._log_trace(self, "btnLowercase_ShiftClick", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnLowercase_ShiftClick"}
+                     "parent": self.name + ".btnLowercase_ShiftClick"}
         
         self.select_all(self.txt_tag, trace = inf_trace)
         self.btnLowercase_Click(event, trace = inf_trace)
@@ -505,7 +506,7 @@ class ValueFromFilename:
     def btnUppercase_Click(self, event, trace = None):
         self.pr.f._log_trace(self, "btnUppercase_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnUppercase_Click"}
+                     "parent": self.name + ".btnUppercase_Click"}
         
         if not (self.txt_tag.selection_present() or 
                 self.txt_filename.selection_present()):
@@ -532,7 +533,7 @@ class ValueFromFilename:
     def btnUppercase_ShiftClick(self, event, trace = None):
         self.pr.f._log_trace(self, "btnUppercase_ShiftClick", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnUppercase_ShiftClick"}
+                     "parent": self.name + ".btnUppercase_ShiftClick"}
         
         self.select_all(self.txt_tag, trace = inf_trace)
         self.btnUppercase_Click(event, trace = inf_trace)
@@ -543,7 +544,7 @@ class ValueFromFilename:
     def btnTitleCase_Click(self, event, trace = None):
         self.pr.f._log_trace(self, "btnTitleCase_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnTitleCase_Click"}
+                     "parent": self.name + ".btnTitleCase_Click"}
         
         if not (self.txt_tag.selection_present() or
                 self.txt_filename.selection_present()):
@@ -570,7 +571,7 @@ class ValueFromFilename:
     def btnTitleCase_ShiftClick(self, event, trace = None):
         self.pr.f._log_trace(self, "btnTitleCase_ShiftClick", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnTitleCase_ShiftClick"}
+                     "parent": self.name + ".btnTitleCase_ShiftClick"}
         
         self.select_all(self.txt_tag, trace = inf_trace)
         self.btnTitleCase_Click(event, trace = inf_trace)
@@ -593,7 +594,7 @@ class ValueFromFilename:
     def btnRemoveDiacritics_Click(self, event, trace = None):
         self.pr.f._log_trace(self, "btnRemoveDiacritics_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".btnRemoveDiacritics_Click"}
+                     "parent": self.name + ".btnRemoveDiacritics_Click"}
         
         if self.txt_tag.get() == "" and self.txt_filename.selection_present():
             new_text = self.Get_SelectedTextClean(self.txt_filename, 
@@ -614,7 +615,7 @@ class ValueFromFilename:
     def btnRemoveDiacritics_ShiftClick(self, event, trace = None):
         self.pr.f._log_trace(self, "btnRemoveDiacritics_ShiftClick", trace)
         inf_trace = {"source": "function call", 
-                     "parent": (self.class_name + 
+                     "parent": (self.name + 
                                 ".btnRemoveDiacritics_ShiftClick")}
         self.select_all(self.txt_tag, trace = inf_trace)
         self.btnRemoveDiacritics_Click(event, trace = inf_trace)
@@ -632,7 +633,7 @@ class ValueFromFilename:
     def btnRematchValue_ShiftClick(self, event, trace = None):
         self.pr.f._log_trace(self, "btnRematchValue_ShiftClick", trace)
         inf_trace = {"source": "function call", 
-                     "parent": (self.class_name + 
+                     "parent": (self.name + 
                                 ".btnRematchValue_ShiftClick")}
         self.btnRematchValue_Click(event, trace = inf_trace)
         return event       
@@ -642,7 +643,7 @@ class ValueFromFilename:
     def btnToggleFilters_Click(self, event, trace = None):
         self.pr.f._log_trace(self, "btnToggleFilters_Click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": (self.class_name + 
+                     "parent": (self.name + 
                                 ".btnToggleFilters_Click")}
         
         self.filter_insight = not self.filter_insight
@@ -653,7 +654,7 @@ class ValueFromFilename:
     def btnToggleFilters_ShiftClick(self, event, trace = None):
         self.pr.f._log_trace(self, "btnToggleFilters_ShiftClick", trace)
         inf_trace = {"source": "function call", 
-                     "parent": (self.class_name + 
+                     "parent": (self.name + 
                                 ".btnRematchValue_ShiftClick")}
         self.btnToggleFilters_Click(event, trace = inf_trace)
         return event
@@ -700,7 +701,7 @@ class ValueFromFilename:
     def get_insight_values(self, trace = None):
         self.pr.f._log_trace(self, "get_insight_values", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".get_insight_values"}
+                     "parent": self.name + ".get_insight_values"}
         
         if self.filter_insight:
             values = self.pr.f.get_values_dict(
@@ -738,7 +739,7 @@ class ValueFromFilename:
     def get_suggested_values(self, text, trace = None):
         self.pr.f._log_trace(self, "get_suggested_values", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".get_suggested_values"}
+                     "parent": self.name + ".get_suggested_values"}
         
         values = self.pr.f.autocomplete(text = text,
                                         options = self.insight_values,
@@ -749,14 +750,14 @@ class ValueFromFilename:
     def _write_value(self, a,b,c, trace = None):
         self.pr.f._log_trace(self, "_write_value", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + "._write_value"}
+                     "parent": self.name + "._write_value"}
         self.populate_suggested_values(trace = inf_trace)
         
     
     def populate_suggested_values(self, text = None, trace = None):
         self.pr.f._log_trace(self, "populate_suggested_values", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + ".populate_suggested_values"}
+                     "parent": self.name + ".populate_suggested_values"}
         
         if text is None:
             text = self.pr.f.clean_track_string(self.txt_tag.get(),
@@ -822,7 +823,7 @@ class ValueFromFilename:
     def _treeview_double_click(self, event, trace = None):
         self.pr.f._log_trace(self, "_treeview_double_click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.class_name + "._treeview_double_click"}
+                     "parent": self.name + "._treeview_double_click"}
         
         if self.suggested_values.selection() == []:
             return event
