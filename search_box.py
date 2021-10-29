@@ -10,7 +10,7 @@ import os
 from datetime import datetime
 
 class SearchBox:
-    def __init__(self, parent, trace = None, **kwargs):
+    def __init__(self, parent, trace = None):
         self.pr = parent.pr
         self.root = parent.root
         self.parent = parent
@@ -18,7 +18,6 @@ class SearchBox:
         
         self.pr.f._log_trace(self, "__init__", trace)
         
-        self.base_frame_kwargs = kwargs
         self.base_frame = None
         self._last_destroyed = datetime.min
         self._last_button_pressed = datetime.min
@@ -48,7 +47,7 @@ class SearchBox:
             
         self.base_frame = tk.Frame(self.parent.tab, 
                                    background = self.pr.c.colour_background)
-        self.base_frame.grid(**self.base_frame_kwargs)
+        self.grid(**self.base_frame_kwargs)
         
         self.search_box_label = tk.Label(self.base_frame, 
                                          text="Search text:",
@@ -99,7 +98,15 @@ class SearchBox:
         self.base_frame.columnconfigure(3, weight=0)
         self.base_frame.columnconfigure(4, weight=0)
         return
-        
+
+    def grid(self, **kwargs):
+        """
+        Place the search box in the grid
+        """
+        self.base_frame_kwargs = kwargs
+        if not self.base_frame is None:
+            self.base_frame.grid(**kwargs)
+
     def destroy(self, trace = None):
         self.pr.f._log_trace(self, "destroy", trace)
         """
