@@ -445,10 +445,19 @@ class WidgetSet(WidgetLayout):
                         weights.append(widget.stretch_height_weight)
                 self.frame.rowconfigure(r, weight = max(weights))
 
-        self._rc_config = rc_cfg
+        self.rc_config = rc_cfg
 
     def grid(self, trace = None, **kwargs):
+        log.log_trace(self, "grid", trace)
         self.frame.grid(**kwargs)
+
+    def rowconfigure(self, trace = None, **kwargs):
+        log.log_trace(self, "rowconfigure", trace)
+        self.frame.rowconfigure(**kwargs)
+
+    def columnconfigure(self, trace = None, **kwargs):
+        log.log_trace(self, "columnconfigure", trace)
+        self.frame.columnconfigure(**kwargs)
 
 
 class ButtonSet(WidgetSet):
