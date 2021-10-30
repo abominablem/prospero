@@ -28,8 +28,9 @@ class WidgetLayout:
     def __init__(self, layout, trace = None):
         log.log_trace(self, "__init__", trace)
         self.original_layout = layout
-        self.span, self.height = None, None
+        self.span, self.height, self.indices = None, None, None
 
+        self.indices = self._get_indices(layout)
         self.span = self.get_span(layout)
         self.height = self.get_height(layout)
         self.layout = self._normalise_layout(layout)
@@ -197,7 +198,11 @@ class WidgetLayout:
 
     def _get_indices(self, layout, trace = None):
         log.log_trace(self, "_get_indices", trace)
-        return list(set([i for layer in layout for i in layer if i >= 0]))
+        if self.indices is None:
+            indices = list(set([i for layer in layout
+                                for i in layer if i >= 0]))
+            self.indices = indices
+        return self.indices
 
     def _check_layout(self, layout, trace = None):
         log.log_trace(self, "_check_layout", trace)
@@ -325,7 +330,7 @@ class WidgetSet(WidgetLayout):
         self.frame = frame
 
         self.widgets = {key: WidgetSetComponent(key, widgets[key])
-                        for key in widgets}
+                        for key in widgets if key in self.indices}
 
         self.create_widgets()
 
@@ -390,7 +395,7 @@ class WidgetSet(WidgetLayout):
                 if x < 0:
                     if not x in self.widgets:
                         self.widgets[x] = WidgetSetComponent(
-                            x, {'widget':tk.Label(self.label)}
+                            x, {'widget':tk.Label(self.frame)}
                             )
                     else:
                         self.widgets[x].widget = tk.Label(
