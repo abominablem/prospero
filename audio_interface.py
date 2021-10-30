@@ -13,28 +13,25 @@ from kthread import KThread
 import config
 
 class AudioInterface:
-    def __init__(self, parent, trace = None):
+    def __init__(self, parent, master, trace = None):
 
         self.name = self.__class__.__name__
         self.parent = parent
-        self.root = parent.root
         self.pr = parent.pr
-        self.tab = parent.tab
-        
+        self.master = master
+
         self.pr.f._log_trace(self, "__init__", trace)
-        inf_trace = {"source": "function call", "parent": self.name + ".__init__"}
+        inf_trace = {"source": "function call",
+                     "parent": self.name + ".__init__"}
         
         self.audio = None
         self.load_from_config(trace = inf_trace)
         
         """
-        ######################################################################
-        ################################ BUTTONS #############################
-        ######################################################################
+        ### BUTTONS ###
         """
-        
-        
-        self.frame = tk.Frame(self.tab, background = self.pr.c.colour_background)
+        self.frame = tk.Frame(self.master,
+                              background = self.pr.c.colour_background)
         
         self.AudioControlsSpacer1_GridColumn = 0
         self.btnSkipToPrevious_GridColumn = self.AudioControlsSpacer1_GridColumn + 1
@@ -89,6 +86,7 @@ class AudioInterface:
             text="",
             bg = self.pr.c.colour_background
             )
+
         self.AudioControlsSpacer1.grid(
             row = 0,
             column = self.AudioControlsSpacer1_GridColumn,
@@ -135,7 +133,7 @@ class AudioInterface:
                                    weight = 1)
         self.frame.columnconfigure(self.AudioControlsSpacer2_GridColumn, 
                                    weight = 1)
-    
+
     def load_audio(self, audio, trace = None):
         """
         Takes one parameter of type pydub AudioSegment. Prepares audio for
@@ -157,8 +155,8 @@ class AudioInterface:
         self.pr.f._log_trace(self, "refresh_breakpoints", trace)
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".refresh_breakpoints"}
-        self.breakpoints = self.parent._true_breakpoints(scale_to_sound = True, 
-                                                         trace = inf_trace)
+        self.breakpoints = self.parent._true_breakpoints(
+            scale_to_sound = True, trace = inf_trace)
     
     def _btnSkipToPrevious_Click(self, trace = None):
         """
@@ -347,7 +345,8 @@ class AudioInterface:
         #calculate the new starting point for playing next time
         #based on elapsed time since starting playback
         if self.play_start_datetime is None: return #new waveform being loaded
-        self.play_point += int((datetime.now() - self.play_start_datetime).total_seconds()*1000)
+        self.play_point += int((datetime.now() - self.play_start_datetime
+                                ).total_seconds()*1000)
         self.play_start_datetime = datetime.now()
         self.play_point += offset
         self.play_point = int(self.play_point)
@@ -384,12 +383,17 @@ class AudioInterface:
                      "parent": self.name + ".draw_progress_bar"}
         
         self.set_play_point(offset = 0, trace = inf_trace)
-        self.parent.draw_playback_progress_bar(self.get_play_point(trace = inf_trace), trace = inf_trace)
+        self.parent.draw_playback_progress_bar(
+            self.get_play_point(trace = inf_trace), trace = inf_trace)
         if not self.playing: return
         
         #loop while the audio is playing (ms refresh time)
         self.tab.after(1000, lambda: self.draw_progress_bar(trace=inf_trace))
-    
+
+    def grid(self, trace = None, **kwargs):
+        self.pr.f._log_trace(self, "grid", trace)
+        self.frame.grid(**kwargs)
+
     def load_from_config(self, trace = None):
         self.pr.f._log_trace(self, "load_from_config", trace)
         self.rewind_milliseconds = config.config.config_dict["AudioFunctions"]["AudioInterface"]["rewind_seconds"]*1000
