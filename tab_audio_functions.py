@@ -59,9 +59,15 @@ class AudioFunctions():
         self._plot_background_colour = parent.pr.c.colour_background
         
         self.audio_interface = AudioInterface(
-            self, trace = {"source": "initialise class", "parent": self.name})
+            parent = self, master = self.widget_frame,
+            trace = {"source": "initialise class", "parent": self.name}
+            )
 
-        self.search_box = SearchBox(parent = self, trace = inf_trace)
+        self.search_box = SearchBox(
+            parent = self,
+            master = self.widget_frame,
+            trace = inf_trace
+            )
 
         self.visual_frame = tk.Frame(
             self.widget_frame,
@@ -248,32 +254,35 @@ class AudioFunctions():
                 'stretch_width': True,
                 'stretch_height': True
                 },
-            6: {'widget': self.treeview_file_names,
+            6: {'widget': self.audio_interface,
+                'grid_kwargs': self.pr.c.grid_sticky,
+                'stretch_width': True
+                },
+            7: {'widget': self.treeview_file_names,
                 'grid_kwargs': self.pr.c.grid_sticky_padding_small,
                 'stretch_width': True,
                 'stretch_height': True
                 },
-            7: {'widget': self.search_box,
+            8: {'widget': self.search_box,
                 'grid_kwargs': self.pr.c.grid_sticky_padding_small,
                 'stretch_width': True
+                },
+            -1: {'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                 'widget_kwargs': {'bg': self.pr.c.colour_background}
                 },
             }
         self.widget_set = WidgetSet(self.widget_frame,
                                     widgets,
                                     layout = [[1],
                                               [2, 5],
-                                              [3, 5],
-                                              [4, 5],
-                                              [6],
-                                              [7]]
+                                              [3, 6],
+                                              [4, 6],
+                                              [7],
+                                              [8]]
                                     )
 
         self.widget_set.grid(row = 0, column = 0, **self.pr.c.grid_sticky,
                              trace = inf_trace)
-        # self.widget_set.columnconfigure(
-        #     index = 0, weight = 1, trace = inf_trace)
-        # self.widget_set.rowconfigure(
-        #     index = 0, weight = 1, trace = inf_trace)
 
         self.tab.columnconfigure(index = 0, weight = 1)
         self.tab.rowconfigure(index = 0, weight = 1)
