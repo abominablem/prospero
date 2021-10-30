@@ -55,7 +55,11 @@ class Naming:
             call_after_input_kwargs = {"populate_values": False}
             )
         
-        self.search_box = SearchBox(parent = self, trace = inf_trace)
+        self.search_box = SearchBox(
+            parent = self,
+            master = self.widget_frame,
+            trace = inf_trace
+            )
         """
         ##############################################
         ############# FILE LIST TREEVIEW #############

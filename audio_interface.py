@@ -388,7 +388,9 @@ class AudioInterface:
         if not self.playing: return
         
         #loop while the audio is playing (ms refresh time)
-        self.tab.after(1000, lambda: self.draw_progress_bar(trace=inf_trace))
+        self.master.after(1000,
+                          lambda: self.draw_progress_bar(trace=inf_trace)
+                          )
 
     def grid(self, trace = None, **kwargs):
         self.pr.f._log_trace(self, "grid", trace)

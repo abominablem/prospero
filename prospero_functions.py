@@ -786,7 +786,6 @@ class Functions:
             regex_str += r"(?=.*\b[A-Z']*?%s[A-Z']*?\b.*)" % re.escape(word)
         regex_str += ".*"
         
-        print(regex_str)
         pattern = re.compile(regex_str, re.IGNORECASE)
         
         matches = []

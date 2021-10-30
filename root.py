@@ -18,7 +18,6 @@ from tab_audio_functions import AudioFunctions
 from value_insight import Insight
 from settings_window import Settings
 import config
-# function imports
 
 class Prospero:
     def __init__(self, trace):

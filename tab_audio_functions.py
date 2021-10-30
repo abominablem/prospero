@@ -347,10 +347,10 @@ class AudioFunctions():
 
         func = lambda: self.execute_breakpoints(trace = inf_trace)
 
+        self.execute_breakpoints(trace = inf_trace)
         self.executing = True
         self.execution_process = threading.Thread(target = func, daemon = True)
         self.execution_process.start()
-        # self.execution_process.run()
         self.executing = False
 
     def execute_breakpoints(self, trace = None):
@@ -398,14 +398,15 @@ class AudioFunctions():
                     text = "Failed to add to Insight"
                     raise
                     
-            except:
+            except Exception as err:
                 exception = True
+                error = err
                 """ All errors not handled elsewhere """
                 pass
                 
             if exception:
-                if text is None: text = "An unknown error occurred"
-                done_text = "✘ - " + text
+                if text is None: text = "An unexpected error occurred"
+                done_text = "✘ - %s (%s)" % (text, error)
             else:
                 done_text = "✓"
             self.treeview_file_names.set(str(k+1), "Done", done_text)
@@ -910,21 +911,22 @@ class AudioFunctions():
             if self._configure_last_called == datetime.min:
                 self._configure_last_called = datetime.now()
                 
-            #update widget info
+            # update widget info
             self.treeview_input_files.update()
             self.treeview_file_names.update()
             self.root.update()
             
-            #update the treeview height (number of rows visible)
-            #match this to the height of the waveform
+            # update the treeview height (number of rows visible)
+            # match this to the height of the waveform
             available_height = self.visual_frame.winfo_height()
             self.treeview_input_files["height"] = \
                 int(available_height/self.pr.c.treeview_item_height) - 5
             
-            #get new width of widget
+            # get new width of widget
             treeview_width = self.treeview_file_names.winfo_width()
             
-            #get array of the new width for each column, distributed according to their previous widths and any fixed width columns
+            # get array of the new width for each column, distributed according
+            # to their previous widths and any fixed width columns
             new_widths = self.pr.f.distribute_width(
                 treeview_width,
                 list(self.treeview_info["column_widths"].values()),
@@ -932,7 +934,7 @@ class AudioFunctions():
                 trace = inf_trace
                 )
             
-            #update the width for each column
+            # update the width for each column
             for i in range(len(self.treeview_info["columns"])):
                 self.treeview_file_names.column(
                     self.treeview_info["columns"][i],
@@ -941,7 +943,7 @@ class AudioFunctions():
                     stretch = tk.NO
                     )
             
-            #update the time the event was last called
+            # update the time the event was last called
             self._configure_last_called = datetime.now()
         return event
     
@@ -1014,17 +1016,20 @@ class AudioFunctions():
         
         while treeview_count < breakpoint_count:
             _id = treeview_count + 1
-            
+            num_index = self.treeview_info["headers"].index("#")-1
             if self.fresh_waveform == True:
                 values = [self.pr.f.suggest_value(self.filename, field, 
                                                   trace = inf_trace) 
                           for field in self.treeview_info["columns"][1:]]
-                values[self.treeview_info["headers"].index("#")-1] = 1
+                values[num_index] = 1
             else:
+                # Get values of row above
                 values = list(self.treeview_file_names.item(
                     self.treeview_file_names.get_children()[-1], "values"))
-                values[self.treeview_info["headers"].index("#")-1] = \
-                    int(values[self.treeview_info["headers"].index("#")-1]) + 1
+                if values[num_index] == "":
+                    values[num_index] = ""
+                else:
+                    values[num_index] = int(values[num_index]) + 1
                 
             self.treeview_file_names.insert("", index="end", text = str(_id),
                                             iid = str(_id), values = values)
@@ -1167,7 +1172,8 @@ class AudioFunctions():
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".add_insight"}
         
-        values = self.pr.f.get_values_dict(self.treeview_file_names, filename, 
+        values = self.pr.f.get_values_dict(self.treeview_file_names,
+                                           filename,
                                            self.treeview_info["headers"])
         del values["Done"]
         del values[""]
