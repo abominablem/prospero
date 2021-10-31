@@ -5,6 +5,7 @@ Created on Wed Apr  7 23:22:23 2021
 @author: marcu
 """
 # package imports
+from datetime import datetime
 import tkinter as tk
 from tkinter import ttk
 
@@ -17,6 +18,7 @@ from tab_naming import Naming
 from tab_audio_functions import AudioFunctions
 from value_insight import Insight
 from settings_window import Settings
+from arrange_widgets import WidgetSet
 import config
 
 class Prospero:
@@ -26,8 +28,8 @@ class Prospero:
         self.name = self.__class__.__name__
         
         self.testing_mode = True
-        self.draw_logo = True
         self.running = True
+        self.start_time = datetime.now()
         
         self.f = prf.Functions(parent = self, 
                                trace = {"source": "initialise class", 
@@ -46,204 +48,117 @@ class Prospero:
                                   trace = {"source": "initialise class", 
                                            "parent": self.name})
                                            
-        self.insight_rn.define_field_map({"Original name": "original_name",
-                                          "#0": "original_name",
-                                          "Composer": "composer",
-                                          "Album": "album",
-                                          "#": "number",
-                                          "Track": "track",
-                                          "Performer(s)": "performers",
-                                          "Year": "year",
-                                          "Genre": "genre",
-                                          "URL": "url",
-                                          "Final name": "final_name"})
+        self.insight_rn.define_field_map({
+            "Original name": "original_name",
+            "#0": "original_name",
+            "Composer": "composer",
+            "Album": "album",
+            "#": "number",
+            "Track": "track",
+            "Performer(s)": "performers",
+            "Year": "year",
+            "Genre": "genre",
+            "URL": "url",
+            "Final name": "final_name"}
+            )
         
         self.f._log_trace(self, "__init__", trace)
         
         self.root.title("Prospero - MP3 file handling and ID3v2 tagging")
-        self.root.configure(background = self.c.colour_background, 
-                            padx=15, pady=10)
-        
-        self._style()
-        """
-        #######################################################################
-        ############################ HEADER BAR ###############################
-        #######################################################################
-        """
-        HeaderFrameGridRow = 0
-        HeaderFrameGridColumn = 0
-        HeaderFrameColumnSpan = 1 
-        HeaderFrameRowSpan = 1
-        
-        self.header_frame = tk.Frame(self.root, 
-                                     bg = self.c.colour_prospero_blue)
-        self.header_frame.grid(row = HeaderFrameGridRow,
-                               column = HeaderFrameGridColumn,
-                               columnspan = HeaderFrameColumnSpan,
-                               rowspan = HeaderFrameRowSpan,
-                               sticky = "nsew")
-        """
-        #########################
-        ######### LOGOS #########
-        #########################
-        """
-        
-        MainLogoGridRow = 0
-        MainLogoGridColumn = 0
-        MainLogoColumnSpan = 1
-        MainLogoRowSpan = 1
-        
-        if self.draw_logo:
-            #errors cause the image import to fail until the kernel is 
-            #restarted. For simplicity while testing, disable the logo
-            
-            self.root.iconphoto(False, self.r.logo_circular_small)
-            #Add the logo in the top left position
-            imgLogo = tk.Label(self.header_frame, 
-                               image = self.r.logo_circular_small_padded, 
-                               background = self.c.colour_prospero_blue, 
-                               anchor="w", 
-                               padx = self.c.padding_large, 
-                               pady = self.c.padding_small)
-            imgLogo.grid(row = MainLogoGridRow, column = MainLogoGridColumn, 
-                         sticky = "nesw")
-            
-            
-        
-        """
-        #######################################################################
-        ############################ TITLE BAR ################################
-        #######################################################################
-        """
-        
-        MainTitleGridRow = MainLogoGridRow
-        MainTitleGridColumn = MainLogoGridColumn + MainLogoColumnSpan
-        MainTitleColumnSpan = 1
-        MainTitleRowSpan = MainLogoRowSpan
-        
-        #Add the title next to it
-        labelTitle = tk.Label(self.header_frame, text="Prospero",  
-                              background = self.c.colour_prospero_blue, 
-                              foreground = self.c.colour_offwhite_text, 
-                              padx=20, 
-                              pady=10, 
-                              font = self.c.font_prospero_title, 
-                              anchor="w"
-                              ) 
-        labelTitle.grid(row = MainTitleGridRow,
-                        column = MainTitleGridColumn,
-                        columnspan = MainTitleColumnSpan,
-                        rowspan = MainTitleRowSpan, 
-                        sticky = "nsew")
-        
-        """
-        ############################
-        ######### SETTINGS #########
-        ############################
-        """
-        
-        SettingsIconGridRow = MainLogoGridRow
-        SettingsIconGridColumn = MainTitleGridColumn + MainTitleColumnSpan
-        SettingsIconColumnSpan = 1
-        SettingsIconRowSpan = MainLogoRowSpan
-        
-        if self.draw_logo:
-            self.icon_settings = tk.Label(
-                self.header_frame, 
-                image = self.r.icon_settings_image, 
-                background = self.c.colour_prospero_blue, 
-                anchor = "e", 
-                padx = self.c.padding_large, 
-                pady = self.c.padding_small
-                )
-            
-            self.icon_settings.grid(row = SettingsIconGridRow,
-                                    column = SettingsIconGridColumn,
-                                    columnspan = SettingsIconColumnSpan,
-                                    rowspan = SettingsIconRowSpan, 
-                                    sticky = "nsew")
+        self.root.configure(bg = self.c.colour_background,
+                            padx=15,
+                            pady=10)
 
-            self.icon_settings.bind(
-                "<1>",
-                lambda event: self.open_settings(
-                    event,
-                    trace = {"source": "bound event",
-                             "widget": self.name + ".icon_settings",
-                             "event": "<1>"}
-                    )
-                )
-        """
-        #######################################################################
-        ############################ NOTEBOOK #################################
-        #######################################################################
-        """
+        self.widget_frame = tk.Frame(self.root,
+                                     bg = self.pr.c.colour_background)
+        self._style()
+
+        self.root.iconphoto(False, self.r.logo_circular_small)
+        #Add the logo in the top left position
+        self.logo_image = tk.Label(
+            self.widget_frame,
+            image = self.r.logo_circular_small_padded,
+            background = self.c.colour_prospero_blue,
+            anchor="w",
+            padx = self.c.padding_large,
+            pady = self.c.padding_small)
+
+        self.title = tk.Label(
+            self.widget_frame,
+            text="Prospero",
+            background = self.c.colour_prospero_blue,
+            foreground = self.c.colour_offwhite_text,
+            padx=20,
+            pady=10,
+            font = self.c.font_prospero_title,
+            anchor="w"
+            )
+        self.icon_settings = tk.Label(
+            self.widget_frame,
+            image = self.r.icon_settings_image, 
+            background = self.c.colour_prospero_blue, 
+            anchor = "e", 
+            padx = self.c.padding_large, 
+            pady = self.c.padding_small
+            )
+            
+        self.icon_settings.bind("<1>", lambda event: self.open_settings(
+                event, trace = {"source": "bound event",
+                                "widget": self.name + ".icon_settings",
+                                "event": "<1>"})
+            )
+
+        self.notebook = ttk.Notebook(self.widget_frame)
+
+        self.tab_naming = tk.Frame(
+            self.notebook, bg = self.c.colour_background)
+        self.tab_audio_functions = tk.Frame(
+            self.notebook, bg = self.c.colour_background)
+        self.tab_tagging = tk.Frame(
+            self.notebook, bg = self.c.colour_background)
         
-        NotebookGridRow = HeaderFrameGridRow + HeaderFrameRowSpan
-        NotebookGridColumn = HeaderFrameGridColumn
-        NotebookColumnSpan = HeaderFrameColumnSpan
-        NotebookRowSpan = 1
+        self.notebook.add(self.tab_naming, text = "Naming")
+        self.notebook.add(self.tab_audio_functions, text = "Audio Functions")
+
+        self.notebook.add(self.tab_tagging, text = "Tagging")
         
-        notebook = ttk.Notebook(self.root)
-        notebook.grid(row = NotebookGridRow,
-                      column = NotebookGridColumn,
-                      columnspan = NotebookColumnSpan,
-                      rowspan = NotebookRowSpan,
-                      **self.c.grid_sticky_padding_small
-                      )
-        
-        self.tab_naming = tk.Frame(notebook, bg = self.c.colour_background)
-        self.tab_audio_functions = tk.Frame(notebook, 
-                                            bg = self.c.colour_background)
-        self.tab_tagging = tk.Frame(notebook, bg = self.c.colour_background)
-        
-        notebook.add(self.tab_naming, text = "Naming")
-        notebook.add(self.tab_audio_functions, text = "Audio Functions")
-        notebook.add(self.tab_tagging, text = "Tagging")
-        
-        taggingGridRow = NotebookGridRow + 1
-        taggingGridColumn = 0
-        self.tagging = Tagging(parent = self, 
-                               grid_references = [taggingGridRow, 
-                                                  taggingGridColumn
-                                                  ], 
-                               trace = {"source": "initialise class", 
-                                        "parent": self.name})
-        
-        namingGridRow = NotebookGridRow + 1
-        namingGridColumn = taggingGridColumn
-        self.naming = Naming(parent = self, 
-                             grid_references = [namingGridRow, 
-                                                namingGridColumn
-                                                ], 
-                             trace = {"source": "initialise class", 
-                                      "parent": self.name})
-        
-        AudioFunctionsGridRow = NotebookGridRow + 1
-        AudioFunctionsGridColumn = taggingGridColumn
-        self.audio_functions = AudioFunctions(
-            parent = self, 
-            grid_references = [AudioFunctionsGridRow, 
-                               AudioFunctionsGridColumn
-                               ], 
-            trace = {"source": "initialise class", 
+        self.tagging = Tagging(
+            parent = self,
+            trace = {"source": "initialise class",
                      "parent": self.name}
             )
-        """
-        #######################################################################
-        ################################ RESIZING RATIOS ######################
-        #######################################################################
-        """
-        #keep the logo the same size
-        #allocate all extra space to the main title
-        self.header_frame.columnconfigure(MainLogoGridColumn, weight=0) 
-        self.header_frame.columnconfigure(MainTitleGridColumn, weight=1) 
-        self.header_frame.columnconfigure(SettingsIconGridColumn, weight=0)
-        
-        self.header_frame.rowconfigure(MainLogoGridRow, weight=0)
-        self.root.rowconfigure(HeaderFrameGridRow, weight=0)
-        self.root.columnconfigure(HeaderFrameGridColumn, weight=1)
-        self.root.rowconfigure(NotebookGridRow, weight=1)
-        
+        self.naming = Naming(
+            parent = self,
+            trace = {"source": "initialise class",
+                     "parent": self.name}
+            )
+        self.audio_functions = AudioFunctions(
+            parent = self,
+            trace = {"source": "initialise class",
+                      "parent": self.name}
+            )
+
+        widgets = {1: {'widget': self.logo_image,
+                       'grid_kwargs': self.pr.c.grid_sticky},
+                   2: {'widget': self.title,
+                       'grid_kwargs': self.pr.c.grid_sticky,
+                       'stretch_width': True},
+                   3: {'widget': self.icon_settings,
+                       'grid_kwargs': self.pr.c.grid_sticky},
+                   4: {'widget': self.notebook,
+                       'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                       'stretch_width': True, 'stretch_height': True},
+                   }
+
+        self.widget_set = WidgetSet(self.widget_frame,
+                                    widgets,
+                                    layout = [[1, 2, 3],
+                                              [4]]
+                                    )
+        self.widget_frame.grid(row = 0, column = 0, **self.pr.c.grid_sticky)
+        self.root.rowconfigure(0, weight = 1)
+        self.root.columnconfigure(0, weight = 1)
+
         #handles the window close event
         self.root.protocol("WM_DELETE_WINDOW", self.destroy) 
         
@@ -253,8 +168,8 @@ class Prospero:
         self.style = ttk.Style(self.root)
         self.style.theme_use("clam")
         #This handles the styling for the Treeview HEADER
-        self.style.configure("TTreeview.Header", 
-                             background = self.c.colour_box_header, 
+        self.style.configure("TTreeview.Header",
+                             background = self.c.colour_box_header,
                              rowheight = self.c.treeview_header_height, 
                              font = self.c.font_prospero_box_header)
         #This handles the styling for the Treeview BODY
@@ -263,6 +178,10 @@ class Prospero:
                              fieldbackground = self.c.colour_box_interior, 
                              rowheight = self.c.treeview_item_height, 
                              font = self.c.font_prospero_text)
+        #This handles the styling for Frames
+        self.style.configure("TFrame",
+                             background = self.c.colour_background
+                             )
         #This handles the styling for the Notebook tabs
         self.style.configure("TNotebook.Tab", 
                              background = self.c.colour_interest_point_light, 
@@ -271,7 +190,6 @@ class Prospero:
         self.style.configure("TNotebook", 
                              background = self.c.colour_background, 
                              font = self.c.font_prospero_text)
-
         #Change the coloure of the selected item
         self.style.map("TTreeview", background = [('selected', self.c.colour_selection_background)])
         self.style.map("TNotebook.Tab", background = [('selected', self.c.colour_prospero_blue_pastel)])
@@ -279,7 +197,7 @@ class Prospero:
 
     def start(self, trace = None):
         self.pr.f._log_trace(self, "start", trace) 
-        
+
         self.root.eval('tk::PlaceWindow . center')
         self.root.mainloop()
         
@@ -289,8 +207,8 @@ class Prospero:
                      "parent": self.name + ".destroy"}
         
         self.running = False
-        self.audio_functions.audio_interface.end_audio_process(trace = 
-                                                               inf_trace)
+        self.audio_functions.audio_interface.end_audio_process(
+            trace = inf_trace)
         self.insight_rn.close()
         self.root.quit()
         self.root.destroy()
@@ -323,9 +241,6 @@ class Prospero:
         self.audio_functions.io_directory.load_from_config(trace = inf_trace)
         self.naming.io_directory.load_from_config(trace = inf_trace)
         self.tagging.io_directory.load_from_config(trace = inf_trace)
-
-
-
 
 prospero = Prospero(trace = {"source": "initialise class",
                              "parent": __name__})
