@@ -15,6 +15,7 @@ from search_box import SearchBox
 from io_directory import IODirectory
 from arrange_widgets import WidgetSet
 from value_from_filename import ValueFromFilename
+import described_widgets as dw
 
 class Naming:
     column_map = {'composer': 'Composer',
@@ -28,7 +29,7 @@ class Naming:
                   'genre': 'genre',
                   'url': 'URL'}
     
-    def __init__(self, parent, grid_references, trace = None):
+    def __init__(self, parent, trace = None):
         self.root = parent.root
         self.parent = parent
         self.pr = parent.pr
@@ -38,11 +39,6 @@ class Naming:
         self.pr.f._log_trace(self, "__init__", trace)
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".__init__"}
-        """
-        ##############################################
-        #################### FRAMES ##################
-        ##############################################
-        """
 
         frame_kwargs = {"bg": self.pr.c.colour_background}
         self.widget_frame = tk.Frame(self.tab, **frame_kwargs)
@@ -60,71 +56,35 @@ class Naming:
             master = self.widget_frame,
             trace = inf_trace
             )
-        """
-        ##############################################
-        ############# FILE LIST TREEVIEW #############
-        ##############################################
-        """
-        
-        self.treeview_info = {"columns" : ["#0", "Composer", "Album", "#", 
-                                           "Track", "Performer(s)", "Year",
-                                           "Genre", "URL", "Final name", 
-                                           "Done"],
-                              "headers" : ["Original name", "Composer", 
-                                           "Album", "#", "Track", 
-                                           "Performer(s)", "Year", "Genre", 
-                                           "URL", "Final name", "Done"],
-                              "column_widths" : [self.pr.c.width_text_long, 
-                                                 self.pr.c.width_text_short, 
-                                                 self.pr.c.width_text_short, 
-                                                 self.pr.c.width_text_tiny, 
-                                                 self.pr.c.width_text_short, 
-                                                 self.pr.c.width_text_short, 
-                                                 self.pr.c.width_text_tiny, 
-                                                 self.pr.c.width_text_veryshort, 
-                                                 self.pr.c.width_text_short, 
-                                                 self.pr.c.width_text_long,
-                                                 self.pr.c.width_text_tiny],
-                                "fixed_width" : [False, False, False, True, 
-                                                 False, False, True, False, 
-                                                 False, False, True],
-                                "centering" : ["w", "w", "w", "center", "w", 
-                                               "w", "center", "w", "w", "w", 
-                                               "center"],
-                                "minimum_rows" : 30,
-                                "requested_rows" : 45,
-                                "row_height" : self.pr.c.width_text_tiny,
-                                "unsaved_changes" : False 
-                                }
-        
-        self.file_list_treeview = ttk.Treeview(
-            self.widget_frame, height = self.treeview_info["requested_rows"])
-        self.file_list_treeview['columns'] = self.treeview_info["columns"][1:]
-        
-        for i in range(len(self.treeview_info["columns"])):
-            columnName = self.treeview_info["columns"][i]
-            columnWidth = self.treeview_info["column_widths"][i]
-            columnHeader = self.treeview_info["headers"][i]
-            columnCentering = self.treeview_info["centering"][i]
-            
-            self.file_list_treeview.column(columnName, 
-                                         width = columnWidth, 
-                                         minwidth = columnWidth, 
-                                         stretch = tk.NO, 
-                                         anchor = columnCentering)
-            self.file_list_treeview.heading(columnName, text = columnHeader)
-            
-        """
-        ######################################################################
-        ######################### ACTION BUTTONS #############################
-        ######################################################################
-        """
-        
-        """
-        #################################
-        ########## INPUT FILES ##########
-        #################################
-        """
+
+        self.treeview_info = {
+            1: {"header": "Original name", "width": self.pr.c.width_text_long,
+                "stretch": True, "anchor": "w"},
+            2: {"header": "Composer", "width": self.pr.c.width_text_short,
+                "stretch": True, "anchor": "w"},
+            3: {"header": "Album", "width": self.pr.c.width_text_short,
+                "stretch": True, "anchor": "w"},
+            4: {"header": "#", "width": self.pr.c.width_text_tiny,
+                "stretch": False, "anchor": "center"},
+            5: {"header": "Track", "width": self.pr.c.width_text_short,
+                "stretch": True, "anchor": "w"},
+            6: {"header": "Performer(s)", "width": self.pr.c.width_text_short,
+                "stretch": True, "anchor": "w"},
+            7: {"header": "Year", "width": self.pr.c.width_text_tiny,
+                "stretch": False, "anchor": "center"},
+            8: {"header": "Genre", "width": self.pr.c.width_text_veryshort,
+                "stretch": True, "anchor": "w"},
+            9: {"header": "URL", "width": self.pr.c.width_text_short,
+                "stretch": True, "anchor": "w"},
+            10: {"header": "Final name", "width": self.pr.c.width_text_long,
+                 "stretch": True, "anchor": "w"},
+            11: {"header": "Done", "width": self.pr.c.width_text_tiny,
+                 "stretch": False, "anchor": "center"},
+            }
+
+        self.file_list_treeview = dw.SimpleTreeview(
+            self.widget_frame, self.treeview_info)
+
         btnImportFiles = tk.Button(
             self.io_directory.frame,
             text = "Import Files", 
@@ -135,11 +95,6 @@ class Naming:
                                      fixed_width = True, trace = inf_trace, 
                                      row = "input", column = "end")
         
-        """
-        #################################
-        ######### RENAME FILES ##########
-        #################################
-        """
         btnRenameFiles = tk.Button(
             self.io_directory.frame,
             text="Rename Files", 
@@ -149,13 +104,7 @@ class Naming:
         self.io_directory.add_widget(widget = btnRenameFiles, 
                                      fixed_width = True, trace = inf_trace, 
                                      row = "output", column = btnImportFiles)
-        
-        """
-        ######################################################################
-        ################################ BOUND FUNCTIONS #####################
-        ######################################################################
-        """
-        
+
         #search box
         self.file_list_treeview.bind("<KeyPress-Alt_L>", lambda event: self._key_press_alt(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<KeyPress-Alt_L>"}))
         self.file_list_treeview.bind("<KeyRelease-Alt_L>", lambda event: self._key_release_alt(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<KeyRelease-Alt_L>"}))
@@ -167,17 +116,6 @@ class Naming:
         self.file_list_treeview.bind("<Control-d>", lambda event: self.copy_from_above(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
         self.file_list_treeview.bind("<Control-s>", lambda event: self.save_treeview(event, trace = {"source": "bound event", "widget": self.name + ".save_treeview", "event": "<Control-s>"}))
         
-        #Resize treeview
-        self.file_list_treeview.bind("<Control-w>", lambda event: self._resize_treeview(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-w>"}))
-        self.file_list_treeview.bind("<Map>", lambda event: self._resize_treeview(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Map>"}))
-        self.tab.bind("<Configure>", lambda event: self._resize_treeview(event, trace = {"source": "bound event", "widget": self.name + ".tab_naming", "event": "<Configure>"}))
-        self.file_list_treeview.bind("<Configure>", lambda event: self._resize_treeview(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Configure>"}))
-
-        """
-        ###################################################
-        ################## BUILD WIDGET SET ###############
-        ###################################################
-        """  
         widgets = {1: {'widget': self.io_directory,
                        'grid_kwargs': self.pr.c.grid_sticky,
                        'stretch_width': True},
@@ -196,11 +134,6 @@ class Naming:
         self.tab.rowconfigure(index = 0, weight = 1)
         self.tab.columnconfigure(index = 0, weight = 1)
 
-        """
-        #############################################################
-        ####################### INITIALISE WIDGETS ##################
-        #############################################################
-        """        
         treeview_config = \
             config.config.config_dict[self.name]["FileListTreeview"]
         
@@ -216,8 +149,7 @@ class Naming:
             self.populate_treeview(populate_values = False, trace = inf_trace)
             
         self._configure_last_called = datetime.min
-        self._resize_treeview(event = None, trace = inf_trace)
-        
+
         return
     
     def _btnRenameFiles_click(self, trace = None):
@@ -471,65 +403,6 @@ class Naming:
         headers = self.treeview_info["headers"]
         return headers[int(column_id[1:])]
     
-    def _resize_treeview(self, event = None, trace = None):
-        if not self.pr.running: return
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + "._resize_treeview"}
-        
-        seconds_elapsed = (datetime.now() - self._configure_last_called).total_seconds()
-        if seconds_elapsed >= self.pr.c.max_refresh_frequency_seconds:
-            self.pr.f._log_trace(self, "_resize_treeview", trace, 
-                                 add = " _configure_last_called was %f"
-                                         % seconds_elapsed)
-            
-            if self._configure_last_called == datetime.min:
-                self._configure_last_called = datetime.now()
-                
-            #update widget info
-            self.file_list_treeview.update()
-            self.root.update()
-            
-            #get new width of widget
-            treeview_width = self.file_list_treeview.winfo_width()
-            
-            # get array of the new width for each column, distributed
-            # according to their previous widths and any fixed width columns
-            new_widths = self.pr.f.distribute_width(
-                treeview_width,
-                self.treeview_info["column_widths"],
-                self.treeview_info["fixed_width"],
-                trace = inf_trace)
-            
-            #update the width for each column
-            for i in range(len(self.treeview_info["columns"])):
-                self.file_list_treeview.column(self.treeview_info["columns"][i], 
-                                             width = new_widths[i], 
-                                             minwidth = new_widths[i], 
-                                             stretch = tk.NO)
-            
-            # update the treeview height (number of rows visible)
-            # calculate the available space by taking the coordinates of the
-            # top edge of the treeview minus the coordinates of the bottom
-            # edge of the whole window
-            treeview_topedge = self.file_list_treeview.winfo_rooty()
-            parent_bottomedge = (self.root.winfo_rooty()
-                                 + self.root.winfo_height())
-            
-            #allocate the available empty space to the treeview
-            available_height = round((parent_bottomedge - treeview_topedge))
-            
-            # calculate the maximum rows that it's possible to show given
-            # the contraints if this is less than the specified minimum, take
-            # that minimum instead
-            maximum_rows = int(available_height/self.treeview_info["row_height"])
-            actual_rows = max(self.treeview_info["minimum_rows"], maximum_rows)
-
-            self.file_list_treeview["height"] = actual_rows
-            
-            #update the time the event was last called
-            self._configure_last_called = datetime.now()
-        return event
-            
     def _key_press_alt(self, event, trace = None):
         inf_trace = {"source": "function call", 
                      "parent": self.name + "._key_press_alt"}

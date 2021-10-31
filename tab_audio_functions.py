@@ -26,6 +26,7 @@ from audio_interface import AudioInterface
 from search_box import SearchBox
 from arrange_widgets import WidgetSet
 import config
+import described_widgets as dw
 
 # #### REQUIRED ####
 # conda install ffmpeg
@@ -33,7 +34,7 @@ import config
      
 
 class AudioFunctions():
-    def __init__(self, parent, grid_references, trace = None):
+    def __init__(self, parent, trace = None):
         self.pr = parent.pr
         self.root = parent.root
         self.parent = parent
@@ -94,24 +95,12 @@ class AudioFunctions():
         self._configure_last_called = datetime.min
         self._initialise_canvas(trace = inf_trace)
         
-        """
-        ### INPUT FILES TREEVIEW ###
-        """
-
-        self.treeview_input_files_columns = ["#0"]
-        self.treeview_input_files_headers = ["Filename"]
-        self.treeview_input_files_column_widths = [self.pr.c.width_text_long]
-        self.treeview_input_files_fixed_width = [False]
-        
-        self.treeview_input_files = ttk.Treeview(self.widget_frame)
-        
-        self.pr.f.configure_treeview_columns(
-            treeview = self.treeview_input_files,
-            columns = self.treeview_input_files_columns,
-            headers = self.treeview_input_files_headers,
-            widths = self.treeview_input_files_column_widths,
-            create_columns = True,
-            trace = inf_trace
+        self.treeview_input_files = dw.SimpleTreeview(
+            self.widget_frame, {1: {"header": "Filename",
+                                    "width": self.pr.c.width_text_long,
+                                    "stretch": False,
+                                    "anchor": "center"}
+                                }
             )
 
         btnImportFiles = tk.Button(
@@ -149,85 +138,33 @@ class AudioFunctions():
             )
 
         self.treeview_info = {
-            "columns" : ["#0", "Composer", "Album", "Track",
-                         "#", "Performer(s)", "Year",
-                         "Genre", "URL", "Final name",
-                         "Done"],
-            "headers" : ["", "Composer", "Album", "Track",
-                         "#", "Performer(s)", "Year",
-                         "Genre", "URL", "Final name",
-                         "Done"],
-            "column_widths" : {"#0": self.pr.c.width_text_tiny,
-                               "Composer": self.pr.c.width_text_short,
-                               "Album": self.pr.c.width_text_short,
-                               "Track": self.pr.c.width_text_short,
-                               "#": self.pr.c.width_text_tiny,
-                               "Performer(s)": self.pr.c.width_text_short,
-                               "Year": self.pr.c.width_text_tiny,
-                               "Genre": self.pr.c.width_text_veryshort,
-                               "URL": self.pr.c.width_text_short,
-                               "Final name": self.pr.c.width_text_long,
-                               "Done": self.pr.c.width_text_tiny
-                               },
-            "fixed_width" : {"#0": True,
-                             "Composer": False,
-                             "Album": False,
-                             "Track": False,
-                             "#": True,
-                             "Performer(s)": False,
-                             "Year": True,
-                             "Genre": False,
-                             "URL": False,
-                             "Final name": False,
-                             "Done": True
-                             },
-            "centering" : {"#0": "center",
-                           "Composer": "w",
-                           "Album": "w",
-                           "Track": "w",
-                           "#": "center",
-                           "Performer(s)": "w",
-                           "Year": "center",
-                           "Genre": "w",
-                           "URL": "w",
-                           "Final name": "w",
-                           "Done": "center"
-                           },
-            "copy_from_above" : {"#0": True,
-                                 "Composer": True,
-                                 "Album": True,
-                                 "Track": False,
-                                 "#": False,
-                                 "Performer(s)": True,
-                                 "Year": True,
-                                 "Genre": True,
-                                 "URL": True,
-                                 "Final name": False,
-                                 "Done": False
-                                 },
-            "minimum_rows" : 1,
-            "requested_rows" : 10,
-            "row_height" : self.pr.c.width_text_tiny
+            1: {"header": "", "width": self.pr.c.width_text_tiny,
+                "stretch": False, "anchor": "center", "copy_from_above": True},
+            2: {"header": "Composer", "width": self.pr.c.width_text_short,
+                "stretch": True, "anchor": "w", "copy_from_above": True},
+            3: {"header": "Album", "width": self.pr.c.width_text_short,
+                "stretch": True, "anchor": "w", "copy_from_above": True},
+            4: {"header": "#", "width": self.pr.c.width_text_tiny,
+                "stretch": False, "anchor": "center", "copy_from_above": False},
+            5: {"header": "Track", "width": self.pr.c.width_text_short,
+                "stretch": True, "anchor": "w", "copy_from_above": False},
+            6: {"header": "Performer(s)", "width": self.pr.c.width_text_short,
+                "stretch": True, "anchor": "w", "copy_from_above": True},
+            7: {"header": "Year", "width": self.pr.c.width_text_tiny,
+                "stretch": False, "anchor": "center", "copy_from_above": True},
+            8: {"header": "Genre", "width": self.pr.c.width_text_veryshort,
+                "stretch": True, "anchor": "w", "copy_from_above": True},
+            9: {"header": "URL", "width": self.pr.c.width_text_short,
+                "stretch": True, "anchor": "w", "copy_from_above": True},
+            10: {"header": "Final name", "width": self.pr.c.width_text_long,
+                 "stretch": True, "anchor": "w", "copy_from_above": False},
+            11: {"header": "Done", "width": self.pr.c.width_text_tiny,
+                 "stretch": True, "anchor": "center", "copy_from_above": False},
             }
-        
-        self.treeview_file_names = ttk.Treeview(
-            self.widget_frame, height = self.treeview_info["requested_rows"])
 
-        self.treeview_file_names['columns'] = self.treeview_info["columns"][1:]
+        self.treeview_file_names = dw.SimpleTreeview(
+            self.widget_frame, self.treeview_info)
         
-        for i in range(len(self.treeview_info["columns"])):
-            column_name = self.treeview_info["columns"][i]
-            column_header = self.treeview_info["headers"][i]
-            column_width = self.treeview_info["column_widths"][column_name]
-            column_centering = self.treeview_info["centering"][column_name]
-            
-            self.treeview_file_names.column(column_name, 
-                                            width = column_width, 
-                                            minwidth = column_width, 
-                                            stretch = tk.NO,
-                                            anchor = column_centering)
-            self.treeview_file_names.heading(column_name, text = column_header)
-            
         widgets = {
             1: {'widget': self.io_directory.frame,
                 'grid_kwargs': self.pr.c.grid_sticky,
@@ -290,11 +227,6 @@ class AudioFunctions():
         """
         ### BOUND FUNCTIONS ###
         """
-
-        self.treeview_input_files.bind("<Configure>", lambda event: self._resize_treeview(event, trace={"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<Configure>"}))
-        self.treeview_file_names.bind("<Configure>", lambda event: self._resize_treeview(event, trace={"source": "bound event", "widget": self.name + ".treeview_file_names", "event": "<Configure>"}))
-        self.tab.bind("<Configure>",lambda event: self._resize_treeview(event, trace={"source": "bound event", "widget": self.name + ".tab", "event": "<Configure>"}))
-        
         self.treeview_input_files.bind("<1>", lambda event: self._treeview_mouse1_click(event, trace = {"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<1>"}))
         self.treeview_file_names.bind("<1>", lambda event: self._treeview_mouse1_click(event, trace = {"source": "bound event", "widget": self.name + ".treeview_file_names", "event": "<1>"}))
         self.treeview_file_names.bind("<Double-1>", lambda event: self.edit_value_via_interface(event, trace = {"source": "bound event", "widget": self.name + ".treeview_file_names", "event": "<Double-1>"}))
@@ -402,6 +334,7 @@ class AudioFunctions():
                 exception = True
                 error = err
                 """ All errors not handled elsewhere """
+                raise #TODO
                 pass
                 
             if exception:
@@ -468,9 +401,9 @@ class AudioFunctions():
                                               " or text to parse for "
                                               "timecodes.",
                                               )
-        #First try to parse as a list of timecodes 12:34 separated by commas
-        #Failing that, parse directly using RegEx, matching XX:XX:XX or XX:XX
-        #where X are numbers.
+        # First try to parse as a list of timecodes 12:34 separated by commas
+        # Failing that, parse directly using RegEx, matching XX:XX:XX or XX:XX
+        # where X are numbers.
         track_dict = {}
         try:
             tc_no_space = ''.join(timecodes.split()) #remove whitespace
@@ -489,8 +422,8 @@ class AudioFunctions():
             try: tc_list.remove(0)
             except ValueError: pass
             
-            #Assume that the space in between the timecodes is a list of tracks
-            #split based on the timecode pattern
+            # Assume that the space in between the timecodes is a list of
+            # tracks split based on the timecode pattern
             track_list = re.split(tc_pattern, timecodes)
             track_list = [trk for trk in track_list if trk.strip() != ""]
             for trk in track_list:
@@ -515,11 +448,11 @@ class AudioFunctions():
         tc_list = [t*self.sound_subsample_length/self.sound_length
                    for t in tc_list]
         
-        #loop through and add breakpoints at specified points
+        # loop through and add breakpoints at specified points
         for tc in set(tc_list):
             self._add_breakpoint_x(tc, inf_trace)
         
-        #Loop through the track_dict and set track names accordingly
+        # Loop through the track_dict and set track names accordingly
         if track_dict != {}:
             for i, trk in track_dict.items():
                 if trk.strip() != "":
@@ -554,12 +487,15 @@ class AudioFunctions():
         """
         Initialise the canvas used to draw the audio waveform
         """
-        self.visual_figure = Figure(figsize=(10, 6), dpi=100)
+        self.visual_figure = Figure(figsize=(10, 5), dpi=100)
         self.figure = self.visual_figure.add_subplot(111)
         self.figure.axes.get_yaxis().set_visible(False)
         self.figure.axis("off")
         self.figure.set(facecolor = self._colour_waveform)
-        
+        self.figure.margins(x = 0, y = 0)
+        self.visual_figure.subplots_adjust(left = 0.03, right = 0.97,
+                                           top = 0.95, bottom = 0.05)
+
         self.canvas = FigureCanvasTkAgg(self.visual_figure,
                                         master = self.visual_frame)
         self.canvas.draw()
@@ -580,7 +516,7 @@ class AudioFunctions():
         self.toolbar.update()
         #must use .pack() here to avoid conflict with matplotlib backend
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill = tk.BOTH, expand = 1)
-    
+
     def display_waveform(self, filepath, trace = None):
         self.pr.f._log_trace(self, "display_waveform", trace)
         inf_trace = {"source": "function call", 
@@ -593,13 +529,13 @@ class AudioFunctions():
         self.sound = AudioSegment.from_mp3(filepath)
         self.sound_length = len(self.sound)
         
-        #plotting the entire waveform is very intensive for long tracks
-        #we take every nth sample, which preserves the waveform all the way
-        #up to ~n = 10,000
+        # plotting the entire waveform is very intensive for long tracks
+        # we take every nth sample, which preserves the waveform all the way
+        # up to ~n = 10,000
         self.sound_subsample = self.sound.get_array_of_samples()[0::self.subsampling_rate]
         self.sound_subsample_length = len(self.sound_subsample)
         
-        #remove current waveform figure
+        # remove current waveform figure
         self.clear_waveform(trace = inf_trace)
         
         plot_config = {"color": self._colour_waveform}
@@ -616,7 +552,7 @@ class AudioFunctions():
         self._scale_plot(trace = inf_trace)
         
         self.canvas.draw()
-        self.toolbar.update() #update toolbar, including home view
+        self.toolbar.update() # update toolbar, including home view
         
         self.treeview_file_names.delete(
             *self.treeview_file_names.get_children())
@@ -896,57 +832,6 @@ class AudioFunctions():
         self.breakpoints = []
         self.breakpoints_x = []
         
-    def _resize_treeview(self, event = None, trace = None):
-        if not self.pr.running: return
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + "._resize_treeview"}
-        
-        seconds_elapsed = (datetime.now() - 
-                           self._configure_last_called).total_seconds()
-        if seconds_elapsed >= self.pr.c.max_refresh_frequency_seconds:
-            self.pr.f._log_trace(self, "_resize_treeview", trace, 
-                                 add = " _configure_last_called was %f" % 
-                                         seconds_elapsed)
-            
-            if self._configure_last_called == datetime.min:
-                self._configure_last_called = datetime.now()
-                
-            # update widget info
-            self.treeview_input_files.update()
-            self.treeview_file_names.update()
-            self.root.update()
-            
-            # update the treeview height (number of rows visible)
-            # match this to the height of the waveform
-            available_height = self.visual_frame.winfo_height()
-            self.treeview_input_files["height"] = \
-                int(available_height/self.pr.c.treeview_item_height) - 5
-            
-            # get new width of widget
-            treeview_width = self.treeview_file_names.winfo_width()
-            
-            # get array of the new width for each column, distributed according
-            # to their previous widths and any fixed width columns
-            new_widths = self.pr.f.distribute_width(
-                treeview_width,
-                list(self.treeview_info["column_widths"].values()),
-                list(self.treeview_info["fixed_width"].values()),
-                trace = inf_trace
-                )
-            
-            # update the width for each column
-            for i in range(len(self.treeview_info["columns"])):
-                self.treeview_file_names.column(
-                    self.treeview_info["columns"][i],
-                    width = new_widths[i],
-                    minwidth = new_widths[i],
-                    stretch = tk.NO
-                    )
-            
-            # update the time the event was last called
-            self._configure_last_called = datetime.now()
-        return event
-    
     def load_from_config(self, trace = None):
         self.pr.f._log_trace(self, "load_from_config", trace)
         self.subsampling_rate = 1000
