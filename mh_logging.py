@@ -11,7 +11,9 @@ class Logging:
     def __init__(self, log = True, trace = None):
         self.log = log
         self.log_trace(self, "__init__", trace)
-        return
+
+    def __call__(self, *args, **kwargs):
+        self.log_trace(*args, **kwargs)
 
     def log_trace(self, parent, function, trace, add = ""):
         if self.log:
@@ -46,7 +48,7 @@ class Logging:
                 
             prnt += " %s" % add
             print(prnt)
-        return
+
 
 if __name__ == "__main__":
     log = Logging(__name__, log = False,
