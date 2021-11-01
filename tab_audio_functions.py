@@ -51,9 +51,12 @@ class AudioFunctions():
         frame_kwargs = {"bg": self.pr.c.colour_background}
         self.widget_frame = tk.Frame(self.tab, **frame_kwargs)
 
-        self.io_directory = IODirectory(parent = self,
-                                        master = self.widget_frame,
-                                        trace = inf_trace)
+        self.io_directory = IODirectory(
+            parent = self,
+            master = self.widget_frame,
+            trace = inf_trace,
+            call_after_input = self.populate_input_files
+            )
 
         self._colour_breakpoint = "#bfb598"
         self._colour_waveform = parent.pr.c.colour_prospero_blue_pastel
