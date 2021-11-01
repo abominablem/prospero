@@ -22,12 +22,12 @@ def lcm(*args, trace = None):
 
 class WidgetLayout:
     """
-    Private class containing layout logic for the WidgetSet classes. Should
+    Base class containing layout logic for the WidgetSet classes. Should
     not be instantiated directly.
     """
     def __init__(self, layout, trace = None):
         log.log_trace(self, "__init__", trace)
-        self.original_layout = layout
+        self.original_layout = layout[:]
         self.span, self.height, self.indices = None, None, None
 
         self.indices = self._get_indices(layout)
@@ -68,29 +68,34 @@ class WidgetLayout:
             
             # how much of the width of the layer each item in the list
             # corresponds to, as a fraction
-            layer_above = layout[i-1] if i != 0 else []
+            layer_above = layout[i-1] if i > 0 else []
             
             for j, x in enumerate(layer):
-                if x in layer_out and x != -1:
+                if x in layer_out and x > 0:
                     continue
-                
+
                 exp_start = len(layer_out)
-                try:
-                    act_start = layer_above.index(x)
-                except ValueError:
+
+                # Spacers have no restrictions on alignment
+                if x < 0:
                     act_start = exp_start
+                else:
+                    try:
+                        act_start = layer_above.index(x)
+                    except ValueError:
+                        act_start = exp_start
 
                 if act_start < exp_start:
-                    pass
-                    # if the space being overlaid is blank, continue
-                    if list(set(layer[act_start:exp_start])) == [-1]:
+                    # if the space being overlaid is all spacers, continue
+                    if all(key < 0  for key in layer[act_start:exp_start]):
                         pass
                     else:
                     # TODO - work out how much space must be taken away from
                     # previous buttons. allocate that removed space so that
                     # proportions are preserved
-                        raise ValueError("Unable to draw button set. "
-                                          "Objects would overlap")
+                        raise ValueError(
+                            "Unable to draw button set. Objects would overlap")
+
                 # if the actual start is beyond the expected start, then the
                 # gap in between must be padded out. Where possible, stretch
                 # the button to the left over to fill the gap. Otherwise,
@@ -106,8 +111,8 @@ class WidgetLayout:
                     layer_out += [pad_val]*pad_len
                     
                     scale = lcm(pad_len, len(layer))
-                    for j in range(i):
-                        layout[j] = self._scale_list(layout[j], scale)
+                    for k in range(i):
+                        layout[k] = self._scale_list(layout[k], scale)
                     for key in span_dict:
                         span_dict[key] *= scale
                     layer_out = self._scale_list(layer_out, scale)
@@ -119,6 +124,7 @@ class WidgetLayout:
                     count = self._count_sequence(layer, x, start = j)
                 else:
                     count = layer.count(x)
+
                 exp_span = int(count/len(layer[j:]) * available_span)
                 act_span = (span_dict[x] if x in span_dict.keys() and x >= 0
                             else exp_span)
@@ -190,7 +196,7 @@ class WidgetLayout:
         try:
             lst = lst[lst.index(value):]
             i = 0
-            while lst[i] == value:
+            while i < len(lst) and lst[i] == value:
                 i += 1
             return i
         except ValueError:
@@ -233,6 +239,8 @@ class WidgetLayout:
             self.height = len(layout)
         return self.height
 
+
+
 class WidgetSetComponent:
     """
     Container for attributes of a widget. Grid references must be set
@@ -245,6 +253,8 @@ class WidgetSetComponent:
         self.widget = wdict.get("widget", None)
         self.grid_kwargs = wdict.get("grid_kwargs", {})
         self.widget_kwargs = wdict.get("widget_kwargs", {})
+        self.placed = False
+        self.master = None if self.widget is None else self.widget.master
 
         self.stretch_height = wdict.get("stretch_height", False)
         self.stretch_width = wdict.get("stretch_width", False)
@@ -278,10 +288,13 @@ class WidgetSetComponent:
     def grid(self, trace = None, **kwargs):
         log.log_trace(self, "grid", trace)
         self.widget.grid(**kwargs)
+        self.placed = True
 
     def check_collision(self, rc, trace = None):
         log.log_trace(self, "check_collision", trace)
         assert len(rc) == 2
+        # If widget has not been placed in window, it cannot collide
+        if not self.placed: return False
         r = rc[0]
         c = rc[1]
         row_collides = True
@@ -291,6 +304,7 @@ class WidgetSetComponent:
         if c is not None:
             col_collides = (self.column <= c <= self.row + self.columnspan)
         return row_collides and col_collides
+
 
 
 class WidgetSet(WidgetLayout):
@@ -399,7 +413,7 @@ class WidgetSet(WidgetLayout):
                             )
                     else:
                         self.widgets[x].widget = tk.Label(
-                            self.label,
+                            self.frame,
                             **self.widgets[x].widget_kwargs
                             )
                     widget = self.widgets[x]
@@ -424,6 +438,8 @@ class WidgetSet(WidgetLayout):
         # width/height widget
         for r, layer in enumerate(self.layout):
             for c, key in enumerate(layer):
+                if key < 0: continue
+
                 if not self.widgets[key].stretch_height:
                     rc_cfg["row"][r] = False
 
@@ -463,6 +479,7 @@ class WidgetSet(WidgetLayout):
     def columnconfigure(self, trace = None, **kwargs):
         log.log_trace(self, "columnconfigure", trace)
         self.frame.columnconfigure(**kwargs)
+
 
 
 class ButtonSet(WidgetSet):
@@ -519,3 +536,28 @@ class ButtonSet(WidgetSet):
                 btn.bind(event, function)
 
         self.buttons[key]["widget"] = btn
+
+
+# class WidgetSetFrame(WidgetSet):
+#     def __init__(self, master, trace = None, **kwargs):
+#         self.name = self.__class__.__name__
+#         self.master = master
+#         self.frame_kwargs = kwargs.get("frame_kwargs", {})
+#         self.stretch_height = kwargs.get("stretch_height", False)
+#         self.stretch_width = kwargs.get("stretch_width", False)
+#         self.stretch_height_weight = kwargs.get(
+#             "stretch_height_weight", 1 if self.stretch_height else 0)
+#         self.stretch_width_weight = kwargs.get(
+#             "stretch_width_weight", 1 if self.stretch_width else 0))
+
+#         self.frame = tk.Frame(master, **frame_kwargs)
+#         super().__init__(frame = self.frame, **kwargs)
+
+#     def grid(self, **kwargs):
+#         self.__dict__.update(kwargs)
+#         self.frame.grid(**kwargs)
+
+#         self.master.rowconfigure(index = self.row,
+#                                  weight = self.stretch_height_weight)
+#         self.master.columnconfigure(index = self.column,
+#                                     weight = self.stretch_height_weight)
