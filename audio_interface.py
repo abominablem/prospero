@@ -11,6 +11,7 @@ from datetime import datetime
 from pydub.playback import play
 from kthread import KThread
 import config
+from arrange_widgets import WidgetSet
 
 class AudioInterface:
     def __init__(self, parent, master, trace = None):
@@ -124,9 +125,7 @@ class AudioInterface:
             )
         
         """
-        #######################################################################
-        ################################ ALLOCATE SCALING #####################
-        #######################################################################
+       ### ALLOCATE SCALING ###
         """
         
         self.frame.columnconfigure(self.AudioControlsSpacer1_GridColumn, 
@@ -218,12 +217,10 @@ class AudioInterface:
         inf_trace = {"source": "function call", 
                      "parent": self.name + 
                          "._btnTogglePlayPause_Click"}
+        if self.audio is None: return
+
         self.refresh_breakpoints(trace = inf_trace)
-        
-        #Exit if no audio is loaded
-        if self.audio is None:
-            return
-        
+
         # Update the icon
         if self.btnTogglePlayPause['text'] == "⏸":
             self.playing = False
@@ -285,14 +282,14 @@ class AudioInterface:
         Start a new audio playback thread at the current playpoint
         """
         self.pr.f._log_trace(self, "_create_audio_process", trace)
-        #create killable thread since tkinter does not play well with
-        #multiprocessing
+        # create killable thread since tkinter does not play well with
+        # multiprocessing
         self.playing = True
         self.btnTogglePlayPause['text'] = "⏸"
         self.audio_process = KThread(target = self.play_audio)
         self.audio_process.daemon = True
         
-        #set time of playback start
+        # set time of playback start
         self.play_start_datetime = datetime.now()
         self.audio_process.start()
     
@@ -316,11 +313,11 @@ class AudioInterface:
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".play_audio"}
         
-        #pydub.playback.play
+        # pydub.playback.play
         play(self.audio[self.get_play_point():])
-        #toggle back to paused mode when track finishes
-        #this does not run if the thread is ended early e.g. through pausing
-        #or skipping around
+        # toggle back to paused mode when track finishes
+        # this does not run if the thread is ended early e.g. through pausing
+        # or skipping around
         self._btnTogglePlayPause_Click(trace = inf_trace)
         self.play_point = 0
         
@@ -342,8 +339,8 @@ class AudioInterface:
         Optionally provide an offset for e.g. fast forward/rewinding.
         """
         self.pr.f._log_trace(self, "set_play_point", trace)
-        #calculate the new starting point for playing next time
-        #based on elapsed time since starting playback
+        # calculate the new starting point for playing next time
+        # based on elapsed time since starting playback
         if self.play_start_datetime is None: return #new waveform being loaded
         self.play_point += int((datetime.now() - self.play_start_datetime
                                 ).total_seconds()*1000)
@@ -367,16 +364,16 @@ class AudioInterface:
             if num >= self.breakpoints[k] and num <= self.breakpoints[k+1]:
                 return (k, k+1)
         
-        #if num is outside of the allowed range
+        # if num is outside of the allowed range
         if num > self.breakpoints[-1]:
             return (num_breakpoints, num_breakpoints)
         else:
             return (0, 0)
     
-    def draw_progress_bar(self, trace = None):
+    def draw_progress_bar(self, freq = 1000, trace = None):
         """
         Draw the playback progress bar on the audio waveform, auto-updating
-        after a defined period.
+        after a defined period in ms.
         """
         self.pr.f._log_trace(self, "draw_progress_bar", trace)
         inf_trace = {"source": "function call", 
@@ -387,10 +384,8 @@ class AudioInterface:
             self.get_play_point(trace = inf_trace), trace = inf_trace)
         if not self.playing: return
         
-        #loop while the audio is playing (ms refresh time)
-        self.master.after(1000,
-                          lambda: self.draw_progress_bar(trace=inf_trace)
-                          )
+        # loop while the audio is playing (ms refresh time)
+        self.master.after(freq,lambda: self.draw_progress_bar(trace=inf_trace))
 
     def grid(self, trace = None, **kwargs):
         self.pr.f._log_trace(self, "grid", trace)

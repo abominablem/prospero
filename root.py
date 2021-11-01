@@ -182,6 +182,10 @@ class Prospero:
         self.style.configure("TFrame",
                              background = self.c.colour_background
                              )
+        #This handles the styling for Labels
+        self.style.configure("TLabel",
+                             background = self.c.colour_background
+                             )
         #This handles the styling for the Notebook tabs
         self.style.configure("TNotebook.Tab", 
                              background = self.c.colour_interest_point_light, 
