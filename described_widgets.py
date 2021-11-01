@@ -43,7 +43,13 @@ class SimpleTreeview(ttk.Treeview):
                 if col.header == column:
                     return col.column
         else:
-            return self.columns[column].header
+            return self.columns[column]
+
+    def clear(self):
+        self.delete(*self.get_children())
+
+    def has_selection(self):
+        return len(self.selection_get()) > 0
 
 class SimpleTreeviewColumn:
     def __init__(self, treeview, column, cdict):
