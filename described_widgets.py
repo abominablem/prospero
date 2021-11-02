@@ -27,7 +27,7 @@ class SimpleTreeview(ttk.Treeview):
         for col in self.columns.values():
             col.create()
 
-    def get_column_names(self, ids = False, include_key = False):
+    def get_columns(self, ids = False, include_key = False):
         if ids:
             if include_key:
                 return ['#0'] + list(self['columns'])
@@ -43,7 +43,21 @@ class SimpleTreeview(ttk.Treeview):
                 if col.header == column:
                     return col.column
         else:
-            return self.columns[column]
+            return self.columns[column].header
+
+    def is_id(self, field):
+        try:
+            col = self.columns[field]
+            return True
+        except KeyError:
+            return False
+
+    def set_translate(self, item, column = None, value = None):
+        if not column is None:
+            column = self.translate_column(
+                column, to_id = not self.is_id(column))
+
+        return self.set(item, column, value)
 
     def clear(self):
         self.delete(*self.get_children())
