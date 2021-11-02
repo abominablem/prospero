@@ -6,9 +6,9 @@ Created on Tue Apr 20 23:51:25 2021
 """
 
 import tkinter as tk
-from tkinter import ttk
 from datetime import datetime
 from arrange_widgets import WidgetSet, ButtonSet
+import described_widgets as dw
 
 class ValueFromFilename:
     def __init__(self, parent, filename, columnString, columnId, treeview, 
@@ -23,9 +23,9 @@ class ValueFromFilename:
         inf_trace = {"source": "function call",
                      "parent": self.name + ".__init__"}
         
-        self.columnString = columnString
+        self.column_string = columnString
         self.filename = filename
-        self.columnId = columnId
+        self.column_id = columnId
         self.treeview = treeview
         self.row_iid = filename if row_iid is None else row_iid
         self.focus = treeview.focus()
@@ -69,21 +69,17 @@ class ValueFromFilename:
                                 **entry_kwargs,
                                 textvariable = self.value
                                 )
-        
         """
         ### POPULATE txtTAG WITH CURRENT VALUE ###
         """        
-        
-        if not (self.treeview.item(self.focus, 'values') is None and 
+        #get the current value and insert it into the text box
+        if not (self.treeview.item(self.focus, 'values') is None and
             self.treeview.item(self.focus, 'values') != ''):
-            self.txt_tag.insert(0, self.treeview.set(self.focus, self.columnId)) 
-            #get the current value and insert it into the text box
+            self.txt_tag.insert(0, self.treeview.set(self.focus, self.column_id))
      
         """
         ### ACTION BUTTONS ###
-        """
-        
-        """
+
         # PREFIX        SUFFIX          REPLACE         SUBMIT
         # UPPERCASE     LOWERCASE       TITLE_CASE      CLEAR
         # REMOVE DIACRITICS     REMATCH VALUE   TOGGLE FILTERS
@@ -226,32 +222,20 @@ class ValueFromFilename:
                                  frm_kwargs = frame_kwargs,
                                  set_width = 70)
 
-        # self.button_set.frame.grid(row = 1, column = 0,
-        #                            **self.pr.c.grid_sticky_padding_small)
-        
         """
         ### SUGGESTED VALUES ###
         """
-
-        self.suggested_values_columns = ["#0"]
-        self.suggested_values_headers = ["Suggested values"]
-        self.suggested_values_column_widths = [self.pr.c.width_text_long]
-        self.suggested_values_fixed_width = [False]
-        
-        self.suggested_values = ttk.Treeview(self.widget_frame)
-        
-        self.pr.f.configure_treeview_columns(
-            treeview = self.suggested_values,
-            columns = self.suggested_values_columns,
-            headers = self.suggested_values_headers,
-            widths = self.suggested_values_column_widths,
-            create_columns = True,
-            trace = inf_trace
+        self.suggested_values = dw.SimpleTreeview(
+            self.widget_frame, {1: {"header": "Suggested values",
+                                    "width": self.pr.c.width_text_long,
+                                    "stretch": True,
+                                    "anchor": "w"}
+                                }
             )
+
         """
         ### POPULATE VALUES ###
         """
-        
         self.txt_filename.insert(0, filename)
         self.get_insight_values(trace = inf_trace)
         self.populate_suggested_values(trace = inf_trace)
@@ -308,7 +292,6 @@ class ValueFromFilename:
                              sticky = "nesw")
         self.window.columnconfigure(0, weight = 1)
         self.window.rowconfigure(0, weight = 1)
-
 
         """
         ### MAIN LOOP ###
@@ -368,7 +351,7 @@ class ValueFromFilename:
         if not self.txt_filename.selection_present():
             return event
         
-        if self.columnString == "Composer":
+        if self.column_string == "Composer":
             new_text = ", " + self.Get_SelectedTextClean(
                 self.txt_filename, trace = inf_trace)
         else:
@@ -388,10 +371,10 @@ class ValueFromFilename:
         if not self.txt_filename.selection_present():
             return event
         
-        if self.columnString == "Composer":
+        if self.column_string == "Composer":
             new_text = " " + self.Get_SelectedTextClean(
                 self.txt_filename, trace = inf_trace)
-        elif self.columnString == "Performer(s)":
+        elif self.column_string == "Performer(s)":
             new_text = "; " + self.Get_SelectedTextClean(
                 self.txt_filename, trace = inf_trace)
         else:
@@ -441,13 +424,13 @@ class ValueFromFilename:
         else:
             set_text = self.txt_tag.get().strip()
         
-        set_text = self.clean_submission(set_text, self.columnString, 
+        set_text = self.clean_submission(set_text, self.column_string, 
                                          trace = inf_trace)
             
-        self.treeview.set(self.focus, self.columnId, set_text)
+        self.treeview.set(self.focus, self.column_id, set_text)
         
         #update the final name column via the formula
-        if not self.columnString == "Final name":
+        if not self.column_string == "Final name":
             try:
                 self.parent.match_keywords(self.focus, trace = inf_trace)
             except AttributeError:
@@ -624,7 +607,7 @@ class ValueFromFilename:
         
     def btnRematchValue_Click(self, event, trace = None):
         self.pr.f._log_trace(self, "btnRematchValue_Click", trace)
-        rematch = self.pr.f.suggest_value(self.filename, self.columnString)
+        rematch = self.pr.f.suggest_value(self.filename, self.column_string)
         if not rematch is None and rematch != "":
             self.btnClear_Click(event)
             self.txt_tag.insert("end", rematch)
@@ -707,7 +690,7 @@ class ValueFromFilename:
             values = self.pr.f.get_values_dict(
                 treeview = self.treeview,
                 iid = self.row_iid,
-                columns = self.parent.treeview_info["headers"], 
+                columns = self.treeview.get_columns(include_key = True),
                 trace = inf_trace
                 )
         else:
@@ -723,7 +706,7 @@ class ValueFromFilename:
             except KeyError:
                 pass
         
-        insight_col = self.pr.insight_rn.map_field_names(self.columnString)
+        insight_col = self.pr.insight_rn.map_field_names(self.column_string)
 
         if insight_col in invalid_cols:
             self.insight_values = []
