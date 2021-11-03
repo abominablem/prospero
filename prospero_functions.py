@@ -91,8 +91,6 @@ class Functions:
         self._log_trace(self, "filename_from_parts", trace)
         
         #parts:
-        #["Composer", "Album", "#", "Track", "Performer(s)", "Year", 
-        #"Genre", "URL", "Final name"]
         composer = str(parts[headers.index("Composer")]).strip()
         album = str(parts[headers.index("Album")]).strip()
         number = str(parts[headers.index("#")]).strip()
@@ -110,15 +108,15 @@ class Functions:
         '        #    5) Surname, Forenames - Album - Number.
         """  
         if parts_pattern == [True, False, False, True]: #1
-            filename = composer + " - " + track
+            filename = "%s - %s" (composer, track)
         elif parts_pattern == [True, True, False, False]: 
-            filename = composer + " - " + album
-        elif parts_pattern == [True, True, True, True]: 
-            filename = composer + " - " + album + " - " + number + ". " + track
+            filename = "%s - %s" (composer, album)
+        elif parts_pattern == [True, True, True, True]:
+            filename = "%s - %s - %s. %s" % (composer, album, number, track)
         elif parts_pattern == [True, True, False, True]: 
-            filename = composer + " - " + album + " - " + track
+            filename = "%s - %s - %s" % (composer, album, track)
         elif parts_pattern == [True, True, True, False]: 
-            filename = composer + " - " + album + " - " + number + "."
+            filename = "%s - %s - %s." % (composer, album, number)
         else:
             filename = ""
         
@@ -129,7 +127,40 @@ class Functions:
         filename = " ".join(filename.split()) #remove duplicate whitespace
         
         return filename
+
+    def filename_from_dict(self, parts_dict, trace = None):
+        self._log_trace(self, "filename_from_dict", trace)
+
+        composer = parts_dict.get("Composer", "")
+        album = parts_dict.get("Album", "")
+        number = parts_dict.get("#", "")
+        track = parts_dict.get("Track", "")
+        performers = parts_dict.get("Performer(s)", "")
+
+        parts_pattern = [composer, album, number, track]
+        parts_pattern = [part != '' for part in parts_pattern]
+
+        if parts_pattern == [True, False, False, True]: #1
+            filename = "%s - %s" (composer, track)
+        elif parts_pattern == [True, True, False, False]: 
+            filename = "%s - %s" (composer, album)
+        elif parts_pattern == [True, True, True, True]:
+            filename = "%s - %s - %s. %s" % (composer, album, number, track)
+        elif parts_pattern == [True, True, False, True]: 
+            filename = "%s - %s - %s" % (composer, album, track)
+        elif parts_pattern == [True, True, True, False]: 
+            filename = "%s - %s - %s." % (composer, album, number)
+        else:
+            filename = ""
+        
+        if performers != '' and filename != '':
+            filename = filename + " [" + performers + "]"
     
+        filename = filename.strip() #remove leading and trailing spaces
+        filename = " ".join(filename.split()) #remove duplicate whitespace
+        
+        return filename
+
     def suggest_value(self, filename, field, trace = None):
         self._log_trace(self, "suggest_value", trace)
         inf_trace = {"source": "function call", 
