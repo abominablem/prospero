@@ -40,14 +40,7 @@ class Tagging :
         """
         ### TREEVIEW INFO ###
         """
-        self.treeview_input_files = ttk.Treeview(self.widget_frame)
-        self.treeview_current_tags = ttk.Treeview(self.widget_frame)
-        self.treeview_suggested_tags = ttk.Treeview(self.widget_frame)
-        self.treeviews = [self.treeview_input_files, 
-                          self.treeview_current_tags,
-                          self.treeview_suggested_tags]
-
-        self.treeview_info = dw.SimpleTreeview(
+        self.treeview_input_files = dw.SimpleTreeview(
             self.widget_frame, {1: {"header": "Filename",
                                     "width": self.pr.c.width_text_long,
                                     "stretch": True}}
@@ -68,6 +61,10 @@ class Tagging :
                                     "width": self.pr.c.width_text_medium,
                                     "stretch": True}}
             )
+
+        self.treeviews = [self.treeview_input_files, 
+                          self.treeview_current_tags,
+                          self.treeview_suggested_tags]
 
         """
         ### SAVE CHANGES ###

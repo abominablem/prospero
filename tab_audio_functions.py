@@ -459,7 +459,7 @@ class AudioFunctions():
         if track_dict != {}:
             for i, trk in track_dict.items():
                 if trk.strip() != "":
-                    self.treeview_file_names.set(i, "Track", trk)
+                    self.treeview_file_names.set_translate(i, "Track", trk)
     
     def _true_breakpoints(self, scale_to_sound = False, trace = None):
         self.pr.f._log_trace(self, "_true_breakpoints", trace)
@@ -876,7 +876,7 @@ class AudioFunctions():
         if clicked_column_id == "#0":
         #exit if the first column (filename) is clicked
             return event 
-        
+
         #Identify the filename of the row clicked
         clicked_row = self._treeview_mouse1_click_row
         if clicked_row is None or clicked_row == "":
@@ -885,7 +885,9 @@ class AudioFunctions():
         ValueFromFilename(
             parent = self,
             filename = self.filename,
-            columnString = self.treeview_column_id_to_name(clicked_column_id),
+            columnString = self.treeview_file_names.translate_column(
+                clicked_column_id
+                ),
             columnId = clicked_column_id,
             treeview = self.treeview_file_names,
             row_iid = clicked_row,
@@ -904,11 +906,11 @@ class AudioFunctions():
         
         while treeview_count < breakpoint_count:
             _id = treeview_count + 1
-            num_index = self.treeview_info["headers"].index("#")-1
+            num_index = self.treeview_file_names.get_columns().index("#")
             if self.fresh_waveform == True:
-                values = [self.pr.f.suggest_value(self.filename, field, 
+                values = [self.pr.f.suggest_value(self.filename, field,
                                                   trace = inf_trace) 
-                          for field in self.treeview_info["columns"][1:]]
+                          for field in self.treeview_file_names.get_columns()]
                 values[num_index] = 1
             else:
                 # Get values of row above
@@ -921,7 +923,7 @@ class AudioFunctions():
                 
             self.treeview_file_names.insert("", index="end", text = str(_id),
                                             iid = str(_id), values = values)
-            self.treeview_file_names.set(str(_id), "Track", "")
+            self.treeview_file_names.set_translate(str(_id), "Track", "")
             self.set_final_name(str(_id), trace = inf_trace)
             treeview_count = len(self.treeview_file_names.get_children())
             
@@ -929,13 +931,7 @@ class AudioFunctions():
             self.treeview_file_names.delete(
                 self.treeview_file_names.get_children()[-1])
             treeview_count = len(self.treeview_file_names.get_children())
-            
-    def treeview_column_id_to_name(self, column_id, trace = None):
-        self.pr.f._log_trace(self, "treeview_column_id_to_name", trace)
-        
-        headers = self.treeview_info["headers"]
-        return headers[int(column_id[1:])]
-        
+
     def copy_from_above(self, event, trace = None):
         self.pr.f._log_trace(self, "copy_from_above", trace)
         """
@@ -952,7 +948,7 @@ class AudioFunctions():
         #get the value to copy down. If one row is selected, this is the value in
         #the row above. If multiple values are selected, this is the value in the
         #first selected row
-        if self.treeview_column_id_to_name(clicked_column_id) == "#":
+        if self.treeview_file_names.translate_column(clicked_column_id) == "#":
             #number column case
             if len(selected_items) == 1:
                 #increment from row above
@@ -976,8 +972,8 @@ class AudioFunctions():
                     self.treeview_file_names.prev(selected_items[0]),
                     clicked_column_id)
             else:
-                value_to_copy = self.treeview_file_names.set(selected_items[0], 
-                                                             clicked_column_id)
+                value_to_copy = self.treeview_file_names.set(
+                    selected_items[0], clicked_column_id)
             value_to_copy = [value_to_copy for i in selection_iter]
             
         #update the value of all cells in the selected rows and column    
@@ -994,23 +990,27 @@ class AudioFunctions():
                      "parent": self.name + ".set_final_name"}
         
         if self.executing: return
-        parts = [filename] + list(self.treeview_file_names.item(filename, 'values'))
-        
-        self.treeview_file_names.set(filename, 
-                                     'Final name', 
-                                     self.pr.f.filename_from_parts(
-                                         parts = parts,
-                                         headers = self.treeview_info["headers"], 
-                                         trace = inf_trace
-                                         )
-                                     )
-    
+
+        self.treeview_file_names.set_translate(
+            filename,
+            "Final name",
+            self.pr.f.filename_from_dict(
+                parts_dict = self.pr.f.get_values_dict(
+                    self.treeview_file_names,
+                    filename,
+                    self.treeview_file_names.get_columns(include_key = True)
+                    ),
+                trace = inf_trace
+                )
+            )
+
     def match_keywords(self, filename, overwrite = False, trace = None):
         self.pr.f._log_trace(self, "match_keywords", trace)
         
         values_dict = {}
         for field in ["Composer", "Album", "#", "Genre", "Year", "Track"]:
-            values_dict[field] = self.treeview_file_names.set(filename, field)
+            values_dict[field] = self.treeview_file_names.set_translate(
+                filename, field)
             
         keyword_dicts = config.keyword_dict.regex_dict
 
@@ -1060,9 +1060,11 @@ class AudioFunctions():
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".add_insight"}
         
-        values = self.pr.f.get_values_dict(self.treeview_file_names,
-                                           filename,
-                                           self.treeview_info["headers"])
+        values = self.pr.f.get_values_dict(
+            self.treeview_file_names,
+            filename,
+            self.treeview_file_names.get_columns()
+            )
         del values["Done"]
         del values[""]
         

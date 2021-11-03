@@ -6,7 +6,6 @@ Created on Tue Apr 20 20:07:22 2021
 """
 
 import tkinter as tk
-from tkinter import ttk
 import config
 import os
 import re
@@ -283,7 +282,9 @@ class Naming:
         ValueFromFilename(
             parent = self,
             filename = clicked_row,
-            columnString = self.treeview_column_id_to_name(clicked_column_id),
+            columnString = self.file_list_treeview.translate_column(
+                clicked_column_id
+                ),
             columnId = clicked_column_id,
             treeview = self.file_list_treeview,
             trace = inf_trace
@@ -397,11 +398,6 @@ class Naming:
                                            self._treeview_mouse1_click_column)
             )
         return event
-    
-    def treeview_column_id_to_name(self, column_id, trace = None):
-        self.pr.f._log_trace(self, "treeview_column_id_to_name", trace)
-        headers = self.treeview_info["headers"]
-        return headers[int(column_id[1:])]
     
     def _key_press_alt(self, event, trace = None):
         inf_trace = {"source": "function call", 
@@ -570,8 +566,13 @@ class Naming:
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".add_insight"}
         
-        values = self.pr.f.get_values_dict(self.file_list_treeview, filename, 
-                                           self.treeview_info["headers"])
+        values = self.pr.f.get_values_dict(
+            self.file_list_treeview,
+            filename,
+            columns = self.file_list_treeview.get_columns(
+                include_key = True, translate_key = True
+                )
+            )
         del values["Done"]
         values["original_path"] = self.io_directory.input_directory
         values["final_path"] = self.io_directory.output_directory
