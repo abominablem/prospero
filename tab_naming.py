@@ -300,7 +300,8 @@ class Naming:
         self.pr.f._log_trace(self, "match_keywords", trace)
         values_dict = {}
         for field in ["Composer", "Album", "#", "Genre", "Year", "Track"]:
-            values_dict[field] = self.file_list_treeview.set(filename, field)
+            values_dict[field] = self.file_list_treeview.set_translate(
+                filename, field)
             
         keyword_dicts = config.keyword_dict.regex_dict
 
@@ -348,7 +349,7 @@ class Naming:
                          + ".get_values_from_filename"}
         
         values = [self.pr.f.suggest_value(filename, field, trace = inf_trace) 
-                  for field in self.treeview_info["columns"][1:]]
+                  for field in self.file_list_treeview.get_columns()]
         return values
         
     def copy_from_above(self, event, trace = None):
@@ -383,7 +384,6 @@ class Naming:
             self.match_keywords(item, trace = inf_trace)
             self.set_final_name(item, trace = inf_trace)
 
-        self.treeview_info["unsaved_changes"] = True
         return event
     
     def _treeview_mouse1_click(self, event, trace = None):
@@ -544,13 +544,19 @@ class Naming:
         self.pr.f._log_trace(self, "set_final_name", trace)
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".set_final_name"}
-        parts = [filename] + list(self.file_list_treeview.item(filename,'values'))
-        final_name = self.pr.f.filename_from_parts(parts = parts, 
-                                                   headers = self.treeview_info["headers"], 
-                                                   trace = inf_trace
-                                                   )
-        self.file_list_treeview.set(filename, 'Final name', final_name)
-        
+        self.file_list_treeview.set_translate(
+            filename,
+            "Final name",
+            self.pr.f.filename_from_dict(
+                parts_dict = self.pr.f.get_values_dict(
+                    self.file_list_treeview,
+                    filename,
+                    self.file_list_treeview.get_columns(include_key = True)
+                    ),
+                trace = inf_trace
+                )
+            )
+
     def add_keyword_matching(self, filename, trace = None):
         self.pr.f._log_trace(self, "add_keyword_matching", trace)
         inf_trace = {"source": "function call", 
