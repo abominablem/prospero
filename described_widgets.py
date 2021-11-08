@@ -53,11 +53,21 @@ class SimpleTreeview(ttk.Treeview):
             return False
 
     def set_translate(self, item, column = None, value = None):
+        """
+        Equivalent to the parent set method except the column is translated
+        to the equivalent ttk treeview id first.
+        """
         if not column is None:
             column = self.translate_column(
                 column, to_id = not self.is_id(column))
 
-        return self.set(item, column, value)
+        return super().set(item, column, value)
+
+    def set(self, item, column = None, value = None):
+        try:
+            return super().set(item, column, value)
+        except tk.TclError:
+            return self.set_translate(item, column, value)
 
     def clear(self):
         self.delete(*self.get_children())
