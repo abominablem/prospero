@@ -303,8 +303,10 @@ class AudioFunctions():
                 start = true_breakpoints[k]
                 end = true_breakpoints[k+1]
                 iid = str(k+1)
-                filename = (self.treeview_file_names.set(iid, "Final name") 
-                            + self.pr.c.file_extension)
+                filename = (
+                    self.treeview_file_names.set_translate(iid, "Final name")
+                    + self.pr.c.file_extension
+                            )
                 
                 #Write audio to file
                 try:
@@ -345,7 +347,7 @@ class AudioFunctions():
                 done_text = "✘ - %s (%s)" % (text, error)
             else:
                 done_text = "✓"
-            self.treeview_file_names.set(str(k+1), "Done", done_text)
+            self.treeview_file_names.set_translate(str(k+1), "Done", done_text)
         
         
         original_files_dir = os.path.join(self.io_directory.output_directory, 
@@ -1030,8 +1032,8 @@ class AudioFunctions():
             #run only once a full set of valid pattern matches has been made    
             for field in compare_dict['value']:
                 if values_dict[field] == "" or overwrite:
-                    self.treeview_file_names.set(filename, field, 
-                                                 compare_dict['value'][field])
+                    self.treeview_file_names.set_translate(
+                        filename, field, compare_dict['value'][field])
                     values_dict[field] = compare_dict['value'][field]
         return values_dict
     
@@ -1063,7 +1065,7 @@ class AudioFunctions():
         values = self.pr.f.get_values_dict(
             self.treeview_file_names,
             filename,
-            self.treeview_file_names.get_columns()
+            self.treeview_file_names.get_columns(include_key = True)
             )
         del values["Done"]
         del values[""]
