@@ -305,21 +305,18 @@ class Naming:
             
         keyword_dicts = config.keyword_dict.regex_dict
 
-        for compare_dict in keyword_dicts.values():
+        for keyword_key in keyword_dicts:
+            compare_dict = keyword_dicts[keyword_key]
             #run through all available keyword mapping dictionaries, overlaying
             #to get the best output
-            for key in compare_dict['key'].keys():
-                invalid_match = False
-                try:
-                    if not re.match(compare_dict['key'][key], values_dict[key], 
-                                    re.IGNORECASE):
-                        invalid_match = True
-                        break
-                except:
+            invalid_match = False
+            for key in compare_dict['key']:
+                if compare_dict['key'][key].lower() != values_dict[key].lower():
+                    invalid_match = True
                     break
             if invalid_match: continue
-            #run only once a full set of valid pattern matches has been made    
-            for field in compare_dict['value'].keys():
+            #run only once a full set of valid pattern matches has been made
+            for field in compare_dict['value']:
                 if values_dict[field] == "" or overwrite:
                     self.file_list_treeview.set(filename, field, 
                                               compare_dict['value'][field])
@@ -403,7 +400,8 @@ class Naming:
         inf_trace = {"source": "function call", 
                      "parent": self.name + "._key_press_alt"}
         """
-        Create the search box GUI and maintain it while the bound key is held down
+        Create the search box GUI and maintain it while the bound key is held 
+        down
         """
         self.search_box.maintain(trace = inf_trace)
         return event
@@ -434,12 +432,12 @@ class Naming:
         #prompt for confirmation of action
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".rename_valid_files"}
-        message_box = tk.messagebox.askquestion("Rename all files", 
-                                                "Are you sure you wish the tag"
-                                                " and rename all files? Only "
-                                                "files with valid final names "
-                                                "will be affected.", 
-                                                icon = "warning")
+        message_box = tk.messagebox.askquestion(
+            "Rename all files", 
+            "Are you sure you wish to tag and rename all files? Only files "
+            "with valid final names will be affected.",
+            icon = "warning"
+            )
         
         if message_box == "yes":
             self.pr.f._log_trace(self, "rename_valid_files", trace)
@@ -447,9 +445,12 @@ class Naming:
                 new_filename = self.file_list_treeview.set(filename, "Final name")
                 inf_trace = {"source": "function call", 
                              "parent": self.name + ".rename_valid_files", 
-                             "add": f"Tagged file {filename}, and renamed to {new_filename}."}
-                if (new_filename != "" and not new_filename is None) and (self.file_list_treeview.set(filename, "Done") != "✓"):
+                             "add": f"Tagged file {filename}, and renamed "
+                             f"to {new_filename}."}
+                if ((new_filename != "" and not new_filename is None) and
+                    (self.file_list_treeview.set(filename, "Done") != "✓")):
                     exception = False
+                    text = None
                     #File operation related exceptions, can be raised at any
                     #point
                     try:
@@ -457,11 +458,9 @@ class Naming:
                         try:
                             self.tag_file(filename, trace = inf_trace)
                         except ValueError as e:
-                            exception = True
                             text = str(e)
                             raise
                         except:
-                            exception = True
                             text = "Failed to tag file"
                             raise
                         
@@ -470,7 +469,6 @@ class Naming:
                             self.add_keyword_matching(filename, 
                                                       trace = inf_trace)
                         except:
-                            exception = False
                             text = "Failed to add keyword matching"
                             raise
                             
@@ -478,7 +476,6 @@ class Naming:
                         try:
                             self.add_insight(filename, trace = inf_trace)
                         except:
-                            exception = True
                             text = "Failed to add to Insight"
                             raise
                             
@@ -490,21 +487,23 @@ class Naming:
                         try:
                             self.pr.f.rename_file(**v, trace = inf_trace)
                         except:
-                            exception = True
                             text = "Failed to rename file"
                             raise
+
                     except FileNotFoundError:
                         exception = True
                         text = "Renaming failed, original file not found"
                     except FileExistsError:
                         exception = True
                         text = "Renaming failed, new file already exists"
-                    except:
+                    except Exception as err:
                         """ All errors not handled elsewhere """
-                        pass
-                    
+                        exception = True
+                        error = err
+
                     if exception:
-                        done_text = "✘ - " + text
+                        if text is None: text = "An unexpected error occurred"
+                        done_text = "✘ - %s (%s)" % (text, error)
                     else:
                         done_text = "✓"
                     self.file_list_treeview.set(filename, "Done", done_text)
@@ -530,8 +529,7 @@ class Naming:
                            filename = filename,
                            tags = tags,
                            trace = inf_trace)
-        return
-    
+
     def save_treeview(self, event, trace = None):
         self.pr.f._log_trace(self, "save_treeview", trace)
         inf_trace = {"source": "function call", 
@@ -575,9 +573,7 @@ class Naming:
         values = self.pr.f.get_values_dict(
             self.file_list_treeview,
             filename,
-            columns = self.file_list_treeview.get_columns(
-                include_key = True, translate_key = True
-                )
+            columns = self.file_list_treeview.get_columns(include_key = True)
             )
         del values["Done"]
         values["original_path"] = self.io_directory.input_directory
