@@ -6,32 +6,9 @@ Created on Tue Sep 14 22:29:57 2021
 """
 
 import sqlite3 as sql
-# Create table
-# cur.execute('''CREATE TABLE renames
-#                 (id int primary key,
-#                 original_name text NOT NULL, 
-#                 original_path text NOT NULL, 
-#                 composer text, 
-#                 album text, 
-#                 number int, 
-#                 track text,
-#                 performers text,
-#                 year int,
-#                 genre text, 
-#                 url text,
-#                 final_name text NOT NULL,
-#                 final_path text NOT NULL,
-#                 date_created text NOT NULL,
-#                 date_renamed text datetime default current_timestamp
-#                 )''')
+from mh_logging import Logging
 
-# # Save (commit) the changes
-# con.commit()
-
-# # We can also close the connection if we are done with it.
-# # Just be sure any changes have been committed or they will be lost.
-# con.close()
-
+log = Logging()
 
 class TableCon:
     def __init__(self, db, table = None, debug = False, trace = None):
@@ -102,7 +79,7 @@ class TableCon:
             return [self.field_map[k] if k in self.field_map else k 
                     for k in fields]
         elif isinstance(fields, str):
-            return (self.field_map[fields] if fields in self.field_map 
+            return (self.field_map[fields] if fields in self.field_map
                     else fields)
 
     def add_row(self, trace = None, **kwargs):

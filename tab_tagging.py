@@ -6,7 +6,6 @@ Created on Tue Apr 20 19:45:18 2021
 """
 
 import tkinter as tk
-from tkinter import ttk
 import os
 from datetime import datetime
 from io_directory import IODirectory
