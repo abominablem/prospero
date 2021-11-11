@@ -143,10 +143,10 @@ class Functions:
         if parts_pattern == [True, False, False, True]: #1
             filename = "%s - %s" % (composer, track)
         elif parts_pattern == [True, True, False, False]: 
-            filename = "%s - %s" (composer, album)
+            filename = "%s - %s" % (composer, album)
         elif parts_pattern == [True, True, True, True]:
             filename = "%s - %s - %s. %s" % (composer, album, number, track)
-        elif parts_pattern == [True, True, False, True]: 
+        elif parts_pattern == [True, True, False, True]:
             filename = "%s - %s - %s" % (composer, album, track)
         elif parts_pattern == [True, True, True, False]: 
             filename = "%s - %s - %s." % (composer, album, number)
@@ -577,13 +577,19 @@ class Functions:
             #append to end of album value if it exists
             if tags["album"] != "":
                 tags["album"] = tags["album"] + " (%s)" % c
-        
+
         audiofile.tag.album_artist = tags.get("composer", "")
         audiofile.tag.album = tags.get("album", "")
         audiofile.tag.title = tags.get("track", "")
-        audiofile.tag.artist = tags.get("performer(s)", "")
-        audiofile.tag.genre = tags.get("genre", "")
-        audiofile.tag.artist_url = tags.get("url", "")
+
+        if not tags.get("performer(s)", "") in [None, ""]:
+            audiofile.tag.artist = tags["performer(s)"]
+
+        if not tags.get("genre", "") in [None, ""]:
+            audiofile.tag.genre = tags["genre"]
+
+        if not tags.get("url", "") in [None, ""]:
+            audiofile.tag.artist_url = tags["url"]
         
         if not tags.get("number", "") in [None, ""]:
             audiofile.tag.track_num = int(tags["number"])
