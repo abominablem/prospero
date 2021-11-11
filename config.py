@@ -99,16 +99,20 @@ class JSONDict:
         else:
             self.regex_dict[regex] = result
 
-    def delete_value(self, regex_pattern, trace = None):
+    def delete_value(self, keys, trace = None):
         """
-        Given a regex pattern, remove the corresponding dictionary entry
+        Given a list of keys, remove the corresponding dictionary entries
         """
         self.logging.log_trace(self, "delete_value", trace)
 
-        if not regex_pattern in self.regex_dict.keys():
-            raise KeyError("Invalid key, nothing to delete")
+        if not isinstance(keys, list):
+            keys = [keys]
 
-        del self.regex_dict[regex_pattern]
+        for key in keys:
+            try:
+                del self.regex_dict[str(key)]
+            except KeyError:
+                raise KeyError("Invalid key, nothing to delete")
 
     def dump_values(self, trace = None):
         """
@@ -191,3 +195,13 @@ genres_dict = JSONDict('genres')
 numerals_dict = JSONDict('numerals')
 albums_dict = JSONDict('albums')
 filename_patterns_dict = JSONDict('filename_patterns')
+
+if __name__ == "__main__":
+    filt = []
+    for key in keyword_dict.regex_dict:
+        try:
+            if (keyword_dict.regex_dict[key]["key"]["Composer"] == "Scriabin, Alexander"
+                and keyword_dict.regex_dict[key]["key"]["Album"] == "24 Preludes"):
+                filt.append(key)
+        except KeyError:
+            continue
