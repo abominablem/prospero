@@ -141,7 +141,7 @@ class Functions:
         parts_pattern = [part != '' for part in parts_pattern]
 
         if parts_pattern == [True, False, False, True]: #1
-            filename = "%s - %s" (composer, track)
+            filename = "%s - %s" % (composer, track)
         elif parts_pattern == [True, True, False, False]: 
             filename = "%s - %s" (composer, album)
         elif parts_pattern == [True, True, True, True]:
