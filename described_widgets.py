@@ -76,6 +76,29 @@ class SimpleTreeview(ttk.Treeview):
     def has_selection(self):
         return len(self.selection_get()) > 0
 
+    def _col_offset(self, col, offset, ids = True):
+        cols_id = self.get_columns(ids = True, include_key = True)
+        cols_head = self.get_columns(ids = False, include_key = True)
+
+        cols = cols_id if self.is_id(col) else cols_head
+        col_index = cols.index(col) + offset
+
+        # check offset column is stil within the treeview
+        if 0 <= col_index < len(cols):
+            if ids:
+                return cols_id[col_index-1]
+            else:
+                return cols_head[col_index-1]
+        else:
+            return
+
+    def prev_column(self, col, ids = True):
+        return self._col_offset(col, -1, ids)
+
+    def next_column(self, col, ids = True):
+        return self._col_offset(col, 1, ids)
+
+
     def bind(self, sequence = None, func = None, add = None):
         self.events.add_event(sequence)
         func = self.events._add_log_call(sequence = sequence, func = func)
