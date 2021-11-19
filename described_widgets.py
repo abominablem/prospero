@@ -74,7 +74,7 @@ class SimpleTreeview(ttk.Treeview):
         self.delete(*self.get_children())
 
     def has_selection(self):
-        return len(self.selection_get()) > 0
+        return len(self.selection()) > 0
 
     def _col_offset(self, col, offset, ids = True):
         cols_id = self.get_columns(ids = True, include_key = True)
@@ -86,9 +86,9 @@ class SimpleTreeview(ttk.Treeview):
         # check offset column is stil within the treeview
         if 0 <= col_index < len(cols):
             if ids:
-                return cols_id[col_index-1]
+                return cols_id[col_index]
             else:
-                return cols_head[col_index-1]
+                return cols_head[col_index]
         else:
             return
 
@@ -97,7 +97,6 @@ class SimpleTreeview(ttk.Treeview):
 
     def next_column(self, col, ids = True):
         return self._col_offset(col, 1, ids)
-
 
     def bind(self, sequence = None, func = None, add = None):
         self.events.add_event(sequence)
@@ -130,6 +129,9 @@ class SimpleTreeviewEvents:
         self.last = {"column": None, "row": None, "cell": None}
 
     def log_event(self, sequence, event, *args, **kwargs):
+        """ 
+        Log the col/row/cell under the cursor when the event is triggered 
+        """
         event_col = self._treeview.identify_column(event.x)
         event_row = self._treeview.identify_row(event.y)
         event_cell = (
@@ -172,7 +174,7 @@ if __name__ == "__main__":
     treeview = SimpleTreeview(root, columns)
 
     treeview.bind("<a>")
-    treeview.bind("<Button-1>")
+    treeview.bind("<1>")
 
     treeview.grid(row = 0, column = 0)
     root.rowconfigure(0, weight = 1)
