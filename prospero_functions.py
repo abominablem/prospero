@@ -806,7 +806,7 @@ class Functions:
         (out = "list").
         """
         self.pr.f._log_trace(self, "autocomplete", trace)
-        
+
         if not out in ["list", "string"]:
             raise ValueError("Invalid return type specified. out must be one"
                              " of 'list' or 'string'.")
@@ -827,11 +827,11 @@ class Functions:
         
         matches = []
         for opt in options:
-            if re.match(pattern, opt):
+            if re.match(pattern, str(opt)):
                 if out == "string":
-                    return opt
+                    return str(opt)
                 elif out == "list":
-                    matches.append(opt)
+                    matches.append(str(opt))
         return matches
     
     def remove_diacritics(self, text, trace = None):
