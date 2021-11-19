@@ -112,7 +112,10 @@ class Naming:
         #treeview values
         self.file_list_treeview.bind("<1>", lambda event: self._treeview_mouse1_click(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<1>"}))
         self.file_list_treeview.bind("<Double-1>", lambda event: self.edit_value_via_interface(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Double-1>"}))
-        self.file_list_treeview.bind("<Control-d>", lambda event: self.copy_from_above(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
+        self.file_list_treeview.bind("<Control-Shift-D>", lambda event: self.copy_around(direction = "up", event = event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
+        self.file_list_treeview.bind("<Control-d>", lambda event: self.copy_around(direction = "down", event = event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
+        self.file_list_treeview.bind("<Control-Shift-R>", lambda event: self.copy_around(direction = "left", event = event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
+        self.file_list_treeview.bind("<Control-r>", lambda event: self.copy_around(direction = "right", event = event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
         self.file_list_treeview.bind("<Control-s>", lambda event: self.save_treeview(event, trace = {"source": "bound event", "widget": self.name + ".save_treeview", "event": "<Control-s>"}))
         
         widgets = {1: {'widget': self.io_directory,
@@ -266,19 +269,20 @@ class Naming:
         Open a window with the selected filename where a value can be specified 
         for the selected cell
         """
-            
         #Identify the column clicked
-        clicked_column_id = self._treeview_mouse1_click_column
-        
-        if clicked_column_id == "#0":
+        clicked_column_id = self.file_list_treeview.events.last["column"]
+
         #exit if the first column (filename) is clicked
+        if clicked_column_id == "#0":
             return event 
         
         #Identify the filename of the row clicked
-        clicked_row = self._treeview_mouse1_click_row
+        clicked_row = self.file_list_treeview.events.last["row"]
+
+        # exit if an empty row is clicked
         if clicked_row is None or clicked_row == "":
-            return event # exit if an empty row is clicked
-        
+            return event
+
         ValueFromFilename(
             parent = self,
             filename = clicked_row,
@@ -348,41 +352,69 @@ class Naming:
         values = [self.pr.f.suggest_value(filename, field, trace = inf_trace) 
                   for field in self.file_list_treeview.get_columns()]
         return values
-        
-    def copy_from_above(self, event, trace = None):
-        self.pr.f._log_trace(self, "copy_from_above", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".copy_from_above"}
-        """
-        Copies a value down to all selected rows in certain column
-        """
-        selected_items = self.file_list_treeview.selection()
-        clicked_column_id = self._treeview_mouse1_click_column
-        if clicked_column_id == "#0":
-            #cancel if the filename ID column was the last column clicked
-            return event
-        
-        #get the value to copy down. If one row is selected, this is the value in
-        #the row above. If multiple values are selected, this is the value in the
-        #first selected row
-        if len(selected_items) == 1:
-            value_to_copy = self.file_list_treeview.set(
-                self.file_list_treeview.prev(selected_items[0]),
-                clicked_column_id
-                )
-        else:
-            value_to_copy = self.file_list_treeview.set(selected_items[0],
-                                                      clicked_column_id)
-        
-        #update the value of all cells in the selected rows and column
-        for item in selected_items:
-            self.file_list_treeview.set(item, clicked_column_id, value_to_copy)
-            self.match_filename_pattern(item, trace = inf_trace)
-            self.match_keywords(item, trace = inf_trace)
-            self.set_final_name(item, trace = inf_trace)
 
-        return event
-    
+    def copy_around(self, direction, event = None, trace = None):
+        """
+        Copy a single value to multiple contiguous rows or an adjacent column.
+        """
+        self.pr.f._log_trace(self, "copy_around", trace)
+        inf_trace = {"source": "function call", 
+                     "parent": self.name + ".copy_around"}
+
+        if not self.file_list_treeview.has_selection():
+            return
+
+        if not direction in ["up", "down", "left", "right"]:
+            raise ValueError("Invalid direction %s" % direction)
+
+        selected_items = self.file_list_treeview.selection()
+        click_col_id = self.file_list_treeview.events["<1>"]["column"]
+
+        # ignore if key column was the last one clicked
+        if click_col_id == "#0":
+            return
+        # ignore if column clicked is the first column after the key and the
+        # value is being taken from the left (copied to right)
+        if direction == "right" and click_col_id == "#1":
+            return
+
+        single_row = (len(selected_items) == 1)
+
+        index_map = {"up": 0, "down": -1, "left": 0, "right": -1}
+        func_map = {
+            "up": self.file_list_treeview.next,
+            "down": self.file_list_treeview.prev,
+            "left": self.file_list_treeview.next_column,
+            "right": self.file_list_treeview.prev_column,
+            }
+
+        if direction in ["up", "down"]:
+            value_row = selected_items[index_map[direction]]
+            if single_row:
+                copy_value = self.file_list_treeview.set(
+                    func_map[direction](value_row), click_col_id)
+
+            for item in selected_items:
+                self.set_treeview_value(item, click_col_id, copy_value,
+                                        trace = inf_trace)
+        else:
+            value_col = func_map[direction](click_col_id)
+            for item in selected_items:
+                copy_value = self.file_list_treeview.set(item, value_col)
+                self.set_treeview_value(item, click_col_id, copy_value,
+                                        trace = inf_trace)
+
+    def set_treeview_value(self, item, column = None,
+                           value = None, trace = None):
+        self.pr.f._log_trace(self, "set_treeview_value", trace)
+        inf_trace = {"source": "function call", 
+                     "parent": self.name + ".set_treeview_value"}
+
+        self.file_list_treeview.set(item, column, value)
+        self.match_filename_pattern(item, trace = inf_trace)
+        self.match_keywords(item, trace = inf_trace)
+        self.set_final_name(item, trace = inf_trace)
+
     def _treeview_mouse1_click(self, event, trace = None):
         self.pr.f._log_trace(self, "_treeview_mouse1_click", trace)
             
