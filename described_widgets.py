@@ -8,6 +8,9 @@ Created on Sun Oct 31 15:30:08 2021
 import tkinter as tk
 from tkinter import ttk
 
+def null_function(self, *args, **kwargs):
+    return
+
 class SimpleTreeview(ttk.Treeview):
     def __init__(self, master, colsdict, **kwargs):
         super().__init__(master = master, **kwargs)
@@ -89,8 +92,6 @@ class SimpleTreeview(ttk.Treeview):
                 return cols_id[col_index]
             else:
                 return cols_head[col_index]
-        else:
-            return
 
     def prev_column(self, col, ids = True):
         return self._col_offset(col, -1, ids)
@@ -99,7 +100,7 @@ class SimpleTreeview(ttk.Treeview):
         return self._col_offset(col, 1, ids)
 
     def bind(self, sequence = None, func = None, add = None):
-        self.events.add_event(sequence)
+        self.events.add(sequence, bind = False)
         func = self.events._add_log_call(sequence = sequence, func = func)
         super().bind(sequence, func, add)
 
@@ -143,9 +144,16 @@ class SimpleTreeviewEvents:
             "column": event_col, "row": event_row, "cell": event_cell
             }
 
-    def add_event(self, sequence):
+    def add(self, sequence, bind = True):
         """ Add an event for reference later """
+        if not isinstance(sequence, str):
+            for seq in sequence: self.add(seq)
         self._edict[sequence] = {"column": None, "row": None, "cell": None}
+        if bind:
+            self._treeview.bind(
+                sequence,
+                self._add_log_call(sequence, null_function)
+                )
 
     def _add_log_call(self, sequence, func = None):
         log_event = lambda event: self.log_event(sequence, event)
