@@ -110,7 +110,7 @@ class Naming:
         self.file_list_treeview.bind("<Alt-1>", lambda event: self._alt_mouse_1(event, trace = {"source": "bound event", "widget": "Naming.FileListTreeview", "event": "<Alt-1>"}))
         
         #treeview values
-        self.file_list_treeview.bind("<1>", lambda event: self._treeview_mouse1_click(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<1>"}))
+        self.file_list_treeview.events.add("<1>")
         self.file_list_treeview.bind("<Double-1>", lambda event: self.edit_value_via_interface(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Double-1>"}))
         self.file_list_treeview.bind("<Control-Shift-D>", lambda event: self.copy_around(direction = "up", event = event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
         self.file_list_treeview.bind("<Control-d>", lambda event: self.copy_around(direction = "down", event = event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
@@ -415,19 +415,6 @@ class Naming:
         self.match_keywords(item, trace = inf_trace)
         self.set_final_name(item, trace = inf_trace)
 
-    def _treeview_mouse1_click(self, event, trace = None):
-        self.pr.f._log_trace(self, "_treeview_mouse1_click", trace)
-            
-        self._treeview_mouse1_click_column = self.file_list_treeview.identify_column(event.x)
-        self._treeview_mouse1_click_row = self.file_list_treeview.identify_row(event.y)
-        self._treeview_mouse1_click_cell = (
-            self._treeview_mouse1_click_row
-            if self._treeview_mouse1_click_column == "#0"
-            else self.file_list_treeview.set(self._treeview_mouse1_click_row,
-                                           self._treeview_mouse1_click_column)
-            )
-        return event
-    
     def _key_press_alt(self, event, trace = None):
         inf_trace = {"source": "function call", 
                      "parent": self.name + "._key_press_alt"}
@@ -456,8 +443,10 @@ class Naming:
         if self.search_box is None:
             return event
         
-        self._treeview_mouse1_click(event = event, trace = inf_trace)
-        self.search_box.add(self._treeview_mouse1_click_cell, trace = inf_trace)
+        self.search_box.add(
+            self.file_list_treeview.events["Alt-1"]["cell"],
+            trace = inf_trace
+            )
         return event
     
     def rename_valid_files(self, trace = None):
@@ -548,28 +537,33 @@ class Naming:
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".tag_file"}
         
-        tags = {"composer": self.file_list_treeview.set(filename, "Composer"),
-                "album": self.file_list_treeview.set(filename, "Album"),
-                "track": self.file_list_treeview.set(filename, "Track"),
-                "number": self.file_list_treeview.set(filename, "#"),
-                "performer(s)": self.file_list_treeview.set(filename, "Performer(s)"),
-                "year": self.file_list_treeview.set(filename, "Year"),
-                "genre": self.file_list_treeview.set(filename, "Genre"),
-                "url": self.file_list_treeview.set(filename, "URL"),
-                }
-        self.pr.f.tag_file(directory = self.io_directory.input_directory,
-                           filename = filename,
-                           tags = tags,
-                           trace = inf_trace)
+        tags = {
+            "composer": self.file_list_treeview.set(filename, "Composer"),
+            "album": self.file_list_treeview.set(filename, "Album"),
+            "track": self.file_list_treeview.set(filename, "Track"),
+            "number": self.file_list_treeview.set(filename, "#"),
+            "performer(s)": self.file_list_treeview.set(filename, "Performer(s)"),
+            "year": self.file_list_treeview.set(filename, "Year"),
+            "genre": self.file_list_treeview.set(filename, "Genre"),
+            "url": self.file_list_treeview.set(filename, "URL"),
+            }
+        self.pr.f.tag_file(
+            directory = self.io_directory.input_directory,
+            filename = filename,
+            tags = tags,
+            trace = inf_trace
+            )
 
     def save_treeview(self, event, trace = None):
         self.pr.f._log_trace(self, "save_treeview", trace)
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".save_treeview"}
         
-        config.config.config_dict[self.name]["FileListTreeview"]["treeview_values"] = self.pr.f.treeview_to_json(self.file_list_treeview, trace = inf_trace)
+        config.config.config_dict[self.name]["FileListTreeview"]["treeview_values"] = (
+            self.pr.f.treeview_to_json(self.file_list_treeview, trace = inf_trace)
+            )
         config.config.dump_values()
-        
+
     def set_final_name(self, filename, trace = None):
         self.pr.f._log_trace(self, "set_final_name", trace)
         inf_trace = {"source": "function call", 
