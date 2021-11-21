@@ -49,6 +49,33 @@ class Logging:
             prnt += " %s" % add
             print(prnt)
 
+    def get_trace(self, parent = None, source = None,
+                  function = None, add = ""):
+        if source is None: raise ValueError("Trace source must be specified")
+
+        if parent is None:
+            parent_name = "__main__"
+        else:
+            parent_name = parent.__class__.__name__
+
+        if function is None:
+            function = ""
+        else:
+            function = ".%s" % function
+
+        if "function" in source:
+            source = "function call"
+        elif "bound" in source:
+            source = "bound event"
+        elif "init" in source and "class" in source:
+            source = "initialise class"
+            if function == "" or function is None:
+                function = "__init__"
+
+        return {"trace": {"source": source,
+                          "parent": parent_name + function,
+                          "add": add}
+                }
 
 if __name__ == "__main__":
     log = Logging(__name__, log = False,
