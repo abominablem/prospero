@@ -13,13 +13,35 @@ from kthread import KThread
 import config
 from arrange_widgets import WidgetSet
 
+class ProgressBar:
+    def __init__(self, figure, draw_func, sound_scale):
+        self.figure = figure
+        self.draw_func = draw_func
+        self.scale = sound_scale
+        self.playpoint = 0
+        self.line  = None
+
+    def draw(self, x):
+        x *= self.scale
+        if self.line is None:
+            self.line = self.figure.axvline(x = x, color = "red")
+        else:
+            self.line.set_xdata([x, x])
+        self.draw_func()
+
+    def remove(self):
+        if not self.line is None:
+            self.line.remove()
+            self.line = None
+
 class AudioInterface:
-    def __init__(self, parent, master, trace = None):
+    def __init__(self, master, audio_breakpoints, progress_bar = None, trace = None):
 
         self.name = self.__class__.__name__
-        self.parent = parent
         self.pr = parent.pr
         self.master = master
+        self.audio_breakpoints = audio_breakpoints
+        self.progress_bar = progress_bar
 
         self.pr.f._log_trace(self, "__init__", trace)
         inf_trace = {"source": "function call",
@@ -27,7 +49,7 @@ class AudioInterface:
         
         self.audio = None
         self.load_from_config(trace = inf_trace)
-        
+
         """
         ### BUTTONS ###
         """
@@ -154,8 +176,8 @@ class AudioInterface:
         self.pr.f._log_trace(self, "refresh_breakpoints", trace)
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".refresh_breakpoints"}
-        self.breakpoints = self.parent._true_breakpoints(
-            scale_to_sound = True, trace = inf_trace)
+        self.breakpoints = self.audio_breakpoints.true_breakpoints(
+            scale_to_sound = True)
     
     def _btnSkipToPrevious_Click(self, trace = None):
         """
@@ -380,8 +402,8 @@ class AudioInterface:
                      "parent": self.name + ".draw_progress_bar"}
         
         self.set_play_point(offset = 0, trace = inf_trace)
-        self.parent.draw_playback_progress_bar(
-            self.get_play_point(trace = inf_trace), trace = inf_trace)
+        if self.progress_bar is not None:
+            self.progress_bar.draw(self.get_play_point(trace = inf_trace))
         if not self.playing: return
         
         # loop while the audio is playing (ms refresh time)
