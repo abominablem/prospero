@@ -6,7 +6,6 @@ Created on Sat May 15 16:35:32 2021
 """
 from pydub import AudioSegment
 import tkinter as tk
-import tkinter.ttk as ttk
 from datetime import datetime
 import threading
 import os
@@ -20,18 +19,16 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 
 from io_directory import IODirectory
-#function imports
 from value_from_filename import ValueFromFilename
-from audio_interface import AudioInterface
+from audio_interface import AudioInterface, ProgressBar
 from search_box import SearchBox
 from arrange_widgets import WidgetSet
 import config
 import described_widgets as dw
+from mh_logging import Logging
 
 # #### REQUIRED ####
 # conda install ffmpeg
-# Run command prompt as administrator
-     
 
 class AudioFunctions():
     def __init__(self, parent, trace = None):
@@ -42,12 +39,11 @@ class AudioFunctions():
         self.name = self.__class__.__name__
         
         self.pr.f._log_trace(self, "__init__", trace)
-        inf_trace = {"source": "function call", 
+        inf_trace = {"source": "function call",
                      "parent": self.name + ".__init__"}
 
         self.executing = False
 
-        #Horrific UI code below.
         frame_kwargs = {"bg": self.pr.c.colour_background}
         self.widget_frame = tk.Frame(self.tab, **frame_kwargs)
 
@@ -92,9 +88,7 @@ class AudioFunctions():
         self._shift_pressed = False
         self._alt_pressed = False
         self.playback_bar = None
-        self._action_stack = []
-        self._stack_location = -1
-        
+
         self._configure_last_called = datetime.min
         self._initialise_canvas(trace = inf_trace)
         
@@ -106,25 +100,25 @@ class AudioFunctions():
                                 }
             )
 
-        btnImportFiles = tk.Button(
+        btn_import_files = tk.Button(
             self.io_directory.frame,
             text = "Import Files",
             background = self.pr.c.colour_interface_button,
-            command = self._btnImportFiles_click
+            command = self._btn_import_files_click
             )
-        self.io_directory.add_widget(widget = btnImportFiles, 
+        self.io_directory.add_widget(widget = btn_import_files, 
                                      fixed_width = True, trace = inf_trace, 
                                      row = "input", column = "end")
         
-        btnExecuteBreakpoints = tk.Button(
+        btn_execute_breakpoints = tk.Button(
             self.io_directory.frame,
             text="Execute Breakpoints",
             background = self.pr.c.colour_interface_button,
-            command = self._btnExecuteBreakpoints_click
+            command = self._btn_execute_breakpoints_click
             )
-        self.io_directory.add_widget(widget = btnExecuteBreakpoints, 
+        self.io_directory.add_widget(widget = btn_execute_breakpoints, 
                                      fixed_width = True, trace = inf_trace, 
-                                     row = "output", column = btnImportFiles)
+                                     row = "output", column = btn_import_files)
         
         self.btn_display_waveform = tk.Button(
             self.widget_frame,
@@ -247,10 +241,10 @@ class AudioFunctions():
         self.load_from_config(trace = inf_trace)
         self.populate_input_files(trace = inf_trace)
     
-    def _btnImportFiles_click(self, trace = None):
-        self.pr.f._log_trace(self, "_btnImportFiles_click", trace)
+    def _btn_import_files_click(self, trace = None):
+        self.pr.f._log_trace(self, "_btn_import_files_click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.name + "._btnImportFiles_click"}
+                     "parent": self.name + "._btn_import_files_click"}
         
         self.populate_input_files(trace = inf_trace)
     
@@ -273,10 +267,10 @@ class AudioFunctions():
                                                  text = filename, 
                                                  iid = filename)
     
-    def _btnExecuteBreakpoints_click(self, trace = None):
-        self.pr.f._log_trace(self, "_btnExecuteBreakpoints_click", trace)
+    def _btn_execute_breakpoints_click(self, trace = None):
+        self.pr.f._log_trace(self, "_btn_execute_breakpoints_click", trace)
         inf_trace = {"source": "function call", 
-                     "parent": self.name + "._btnExecuteBreakpoints_click"}
+                     "parent": self.name + "._btn_execute_breakpoints_click"}
 
         if self.executing: return
 
@@ -293,7 +287,7 @@ class AudioFunctions():
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".execute_breakpoints"}
 
-        true_breakpoints = self._true_breakpoints(scale_to_sound = True, 
+        true_breakpoints = self._true_breakpoints(scale_to_sound = True,
                                                   trace = inf_trace)
         
         for k in range(len(true_breakpoints) - 1):
@@ -492,18 +486,6 @@ class AudioFunctions():
         """
         Initialise the canvas used to draw the audio waveform
         """
-        self.visual_figure = Figure(figsize=(10, 5), dpi=100)
-        self.figure = self.visual_figure.add_subplot(111)
-        self.figure.axes.get_yaxis().set_visible(False)
-        self.figure.axis("off")
-        self.figure.set(facecolor = self._colour_waveform)
-        self.figure.margins(x = 0, y = 0)
-        self.visual_figure.subplots_adjust(left = 0.03, right = 0.97,
-                                           top = 0.95, bottom = 0.05)
-
-        self.canvas = FigureCanvasTkAgg(self.visual_figure,
-                                        master = self.visual_frame)
-        self.canvas.draw()
         key_trace = {"source": "bound event",
                      "widget": self.name + ".canvas", "event": "<event.key>"}
         self.canvas.mpl_connect("key_press_event", lambda event: 
@@ -513,16 +495,7 @@ class AudioFunctions():
         self.canvas.mpl_connect("key_release_event", lambda event: 
                                 self._on_key_release(event, trace = key_trace))
 
-        #add toolbar below plot
-        self.toolbar = NavigationToolbar2Tk(self.canvas, self.visual_frame)
-        self.toolbar.config(background = self.pr.c.colour_background)
-        self.toolbar._message_label.config(
-            background = self.pr.c.colour_background)
-        self.toolbar.update()
-        #must use .pack() here to avoid conflict with matplotlib backend
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill = tk.BOTH, expand = 1)
-
-    def display_waveform(self, filepath, trace = None):
+    def waveform_from_path(self, filepath, trace = None):
         self.pr.f._log_trace(self, "display_waveform", trace)
         inf_trace = {"source": "function call", 
                      "parent": self.name + ".display_waveform"}
@@ -531,63 +504,12 @@ class AudioFunctions():
         navigation toolbar. subsampling_rate controls the resolution of the plot;
         higher is more expensive.
         """
-        self.sound = AudioSegment.from_mp3(filepath)
-        self.sound_length = len(self.sound)
-        
-        # plotting the entire waveform is very intensive for long tracks
-        # we take every nth sample, which preserves the waveform all the way
-        # up to ~n = 10,000
-        self.sound_subsample = self.sound.get_array_of_samples()[0::self.subsampling_rate]
-        self.sound_subsample_length = len(self.sound_subsample)
-        
-        # remove current waveform figure
-        self.clear_waveform(trace = inf_trace)
-        
-        plot_config = {"color": self._colour_waveform}
-        self.waveform, = self.figure.plot(self.sound_subsample, **plot_config)
-        self.start_breakpoint_x = 0
-        self.end_breakpoint_x = self.sound_subsample_length - 1
-        self._draw_outside_breakpoints(trace = inf_trace)
-        
-        self.figure_ylim = self.figure.get_ylim()
-        self.figure_xlim = self.figure.get_xlim()
-        
-        self._remove_figure_numbers(trace = inf_trace)
-        self._add_figure_numbers(trace = inf_trace)
-        self._scale_plot(trace = inf_trace)
-        
-        self.canvas.draw()
-        self.toolbar.update() # update toolbar, including home view
-        
+        sound = AudioSegment.from_mp3(filepath)
+        #TODO
+        # self.audio_canvas.display_waveform(sound)
         self.treeview_file_names.delete(
             *self.treeview_file_names.get_children())
-        self.fresh_waveform = True
         self.update_treeview_numbers(trace = inf_trace)
-    
-    def clear_waveform(self, trace = None):
-        self.pr.f._log_trace(self, "clear_waveform", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".clear_waveform"}
-        """
-        Remove the waveform and all breakpoints from the canvas
-        """
-        if self.executing: return
-        self.toolbar.home()
-        if not self.waveform is None: 
-            self.waveform.remove()
-            self.waveform = None
-        if not self.start_breakpoint is None: 
-            self.start_breakpoint.remove()
-            self.start_breakpoint = None
-        if not self.end_breakpoint is None: 
-            self.end_breakpoint.remove()
-            self.end_breakpoint = None
-            
-        self.remove_playback_progress_bar(trace = inf_trace)
-        self.reset_breakpoints(trace = inf_trace)
-        # removing the waveform takes the focus away from the canvas widget
-        # without focus, it cannot detect the key press events
-        self.canvas.get_tk_widget().focus_force()
     
     def _on_key_press(self, event, trace = None):
         trace["event"] = "<%s>" % event.key
@@ -664,26 +586,6 @@ class AudioFunctions():
             self._shift_pressed = False
         elif key == "alt":
             self._alt_pressed = False
-    
-    def _draw_outside_breakpoints(self, trace = None):
-        self.pr.f._log_trace(self, "_draw_outside_breakpoints", trace)
-        """
-        Draw the black starting and ending lines.
-        """
-        
-        if self.waveform is None: return
-        if not self.start_breakpoint is None: 
-            self.start_breakpoint.remove()
-            self.start_breakpoint = None
-        if not self.end_breakpoint is None: 
-            self.end_breakpoint.remove()
-            self.end_breakpoint = None
-        
-        self.start_breakpoint = self.figure.axvline(x = self.start_breakpoint_x, 
-                                                    color = "black")
-        self.end_breakpoint = self.figure.axvline(x = self.end_breakpoint_x, 
-                                                  color = "black")
-        self.canvas.draw()
     
     def _change_outside_breakpoint(self, event, trace = None):
         self.pr.f._log_trace(self, "_change_outside_breakpoint", trace)
@@ -771,17 +673,6 @@ class AudioFunctions():
             self.figure_numbers.append(fig_num)
         self.canvas.draw()
     
-    def _scale_plot(self, trace = None):
-        """
-        Set the limits of the canvas and figure to fit the waveform
-        """
-        self.pr.f._log_trace(self, "_scale_plot", trace)
-        self.figure.set_autoscalex_on(True)
-        
-        self.figure.set_ylim(ymin=self.figure_ylim[0], 
-                             ymax=self.figure_ylim[1])
-        self.figure.set_xlim(xmin=0, xmax=self.sound_subsample_length)
-        
     def _remove_figure_numbers(self, trace = None):
         self.pr.f._log_trace(self, "_remove_figure_numbers", trace)
         """
@@ -793,28 +684,6 @@ class AudioFunctions():
             self.figure_numbers = []
         self.canvas.draw()
     
-    def remove_breakpoint(self, brkpt, refresh_treeview = True, trace = None):
-        self.pr.f._log_trace(self, "remove_breakpoint", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".remove_breakpoint"}
-        """
-        Removes the given breakpoint.
-        """
-        if self.executing: return
-        if brkpt is None: return
-        
-        brkpt.remove()
-        index = self.breakpoints.index(brkpt)
-        self.breakpoints.pop(index)
-        self.breakpoints_x.pop(index)
-        
-        self._remove_figure_numbers(trace = inf_trace)
-        self._add_figure_numbers(trace = inf_trace)
-        self.canvas.draw()
-        
-        if refresh_treeview:
-            self.update_treeview_numbers(trace = inf_trace)
-    
     def _undo_breakpoint(self, event, trace = None):
         self.pr.f._log_trace(self, "_undo_breakpoint", trace)
         inf_trace = {"source": "function call", 
@@ -825,18 +694,7 @@ class AudioFunctions():
         if self.executing: return
         if self.breakpoints == []: return
         self.remove_breakpoint(self.breakpoints[-1], trace = inf_trace)
-            
-    def reset_breakpoints(self, trace = None):
-        self.pr.f._log_trace(self, "_undo_breakpoint", trace)
-        """
-        Remove all breakpoints
-        """
-        if self.executing: return
-        for brkpt in self.breakpoints: 
-            brkpt.remove()
-        self.breakpoints = []
-        self.breakpoints_x = []
-        
+
     def load_from_config(self, trace = None):
         self.pr.f._log_trace(self, "load_from_config", trace)
         self.subsampling_rate = 1000
@@ -1079,24 +937,6 @@ class AudioFunctions():
         values["date_created"] = ctime
         self.pr.insight_rn.add_row(**values, trace = inf_trace)
         
-    def draw_playback_progress_bar(self, start, trace = None):
-        self.pr.f._log_trace(self, "draw_playback_progress_bar", trace)
-        
-        x = start*self.sound_subsample_length/self.sound_length
-        
-        if self.playback_bar is None:
-            self.playback_bar = self.figure.axvline(x=x, color = "red")
-        else:
-            self.playback_bar.set_xdata([x, x])
-            
-        self.canvas.draw()
-        
-    def remove_playback_progress_bar(self, trace = None):
-        self.pr.f._log_trace(self, "remove_playback_progress_bar", trace)
-        if not self.playback_bar is None:
-            self.playback_bar.remove()
-            self.playback_bar = None
-            
     def _key_press_alt(self, event, trace = None):
         inf_trace = {"source": "function call", 
                      "parent": self.name + "._key_press_alt"}
@@ -1130,7 +970,7 @@ class AudioFunctions():
                             trace = inf_trace)
         return event
     
-    def get_closest_breakpoint(self, event, only_visible = True, 
+    def get_closest_breakpoint(self, event, only_visible = True,
                                use_tolerance = True, sensitivity = 1,
                                trace = None):
         self.pr.f._log_trace(self, "get_closest_breakpoint", trace)
@@ -1183,7 +1023,7 @@ class AudioFunctions():
                              (max_data_x - min_data_x))
             
             #config options
-            min_pixels = 20 * sensitivity
+            min_pixels = 20 * 1/sensitivity
             max_pixels = 50 * sensitivity
             min_px_ratio = 0.8
             max_px_ratio = 0.2
@@ -1225,40 +1065,288 @@ class AudioFunctions():
         self.remove_breakpoint(brkpt, refresh_treeview = False, 
                                trace = inf_trace)
         self._add_breakpoint_x(x, trace = inf_trace)
+
+class AudioBreakpoint:
+    def __init__(self, parent, x, figure = None, trace = None, **kwargs):
+        self.parent = parent
+        self.figure = figure
+        self.__dict__.update(kwargs)
+        if not figure is None:
+            self.line = self.figure.axvline(
+                x = x, color = kwargs.get("color", "black")
+                )
+            return self.line
+
+    def remove(self, trace = None):
+        self.x = None
+        if not self.figure is None:
+            # do thing
+            pass
+        self.parent.remove(self)
+
+class AudioBreakpoints:
+    def __init__(self, draw = False, figure = None, trace = None,
+                 draw_func = None):
+        if draw and (figure is None or draw_func is None):
+            raise ValueError(
+                "Figure to draw on and update function must be provided")
+        self.draw = draw
+        self.figure = figure
+        self.draw_func = draw_func
+        self.locked = False
+
+        # list of AudioBreakpoint objects
+        self._breakpoints = []
+
+    def locked_function(self, func):
+        """
+        Decorator for functions which should not be run if self.locked is True
+        """
+        def _func_with_lock_check(self, *args, **kwargs):
+            if self.locked: return
+            return func(*args, **kwargs)
+        return _func_with_lock_check
+
+    def draw_function(self, func):
+        """ Decorator for functions which affect the canvas """
+        def _func_with_draw(self, *args, **kwargs):
+            func_return = func(*args, **kwargs)
+            if self.draw: self.draw_func()
+            return func_return
+        return _func_with_draw
+
+    def __getitem__(self, index):
+        return self._breakpoints[index]
+
+    def __iter__(self):
+        self._i = -1
+        return self
+
+    def __next__(self):
+        if self._i < len(self._breakpoints) - 1:
+            self._i += 1
+            return self._breakpoints[self._i]
+        else:
+            raise StopIteration
+
+    @locked_function
+    @draw_function
+    def add(self, x, trace = None, **kwargs):
+        """ Add a breakpoint at the x coordinate """
+        if not self.x_in_bounds(x): return
+        new_brkpt = AudioBreakpoint(self, x, **kwargs)
+        self._breakpoints.append(new_brkpt)
+
+    def x_in_bounds(self, x):
+        xmin, xmax = self.minmax()
+        return xmin < x < xmax
+
+    def minmax(self):
+        """ Retuurn x coordinates of first and last breakpoint """
+        return (self.first.x, self.last.x)
+
+    @locked_function
+    @draw_function
+    def remove(self, brkpt, trace = None):
+        index = self._breakpoints.index(brkpt)
+        self._breakpoints.pop(index)
+
+        if self.draw: self.reset_numbers()
+
+    def count(self, trace = None):
+        return len(self._breakpoints)
+
+    @locked_function
+    def undo(self, trace = None):
+        if self.count() == 0: return
+        self.remove(self[-1])
+
+    def first(self, trace = None):
+        for brkpt in self:
+            try:
+                if brkpt.first: return brkpt
+            except AttributeError:
+                continue
+
+    def last(self, trace = None):
+        for brkpt in self:
+            try:
+                if brkpt.last: return brkpt
+            except AttributeError:
+                continue
+
+    @draw_function
+    def draw_numbers(self):
+        """ Draw numbers at the midpoint between breakpoints corresponding to 
+        each audio segment"""
+        if self.draw: self.draw_func()
+        return
+
+    @draw_function
+    def remove_numbers(self):
+        """ Remove all numbers from the canvas """
+        if self.draw: self.draw_func()
+        return
+
+    @draw_function
+    def reset_numbers(self):
+        """ Remove all numbers from the canvas and redraw them """
+        self.remove_numbers()
+        self.draw_numbers()
+
+    @locked_function
+    @draw_function
+    def reset(self):
+        """ Remove all breakpoints """
+        for brkpt in self:
+            brkpt.remove()
+        self._breakpoints = []
+
+    def get_x(self, sort = True, include_ends = True):
+        breakpoints_x = []
+        for brkpt in self:
+            if include_ends or (not self.first and not self.last):
+                breakpoints_x.append(brkpt.x)
+        if sort:
+            return sorted(breakpoints_x)
+        else:
+            return breakpoints_x
+
+
+    def get_closest(x, xmin = None, xmax = None, trace = None):
+        return
+
+    def get_scale(self):
+        try:
+            return self.scale
+        except AttributeError:
+            return 1
+
+    def true_breakpoints(self, scale_to_sound = True):
+        brkpts_x = self.get_x(sort = True, include_ends = True)
+        scale = self.get_scale()
+        is scale_to_sound:
+            for i, x in enumerate(brkpts_x):
+                brkpts_x[i] *= scale
+        return
+
+
+class AudioCanvas:
+    def __init__(self, master, audio_interface = None, trace = None, **kwargs):
+        self.master = master
+        self.__dict__.update(kwargs)
+
+        self.visual_figure = Figure(figsize=(10, 5), dpi=100)
+        self.visual_figure.subplots_adjust(
+            left = 0.03, right = 0.97, top = 0.95, bottom = 0.05)
+
+        self.figure = self.visual_figure.add_subplot(111)
+        self.figure.axes.get_yaxis().set_visible(False)
+        self.figure.axis("off")
+        self.figure.set(facecolor = self._colour_waveform)
+        self.figure.margins(x = 0, y = 0)
+
+        self.canvas = FigureCanvasTkAgg(self.visual_figure,
+                                        master = self.master)
+        self.canvas.draw()
+        key_trace = {"source": "bound event",
+                     "widget": self.name + ".canvas",
+                     "event": "<event.key>"}
+        self.canvas.mpl_connect("key_press_event", lambda event: 
+                                self._on_key_press(event, trace = key_trace))
+        self.canvas.mpl_connect("button_press_event", lambda event: 
+                                self._on_button_press(event, trace = key_trace))
+        self.canvas.mpl_connect("key_release_event", lambda event:
+                                self._on_key_release(event, trace = key_trace))
+
+        #add toolbar below plot
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.visual_frame)
+        self.toolbar.config(background = self.pr.c.colour_background)
+        self.toolbar._message_label.config(
+            background = self.pr.c.colour_background)
+        self.toolbar.update()
+
+        #must use .pack() here to avoid conflict with matplotlib backend
+        self.canvas.get_tk_widget().pack(side=tk.TOP, fill = tk.BOTH, expand = 1)
+
+        self.breakpoints = AudioBreakpoints()
+        self.progress_bar = ProgressBar(self.figure, self.draw, 1)
+        self.locked = False
+
+    def config(self, **kwargs):
+        return
+
+    def locked_function(self, func):
+        """
+        Decorator for functions which should not be run if self.locked is True
+        """
+        def _func_with_lock_check(self, *args, **kwargs):
+            if self.locked: return
+            return func(*args, **kwargs)
+        return _func_with_lock_check
+
+    def mpl_connect(self, s, func, trace = None):
+        self.canvas.mpl_connect(s, func)
+
+    @locked_function
+    def clear(self, trace = None):
+        self.toolbar.home()
+        if not self.waveform is None:
+            self.waveform.remove()
+            self.waveform = None
+        if not self.breakpoints.first is None:
+            self.breakpoints.first.remove()
+            self.breakpoints.first = None
+        if not self.end_breakpoint is None: 
+            self.end_breakpoint.remove()
+        self.breakpoints.reset()
+        self.draw()
+        self.canvas.get_tk_widget().focus_force()
+
+    @locked_function
+    def display_waveform(self, audio, trace = None):
+        subsampling_rate = self.__dict__.get("subsampling_rate", 1000)
+        self.sound = audio
+        self.sound_length = len(audio)
+        self.sound_subsample = self.sound.get_array_of_samples()[0::subsampling_rate]
+        self.sound_subsample_length = len(self.sound_subsample)
+        plot_config = {"color": self._colour_waveform}
+        self.waveform, = self.figure.plot(self.sound_subsample, **plot_config)
+
+        self.clear()
+
+        # add breakpoints at start and end
+        self.breakpoints.scale = self.get_scale()
+        self.breakpoints.add(x = 0, first = True, color = "black",
+                             figure = self.figure)
+
+        self.breakpoints.add(x = self.sound_subsample_length - 1, last = True,
+                             color = "black", figure = self.figure)
+
+        self.breakpoints.reset_numbers()
+
+        self.draw()
+        self.scale()
+        self.toolbar.update()
+        self.fresh = True
+
+    @locked_function
+    def scale(self, trace = None):
+        self.figure.set_autoscalex_on(True)
         
-    def _reset_action_stack(self, trace = None):
-        self.pr.f._log_trace(self, "_reset_action_stack", trace)
-        
-        self._action_stack = []
-        self._stack_location = -1
-        
-    def _undo_action(self, trace = None):
-        self.pr.f._log_trace(self, "_undo_action", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + "._undo_action"}
-        
-        self._reverse_action(self._action_stack[self._stack_location],
-                             trace = inf_trace)
-        
-    def _reverse_action(self, action, trace = None):
-        self.pr.f._log_trace(self, "_reverse_action", trace)
-    
-    def _redo_action(self, trace = None):
-        self.pr.f._log_trace(self, "_redo_action", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + "._redo_action"}
-        
-        self._do_action(self._action_stack[self._stack_location + 1],
-                             trace = inf_trace)
-    
-    def _do_action(self, action, trace = None):
-        self.pr.f._log_trace(self, "_do_action", trace)
-        
-    def _add_action(self, action, brkpt, trace = None, **kwargs):
-        self.pr.f._log_trace(self, "_add_action", trace)
-        
-        self._action_stack = self._action_stack[:self._stack_location]
-        self._action_stack.append({"action": action,
-                                   "breakpoint": brkpt,
-                                   **kwargs})
-        
+        self.figure.set_ylim(ymin = self.figure.get_ylim[0],
+                             ymax = self.figure.get_ylim[1])
+        self.figure.set_xlim(xmin=0, xmax=self.sound_subsample_length)
+
+    def draw(self, trace = None):
+        self.canvas.draw()
+
+    def get_closest_breakpoint(self, x, only_visible = True,
+                               use_tolerance = True, trace = None):
+        return
+
+    def tune_get_closest(self, **kwargs):
+        return
+
+    def get_scale(self):
+        return self.sound_length/self.sound_subsample_length
