@@ -66,8 +66,8 @@ class Prospero:
         
         self.root.title("Prospero - MP3 file handling and ID3v2 tagging")
         self.root.configure(bg = self.c.colour_background,
-                            padx=15,
-                            pady=10)
+                            padx = 15,
+                            pady = 10)
 
         self.widget_frame = tk.Frame(self.root,
                                      bg = self.pr.c.colour_background)
@@ -81,17 +81,17 @@ class Prospero:
             background = self.c.colour_prospero_blue,
             anchor="w",
             padx = self.c.padding_large,
-            pady = self.c.padding_small)
-
+            pady = self.c.padding_small
+            )
         self.title = tk.Label(
             self.widget_frame,
-            text="Prospero",
+            text = "Prospero",
             background = self.c.colour_prospero_blue,
             foreground = self.c.colour_offwhite_text,
-            padx=20,
-            pady=10,
+            padx = 20,
+            pady = 10,
             font = self.c.font_prospero_title,
-            anchor="w"
+            anchor = "w"
             )
         self.icon_settings = tk.Label(
             self.widget_frame,
@@ -101,7 +101,6 @@ class Prospero:
             padx = self.c.padding_large, 
             pady = self.c.padding_small
             )
-            
         self.icon_settings.bind("<1>", lambda event: self.open_settings(
                 event, trace = {"source": "bound event",
                                 "widget": self.name + ".icon_settings",
@@ -149,7 +148,6 @@ class Prospero:
                        'grid_kwargs': self.pr.c.grid_sticky_padding_small,
                        'stretch_width': True, 'stretch_height': True},
                    }
-
         self.widget_set = WidgetSet(self.widget_frame,
                                     widgets,
                                     layout = [[1, 2, 3],
