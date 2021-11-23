@@ -19,33 +19,33 @@ class Logging:
         if self.log:
             trace = {"source": None, "widget": None, "parent": None
                      } if trace is None else trace
-            
+
             if parent is None:
                 trace["function"] = function
-            if type(parent) is str:
+            elif isinstance(parent, str):
                 trace["function"] = parent + "." + function
             else:
                 trace["function"] = parent.__class__.__name__ + "." + function
-            
+
             if trace["source"] == "bound event":
-                trace_tuple = (datetime.now(), trace["function"], 
+                trace_tuple = (datetime.now(), trace["function"],
                                trace["widget"], trace["event"])
                 prnt = "%s Called %s from widget %s and event %s." % trace_tuple
-                
+
             elif trace["source"] == "function call":
-                trace_tuple = (datetime.now(), trace["function"], 
+                trace_tuple = (datetime.now(), trace["function"],
                                trace["parent"])
                 prnt = "%s Called %s from within %s." % trace_tuple
-                
+
             elif trace["source"] == "initialise class":
-                trace_tuple = (datetime.now(), parent.__class__.__name__, 
+                trace_tuple = (datetime.now(), parent.__class__.__name__,
                                trace["parent"])
                 prnt = "%s Initialised class %s from within %s." % trace_tuple
-                
+
             else:
                 trace_tuple = (datetime.now(), trace["function"])
                 prnt = "%s Called %s without trace." % trace_tuple
-                
+
             prnt += " %s" % add
             print(prnt)
 
@@ -77,7 +77,29 @@ class Logging:
                           "add": add}
                 }
 
-if __name__ == "__main__":
-    log = Logging(__name__, log = False,
-                   trace = {"source": "initialise class",
-                            "parent": __name__})
+
+_log_instance = Logging(trace = {"source": "initialise class",
+                                 "parent": __name__})
+
+def log(func):
+    """ Decorator to add logging to non-class function """
+    def _func_with_log(*args, **kwargs):
+        _log_instance(None, func.__name__, kwargs.get("trace", None))
+        return func(*args, **kwargs)
+    _func_with_log.__name__ = func.__name__
+    return _func_with_log
+
+
+@log
+def add(*args, trace = None):
+    return sum(args)
+
+@log
+def multiply(a, b):
+    inf_trace = {"source": "function call",
+                 "parent": __name__ + "." + multiply.__name__}
+    sum_list = [a for i in range(b)]
+    a = add(*sum_list, trace = inf_trace)
+    return add(*sum_list)
+
+print(multiply(4,7))
