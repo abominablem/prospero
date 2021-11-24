@@ -6,19 +6,26 @@ Created on Thu Jul 29 23:40:24 2021
 """
 
 from datetime import datetime
+import inspect
+import os
 
 class Logging:
-    def __init__(self, log = True, trace = None):
+    def __init__(self, log = True):
         self.log = log
-        self.log_trace(self, "__init__", trace)
 
     def __call__(self, *args, **kwargs):
         self.log_trace(*args, **kwargs)
 
     def log_trace(self, parent, function, trace, add = ""):
         if self.log:
-            trace = {"source": None, "widget": None, "parent": None
-                     } if trace is None else trace
+            if isinstance(trace, dict):
+                try:
+                    trace = trace["trace"]
+                except KeyError:
+                    pass
+            else:
+                trace = {"source": None, "widget": None, "parent": None
+                         } if trace is None else trace
 
             if parent is None:
                 trace["function"] = function
@@ -30,21 +37,21 @@ class Logging:
             if trace["source"] == "bound event":
                 trace_tuple = (datetime.now(), trace["function"],
                                trace["widget"], trace["event"])
-                prnt = "%s Called %s from widget %s and event %s." % trace_tuple
+                prnt = "%s Called %s from widget %s and event %s" % trace_tuple
 
             elif trace["source"] == "function call":
                 trace_tuple = (datetime.now(), trace["function"],
                                trace["parent"])
-                prnt = "%s Called %s from within %s." % trace_tuple
+                prnt = "%s Called %s from within %s" % trace_tuple
 
             elif trace["source"] == "initialise class":
                 trace_tuple = (datetime.now(), parent.__class__.__name__,
                                trace["parent"])
-                prnt = "%s Initialised class %s from within %s." % trace_tuple
+                prnt = "%s Initialised class %s from within %s" % trace_tuple
 
             else:
                 trace_tuple = (datetime.now(), trace["function"])
-                prnt = "%s Called %s without trace." % trace_tuple
+                prnt = "%s Called %s without trace" % trace_tuple
 
             prnt += " %s" % add
             print(prnt)
@@ -55,10 +62,12 @@ class Logging:
 
         if parent is None:
             parent_name = "__main__"
+        elif isinstance(parent, str):
+            parent_name = parent
         else:
             parent_name = parent.__class__.__name__
 
-        if function is None:
+        if function is None or function == "<module>":
             function = ""
         else:
             function = ".%s" % function
@@ -77,29 +86,43 @@ class Logging:
                           "add": add}
                 }
 
-
-_log_instance = Logging(trace = {"source": "initialise class",
-                                 "parent": __name__})
+_log_instance = Logging()
 
 def log(func):
-    """ Decorator to add logging to non-class function """
+    """ Decorator to add simple logging to non-class function """
     def _func_with_log(*args, **kwargs):
-        _log_instance(None, func.__name__, kwargs.get("trace", None))
+        stack_level = inspect.stack()[1]
+        try:
+            parent = os.path.basename(stack_level[0].f_locals["__file__"])
+        except KeyError:
+            parent = inspect.getmodule(stack_level[0]).__name__
+
+        trace = _log_instance.get_trace(
+            parent = parent,
+            source = "function call",
+            function = stack_level[3]
+            )
+        _log_instance(None, func.__name__, **trace)
         return func(*args, **kwargs)
-    _func_with_log.__name__ = func.__name__
     return _func_with_log
 
+def log_class(func):
+    """ Decorator to add simple logging to class function """
+    def _func_with_log(self, *args, **kwargs):
+        stack_level = inspect.stack()[1]
+        try:
+            parent = stack_level[0].f_locals["__class__"]
+        except KeyError:
+            try:
+                parent = os.path.basename(stack_level[0].f_locals["__file__"])
+            except KeyError:
+                parent = stack_level[0].f_locals["self"].__class__.__name__
 
-@log
-def add(*args, trace = None):
-    return sum(args)
-
-@log
-def multiply(a, b):
-    inf_trace = {"source": "function call",
-                 "parent": __name__ + "." + multiply.__name__}
-    sum_list = [a for i in range(b)]
-    a = add(*sum_list, trace = inf_trace)
-    return add(*sum_list)
-
-print(multiply(4,7))
+        trace = _log_instance.get_trace(
+            parent = parent,
+            source = "function call",
+            function = stack_level[3]
+            )
+        _log_instance(self, func.__name__, **trace)
+        return func(self, *args, **kwargs)
+    return _func_with_log
