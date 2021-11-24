@@ -6,11 +6,10 @@ Created on Tue Sep 14 22:29:57 2021
 """
 
 import sqlite3 as sql
-from mh_logging import Logging
-
-log = Logging()
+from mh_logging import log_class
 
 class TableCon:
+    @log_class
     def __init__(self, db, table = None, debug = False, trace = None):
         self.name = self.__class__.__name__
         """
@@ -23,65 +22,75 @@ class TableCon:
         self.table = table
         self.debug = debug
         self.field_map = {}
-    
+
+    @log_class
     def open(self, db, table):
         if not self.con is None:
             self.close()
-        
+
         self.set_db(db)
         self.set_table(table)
-    
+
+    @log_class
     def close(self):
         if not self.con is None:
             self.con.close()
             self.con = None
             self.cur = None
-        
+
+    @log_class
     def commit(self):
         if not self.con is None:
             self.con.commit()
-    
+
+    @log_class
     def set_db(self, db):
         self.close()
         self.con = sql.connect(db + ".db")
         self.cur = self.con.cursor()
-    
+
+    @log_class
     def set_table(self, table):
         self.table = table
-    
+
+    @log_class
     def get_columns(self):
-        cols = self.execute("PRAGMA table_info(%s)" % self.table, 
+        cols = self.execute("PRAGMA table_info(%s)" % self.table,
                             select = True)
-        col_dict = {x[1]: {'order': x[0], 'type': x[2], 
-                           'nullable': (x[3] == 1), 'default': x[4]} 
+        col_dict = {x[1]: {'order': x[0], 'type': x[2],
+                           'nullable': (x[3] == 1), 'default': x[4]}
                     for x in cols}
         return col_dict
-    
+
+    @log_class
     def get_tables(self, trace = None):
         return self.execute("SELECT name FROM sqlite_master "
                             "WHERE type='table'", select = True)
-        
+
+    @log_class
     def define_field_map(self, field_map, trace = None):
         """
         Define a map from field names used in write_values to those in the
         specified table. Persistent across changes in table or database.
         """
         self.field_map = field_map
-        
+
+    @log_class
     def map_field_names(self, fields, trace = None):
         if isinstance(fields, dict):
             mapped_dict = {}
             for k, v in fields.items():
-                mapped_dict[self.field_map[k] if k in self.field_map 
+                mapped_dict[self.field_map[k] if k in self.field_map
                             else k] = v
             return mapped_dict
         elif isinstance(fields, list):
-            return [self.field_map[k] if k in self.field_map else k 
+            return [self.field_map[k] if k in self.field_map else k
                     for k in fields]
         elif isinstance(fields, str):
             return (self.field_map[fields] if fields in self.field_map
                     else fields)
 
+    @log_class
     def add_row(self, trace = None, **kwargs):
         """
         Given either a dictionary of field names mapped to field values, or
@@ -95,19 +104,22 @@ class TableCon:
             v = self._sanitise(v)
             sql_col += self._bracket(k) + ","
             sql_val += self._quote(v) + ","
-        
+
         sql_col = sql_col[:-1]
         sql_val = sql_val[:-1]
-        
+
         query = sql_col + ") " + sql_val + ")"
         self.execute(query, select = False)
 
+    @log_class
     def _quote(self, string, trace = None):
         return "'%s'" % string
-    
+
+    @log_class
     def _bracket(self, string, trace = None):
         return "[%s]" % string
-    
+
+    @log_class
     def _sanitise(self, value, trace = None):
         if isinstance(value, str):
             return value.replace("'", "''")
@@ -115,21 +127,23 @@ class TableCon:
             return [self._sanitise(v) for v in value]
         else:
             return value
-        
+
+    @log_class
     def execute(self, query, select = False, trace = None):
         if self.table is None:
             raise AttributeError("No table defined")
-            
+
         if self.debug: print(query)
-        
+
         cursor = self.cur.execute(query)
-        
-        if select: 
+
+        if select:
             return cursor.fetchall()
         else:
             self.commit()
-    
-    def filter(self, filters, return_cols, rc = "columns", 
+
+    @log_class
+    def filter(self, filters, return_cols, rc = "columns",
                boolean = "AND", distinct = True, trace = None):
         """
         filters is a dictionary of column names and values to filter with.
@@ -137,12 +151,12 @@ class TableCon:
         """
         if isinstance(return_cols, str):
             return_cols = [return_cols]
-            
+
         filters_map = self.map_field_names(filters)
         return_cols_map = self.map_field_names(return_cols)
-        
+
         query = "SELECT"
-        if distinct: 
+        if distinct:
             query += " DISTINCT "
         query += "[" + "], [".join(return_cols_map) + "] "
         query += "FROM %s " % self.table
@@ -162,35 +176,35 @@ class TableCon:
                     query += "[%s] = %s %s " % (k, vs, boolean)
                 else:
                     raise ValueError("Unsupported value type in key %s" % k)
-        
+
             #remove final boolean keyword
             query = query.strip()[:(-1*len(boolean))]
         query = query.replace("[*]", "*")
         results = self.execute(query, select = True)
-        
+
         if rc == "columns":
-            # pivot each list in results to correspond to one column rather 
+            # pivot each list in results to correspond to one column rather
             # than one row
             results_pivot = list(map(list, zip(*results)))
-            
+
             if results_pivot == []:
-                return {return_cols[i]: [] 
+                return {return_cols[i]: []
                         for i in range(len(return_cols))}
             else:
-                return {return_cols[i]: results_pivot[i] 
+                return {return_cols[i]: results_pivot[i]
                         for i in range(len(return_cols))}
         elif rc == "rows":
             return [list(row) for row in results]
         else:
             raise ValueError("Invalid shape specified. rc must be one"
                              " of 'rows' or 'columns'.")
-         
-if __name__ == "__main__":     
+
+if __name__ == "__main__":
     renames = TableCon(".\sqlite_db\insight", "renames", debug = True)
     renames.define_field_map({"Original name": "original_name", "#": "number"})
-    
-    print(renames.filter(filters = {'Composer': 'Beethoven, Ludwig Van'}, 
-                         return_cols = ['composer', 'album'], 
-                         boolean = "AND", 
+
+    print(renames.filter(filters = {'Composer': 'Beethoven, Ludwig Van'},
+                         return_cols = ['composer', 'album'],
+                         boolean = "AND",
                          rc = "columns"))
-    # renames.close()
+    renames.close()

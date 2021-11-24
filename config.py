@@ -6,7 +6,7 @@ Created on Tue Apr 20 20:10:38 2021
 """
 
 import json
-from mh_logging import Logging
+from mh_logging import log_class
 
 class JSONDict:
     """
@@ -57,19 +57,12 @@ class JSONDict:
 
         Allowed parameters are composer, album, number, track, genre, and year.
     """
+    @log_class
     def __init__(self, dict_type):
         """
         Takes one string parameter. This should correspond to a json file
         sitting in the config folder.
         """
-        inf_trace = {"source": "function call",
-                     "parent": self.__class__.__name__+".__init__"}
-        self.logging = Logging(log = True,
-                               trace = inf_trace)
-        self.logging.log_trace(self, "__init__",
-                               {"source": "initialise class",
-                                "parent": __file__})
-
         self.dict_type = dict_type
         self.filename = './config/%s.json' % dict_type
 
@@ -79,15 +72,13 @@ class JSONDict:
         if self.dict_type == "config":
             self.config_dict = self.regex_dict
 
-    def add_value(self, regex, result, override_existing = False,
-                  trace = None):
+    @log_class
+    def add_value(self, regex, result, override_existing = False):
         """
         Given a RegEx pattern and result, tries to create a map between them in
         the regex_dict object. If the map already exists, gives the option to
         change the mapped output.
         """
-        self.logging.log_trace(self, "add_value", trace)
-
         if regex in self.regex_dict.keys():
             if self.regex_dict[regex] != result and not override_existing:
                 raise KeyError("The specfied RegEx pattern already exists with"
@@ -99,12 +90,11 @@ class JSONDict:
         else:
             self.regex_dict[regex] = result
 
-    def delete_value(self, keys, trace = None):
+    @log_class
+    def delete_value(self, keys):
         """
         Given a list of keys, remove the corresponding dictionary entries
         """
-        self.logging.log_trace(self, "delete_value", trace)
-
         if not isinstance(keys, list):
             keys = [keys]
 
@@ -114,30 +104,24 @@ class JSONDict:
             except KeyError:
                 raise KeyError("Invalid key, nothing to delete")
 
-    def dump_values(self, trace = None):
+    @log_class
+    def dump_values(self):
         """
         Writes the current dictionary state to file
         """
-        self.logging.log_trace(self, "dump_values", trace)
-
         if self.dict_type == "config":
             self.regex_dict = self.config_dict
 
         with open(self.filename, "w", encoding='utf-8') as json_file:
             json.dump(self.regex_dict, json_file)
 
-    def add_regex_pattern_words(self, include_words, exclude_words,
-                                result, trace = None):
+    @log_class
+    def add_regex_pattern_words(self, include_words, exclude_words, result):
         """
         Given a list of words to include and words to exclude, adds a regex
         pattern to the dictionary which matches any string including all of the
         former and excluding all of the latter, mapping to the specified result
         """
-        self.logging.log_trace(self, "add_regex_pattern_words", trace)
-        inf_trace = {"source": "function call",
-                     "parent": self.__class__.__name__+
-                         ".add_regex_pattern_words"}
-
         if isinstance(include_words, str):
             include_words = [include_words]
 
@@ -153,9 +137,10 @@ class JSONDict:
         regex_str = regex_str + ".*"
 
         #add to dictionary
-        self.add_value(regex_str, result, trace = inf_trace)
+        self.add_value(regex_str, result)
 
-    def add_keyword_pattern(self, trace = None, **kwargs):
+    @log_class
+    def add_keyword_pattern(self, **kwargs):
         """
         Each input should be a dictionary of (value, role) where role is
         "key"/"value", corresponding to whether the value is a key in the
@@ -165,8 +150,6 @@ class JSONDict:
 
         Allowed parameters are composer, album, number, track, genre, and year.
         """
-        self.logging.log_trace(self, "add_keyword_pattern", trace)
-
         if self.dict_type != 'keyword':
             raise Exception('Keyword patterns not supported for this '
                             'dictionary type.')
