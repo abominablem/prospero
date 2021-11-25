@@ -106,17 +106,24 @@ def log(func):
         return func(*args, **kwargs)
     return _func_with_log
 
+def try_iterate(f_dict, keys, err):
+    for key in keys:
+        try:
+            return (key, f_dict[key])
+        except err:
+            continue
+
 def log_class(func):
     """ Decorator to add simple logging to class function """
     def _func_with_log(self, *args, **kwargs):
         stack_level = inspect.stack()[1]
-        try:
-            parent = stack_level[0].f_locals["__class__"]
-        except KeyError:
-            try:
-                parent = os.path.basename(stack_level[0].f_locals["__file__"])
-            except KeyError:
-                parent = stack_level[0].f_locals["self"].__class__.__name__
+        parent, key = try_iterate(
+            stack_level[0].f_locals,
+            ["__class__", "__file__", "self", "event"],
+            KeyError
+            )
+        if key == "__file__":
+            parent = os.path.basename(parent)
 
         trace = _log_instance.get_trace(
             parent = parent,
