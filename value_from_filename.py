@@ -43,7 +43,6 @@ class ValueFromFilename:
         # frame to contain all widgets in window
         self.widget_frame = tk.Frame(self.window, **frame_kwargs)
 
-
         """
         ### VALUE ###
         """
@@ -743,12 +742,10 @@ class ValueFromFilename:
                      "parent": self.name + ".populate_suggested_values"}
         
         if text is None:
-            text = self.pr.f.clean_track_string(self.txt_tag.get(),
-                                                iterate = True,
-                                                trace = inf_trace)
+            text = self.pr.f.clean_track_string(
+                self.txt_tag.get(), iterate = True, trace = inf_trace)
         
-        values = self.get_suggested_values(text = text, 
-                                           trace = inf_trace)
+        values = self.get_suggested_values(text = text, trace = inf_trace)
         values = sorted(values)
         
         #Remove all current suggestions and add new suggestions

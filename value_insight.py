@@ -17,44 +17,41 @@ class Insight(TableCon):
     """
     def __init__(self, type, debug = False, trace = None):
         self.name = self.__class__.__name__
-        
-        super(Insight, self).__init__(db = '.\sqlite_db\insight', 
-                                      table = type, 
+
+        super(Insight, self).__init__(db = '.\sqlite_db\insight',
+                                      table = type,
                                       debug = debug)
-        
-        inf_trace = {"source": "function call", 
+
+        inf_trace = {"source": "function call",
                      "parent": self.name +".__init__"}
-        
-        self.logging = Logging(log = True, trace = inf_trace)
-        self.logging.log_trace(self, "__init__", 
-                               trace = {"source": "initialise class", 
+
+        self.logging = Logging(log = True)
+        self.logging.log_trace(self, "__init__",
+                               trace = {"source": "initialise class",
                                         "parent": self.name})
         self.type = type
-        
+
     def get_insight(self, values, column, trace = None, **f_kwargs):
         self.logging.log_trace(self, "get_insight", trace)
-        
+
         del_list = []
         for k, v in values.items():
             if k.lower() == column or v == '' or v is None:
                 del_list.append(k)
-                
+
         for k in del_list:
                 del values[k]
-        
+
         filtered = self.filter(values, column, **f_kwargs)
         for k, v in filtered.items():
             filtered[k] = [t for t in v if t != "" and not t is None]
         return filtered
-        
+
     def close(self, trace = None):
         self.logging.log_trace(self, "close", trace)
         super().close()
-        
-        
-        
+
+
+
 insight = Insight("renames", debug = True)
 print(insight.filter({"Composer": "Schein, Johann Hermann"}, "album"))
-        
-        
-        
