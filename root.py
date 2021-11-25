@@ -20,34 +20,27 @@ from value_insight import Insight
 from settings_window import Settings
 from arrange_widgets import WidgetSet
 import config
+from mh_logging import log_class
 
 class Prospero:
-    def __init__(self, trace):
+    @log_class
+    def __init__(self):
         self.pr = self
         self.root = tk.Tk()
         self.name = self.__class__.__name__
-        
+
         self.testing_mode = True
         self.running = True
         self.start_time = datetime.now()
-        
-        self.f = prf.Functions(parent = self, 
-                               trace = {"source": "initialise class", 
-                                        "parent": self.name})
-        
-        self.c = prc.Constants(parent = self,
-                               trace = {"source": "initialise class", 
-                                        "parent": self.name})
-        
-        self.r = prr.Resources(parent = self, 
-                               trace = {"source": "initialise class", 
-                                        "parent": self.name})
 
-        self.insight_rn = Insight(type = "renames",
-                                  debug = self.testing_mode,
-                                  trace = {"source": "initialise class", 
-                                           "parent": self.name})
-                                           
+        self.f = prf.Functions(parent = self)
+
+        self.c = prc.Constants(parent = self)
+
+        self.r = prr.Resources(parent = self)
+
+        self.insight_rn = Insight(type = "renames", debug = self.testing_mode)
+
         self.insight_rn.define_field_map({
             "Original name": "original_name",
             "#0": "original_name",
@@ -61,9 +54,9 @@ class Prospero:
             "URL": "url",
             "Final name": "final_name"}
             )
-        
-        self.f._log_trace(self, "__init__", trace)
-        
+
+        # self.f._log_trace(self, "__init__", trace)
+
         self.root.title("Prospero - MP3 file handling and ID3v2 tagging")
         self.root.configure(bg = self.c.colour_background,
                             padx = 15,
@@ -95,10 +88,10 @@ class Prospero:
             )
         self.icon_settings = tk.Label(
             self.widget_frame,
-            image = self.r.icon_settings_image, 
-            background = self.c.colour_prospero_blue, 
-            anchor = "e", 
-            padx = self.c.padding_large, 
+            image = self.r.icon_settings_image,
+            background = self.c.colour_prospero_blue,
+            anchor = "e",
+            padx = self.c.padding_large,
             pady = self.c.padding_small
             )
         self.icon_settings.bind("<1>", lambda event: self.open_settings(
@@ -115,27 +108,14 @@ class Prospero:
             self.notebook, bg = self.c.colour_background)
         self.tab_tagging = tk.Frame(
             self.notebook, bg = self.c.colour_background)
-        
+
         self.notebook.add(self.tab_naming, text = "Naming")
         self.notebook.add(self.tab_audio_functions, text = "Audio Functions")
-
         self.notebook.add(self.tab_tagging, text = "Tagging")
-        
-        self.tagging = Tagging(
-            parent = self,
-            trace = {"source": "initialise class",
-                     "parent": self.name}
-            )
-        self.naming = Naming(
-            parent = self,
-            trace = {"source": "initialise class",
-                     "parent": self.name}
-            )
-        self.audio_functions = AudioFunctions(
-            parent = self,
-            trace = {"source": "initialise class",
-                      "parent": self.name}
-            )
+
+        self.tagging = Tagging(parent = self)
+        self.naming = Naming(parent = self)
+        self.audio_functions = AudioFunctions(parent = self)
 
         widgets = {1: {'widget': self.logo_image,
                        'grid_kwargs': self.pr.c.grid_sticky},
@@ -153,28 +133,28 @@ class Prospero:
                                     layout = [[1, 2, 3],
                                               [4]]
                                     )
-        self.widget_frame.grid(row = 0, column = 0, **self.pr.c.grid_sticky)
+        self.widget_set.grid(row = 0, column = 0, **self.pr.c.grid_sticky)
         self.root.rowconfigure(0, weight = 1)
         self.root.columnconfigure(0, weight = 1)
 
         #handles the window close event
-        self.root.protocol("WM_DELETE_WINDOW", self.destroy) 
-        
+        self.root.protocol("WM_DELETE_WINDOW", self.destroy)
+
     def _style(self, trace = None):
         self.pr.f._log_trace(self, "_style", trace)
-        
+
         self.style = ttk.Style(self.root)
         self.style.theme_use("clam")
         #This handles the styling for the Treeview HEADER
         self.style.configure("TTreeview.Header",
                              background = self.c.colour_box_header,
-                             rowheight = self.c.treeview_header_height, 
+                             rowheight = self.c.treeview_header_height,
                              font = self.c.font_prospero_box_header)
         #This handles the styling for the Treeview BODY
-        self.style.configure("TTreeview", 
-                             background = self.c.colour_box_interior, 
-                             fieldbackground = self.c.colour_box_interior, 
-                             rowheight = self.c.treeview_item_height, 
+        self.style.configure("TTreeview",
+                             background = self.c.colour_box_interior,
+                             fieldbackground = self.c.colour_box_interior,
+                             rowheight = self.c.treeview_item_height,
                              font = self.c.font_prospero_text)
         #This handles the styling for Frames
         self.style.configure("TFrame",
@@ -185,12 +165,12 @@ class Prospero:
                              background = self.c.colour_background
                              )
         #This handles the styling for the Notebook tabs
-        self.style.configure("TNotebook.Tab", 
-                             background = self.c.colour_interest_point_light, 
+        self.style.configure("TNotebook.Tab",
+                             background = self.c.colour_interest_point_light,
                              font = self.c.font_prospero_text)
         #This handles the styling for the Notebook background
-        self.style.configure("TNotebook", 
-                             background = self.c.colour_background, 
+        self.style.configure("TNotebook",
+                             background = self.c.colour_background,
                              font = self.c.font_prospero_text)
         #Change the coloure of the selected item
         self.style.map("TTreeview", background = [('selected', self.c.colour_selection_background)])
@@ -198,16 +178,16 @@ class Prospero:
         self.style.map("TNotebook.Tab", foreground = [('selected', self.c.colour_offwhite_text)])
 
     def start(self, trace = None):
-        self.pr.f._log_trace(self, "start", trace) 
+        self.pr.f._log_trace(self, "start", trace)
 
         self.root.eval('tk::PlaceWindow . center')
         self.root.mainloop()
-        
+
     def destroy(self, event = None, trace = None):
         self.pr.f._log_trace(self, "destroy", trace)
-        inf_trace = {"source": "function call", 
+        inf_trace = {"source": "function call",
                      "parent": self.name + ".destroy"}
-        
+
         self.running = False
         self.audio_functions.audio_interface.end_audio_process(
             trace = inf_trace)
@@ -244,6 +224,5 @@ class Prospero:
         self.naming.io_directory.load_from_config(trace = inf_trace)
         self.tagging.io_directory.load_from_config(trace = inf_trace)
 
-prospero = Prospero(trace = {"source": "initialise class",
-                             "parent": __name__})
+prospero = Prospero()
 prospero.start()
