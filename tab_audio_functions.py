@@ -692,53 +692,14 @@ class AudioFunctions():
 
     @log_class
     def _key_release_alt(self, event):
-        """
-        Destroy the search box GUI when the bound key is released
-        """
+        """ Destroy the search box GUI when the bound key is released """
         self.search_box.destroy()
-        return event
 
     @log_class
     def _alt_mouse_1(self, event):
-        if self.search_box is None: return event
+        if self.search_box is None: return
         self._treeview_mouse1_click(event = event)
-        self.search_box.add(self._treeview_mouse1_click_cell,
-                            )
-
-    @log_class
-    def move_breakpoint(self, brkpt, x):
-        """
-        Return the closest breakpoint to the given x coordinate.
-        """
-        # TODO
-        if self.executing: return
-        if brkpt is None: return
-        self.remove_breakpoint(brkpt, refresh_treeview = False)
-        self._add_breakpoint_x(x)
-
-class AudioBreakpoint:
-    @log_class
-    def __init__(self, parent, x, **kwargs):
-        self.parent = parent
-        self.x = x
-        self.figure = parent.figure
-        self.first, self.last = False, False
-        self.__dict__.update(kwargs)
-        if not self.figure is None:
-            self.line = self.figure.axvline(
-                x = x, color = kwargs.get("color", "black")
-                )
-    @log_class
-    def remove(self):
-        self.x = None
-        if not self.figure is None:
-            self.line.remove()
-
-    @log_class
-    def move(self, x):
-        self.x = x
-        if not self.figure is None:
-            self.line.set_xdata([x, x])
+        self.search_box.add(self._treeview_mouse1_click_cell)
 
 def locked_function(func):
     """
@@ -756,6 +717,35 @@ def draw_function(func):
         if self.draw: self.draw_func()
         return func_return
     return _func_with_draw
+
+class AudioBreakpoint:
+    @log_class
+    def __init__(self, parent, x, **kwargs):
+        self.parent = parent
+        self.x = x
+        self.figure = parent.figure
+        self.draw, self.draw_func = parent.draw, parent.draw_func
+        self.first, self.last = False, False
+        self.__dict__.update(kwargs)
+        if not self.figure is None:
+            self.line = self.figure.axvline(
+                x = x, color = kwargs.get("color", "black")
+                )
+    @log_class
+    def _remove(self):
+        """ Private remove method. Remove method in AudioBreakpoints should be
+        called instead of this """
+        self.x = None
+        if not self.figure is None:
+            self.line.remove()
+
+    @log_class
+    @draw_function
+    def move(self, x):
+        self.x = x
+        if not self.figure is None:
+            self.line.set_xdata([x, x])
+
 
 class AudioBreakpoints:
     @log_class
@@ -820,7 +810,7 @@ class AudioBreakpoints:
         """ Remove a given breakpoint from the figure and internal memory """
         index = self.breakpoints.index(brkpt)
         self.breakpoints.pop(index)
-        brkpt.remove()
+        brkpt._remove()
 
         if self.draw:
             self.reset_numbers()
@@ -857,11 +847,28 @@ class AudioBreakpoints:
         for brkpt in self:
             if brkpt.last: return brkpt
 
+    def internal(self):
+        brkpts = []
+        for brkpt in self:
+            if not brkpt.last and not brkpt.first:
+                brkpts.append(brkpt)
+        return brkpts
+
+    def ends(self):
+        return [self.first(), self.last()]
+
+    def enforce_ends(self):
+        """ Remove breakpoints not between the first and last """
+        minmax = self.minmax()
+        for brkpt in self:
+            if not self.x_in_bounds(brkpt.x, minmax, inclusive = True):
+                self.remove(brkpt)
+
     @log_class
     @draw_function
     def draw_numbers(self):
         """ Draw numbers at the midpoint between breakpoints corresponding to
-        each audio segment"""
+        each audio segment """
         brkpts = self.true_breakpoints(scale_to_sound = False)
         txt_kwargs = {"fontfamily": "Palatino Linotype",
                       "fontsize": 10, "color": "black"}
@@ -894,7 +901,8 @@ class AudioBreakpoints:
     @draw_function
     def reset(self):
         """ Remove all breakpoints """
-        for brkpt in self: brkpt.remove()
+        for brkpt in self:
+            self.remove(brkpt)
         self.breakpoints = []
 
     @log_class
@@ -909,16 +917,19 @@ class AudioBreakpoints:
             return breakpoints_x
 
     @log_class
-    def get_closest(self, x, xmin = None, xmax = None):
-        skip_lthan = xmax is None
-        skip_gthan = xmin is None
+    def get_closest(self, x, xmin = None, xmax = None, brkpts = None):
+        xmin_default, xmax_default = self.minmax()
+        xmax = xmax_default if xmax is None else xmax
+        xmin = xmin_default if xmin is None else xmin
+
         brkpt_distance = abs(xmin) + abs(xmax)
-        for brkpt in self.breakpoints:
-            dist = (brkpt.x - x)
-            if (dist < brkpt_distance
-                and (skip_gthan or brkpt.x < xmax)
-                and (skip_lthan or xmin < brkpt.x)
-                ):
+        closest_brkpt = None
+
+        if brkpts is None: brkpts = self.breakpoints
+        for brkpt in brkpts:
+            dist = abs(brkpt.x - x)
+            if (dist < brkpt_distance and brkpt.x <= xmax and xmin <= brkpt.x):
+                brkpt_distance = dist
                 closest_brkpt = brkpt
         return closest_brkpt
 
@@ -972,9 +983,12 @@ class AudioCanvas:
         self.locked = False
         self.waveform = None
 
-        self.mpl_connect("key_press_event", self._on_key_press)
-        self.mpl_connect("button_press_event", self._on_button_press)
-        self.mpl_connect("key_release_event", self._on_key_release)
+        self.canvas.mpl_connect("key_press_event", self._on_key_press)
+        self.canvas.mpl_connect("button_press_event", self._on_button_press)
+        self.canvas.mpl_connect("key_release_event", self._on_key_release)
+        self._control_pressed = False
+        self._shift_pressed = False
+        self._alt_pressed = False
 
     @log_class
     def config(self, **kwargs):
@@ -1029,7 +1043,6 @@ class AudioCanvas:
     def scale(self):
         self.figure.set_autoscalex_on(True)
         self.figure.set_autoscaley_on(True)
-
         self.figure.set_xlim(xmin=0, xmax=self.sound_subsample_length)
 
     @log_class
@@ -1037,8 +1050,11 @@ class AudioCanvas:
         self.canvas.draw()
 
     @log_class
-    def get_closest_breakpoint(self, event, only_visible = True,
-                               use_tolerance = True, sensitivity = 1,
+    def get_closest_breakpoint(self, event,
+                               only_visible = True,
+                               only_ends = False,
+                               exclude_ends = True,
+                               sensitivity = 2,
                                trace = None):
         """
         Return the closest breakpoint to the given x coordinate. If there are
@@ -1046,36 +1062,48 @@ class AudioCanvas:
         """
         if event.xdata is None: return
 
-        min_graph_xdata,max_graph_xdata = self.audio_canvas.figure.get_xbound()
+        if only_ends: exclude_ends = False
 
-        closest_brkpt = self.breakpoints.get_closest(
-            event.xdata, min_graph_xdata, max_graph_xdata)
+        if only_ends:
+            brkpts = self.breakpoints.ends()
+        elif exclude_ends:
+            brkpts = self.breakpoints.internal()
+        else:
+            brkpts = self.breakpoints
 
-        if closest_brkpt is None: return
+        min_graph_xdata,max_graph_xdata = self.figure.get_xbound()
 
-        #Percentage of self.visual_frame.winfo_width() given over to blank
-        #space before the start of the waveform
-        # left_pad = self.visual_frame.winfo_width()*0.125
-        left_pad = self.visual_frame.winfo_width()*0.03
-        figure_start_x = self.visual_frame.winfo_rootx()
-
-        brkpt_xdata = closest_brkpt.x
-        clicked_pixel_x = event.x + figure_start_x
-
-        #The pixel location of the breakpoint is interpolated based on the
-        #known event pixel x and data x, the known data minimum and
-        #assumed pixel x at that minimum, and the data x of the breakpoint.
-        interpolated_pixel = (clicked_pixel_x - figure_start_x - left_pad)
-        interpolated_pixel = interpolated_pixel*(brkpt_xdata - min_graph_xdata)
-        interpolated_pixel = interpolated_pixel/(event.xdata - min_graph_xdata)
-        interpolated_pixel = interpolated_pixel + left_pad + figure_start_x
-        breakpoint_pixel_x = round(interpolated_pixel)
+        if only_visible:
+            closest_brkpt = self.breakpoints.get_closest(
+                event.xdata, min_graph_xdata, max_graph_xdata, brkpts)
+        else:
+            closest_brkpt = self.breakpoints.get_closest(
+                event.xdata, brkpts = brkpts)
 
         #calculate the tolerance level
-        if use_tolerance:
+        if sensitivity > 0:
+            if closest_brkpt is None: return
+
+            # Percentage of self.visual_frame.winfo_width() given over to blank
+            # space before the start of the waveform
+            # left_pad = self.visual_frame.winfo_width()*0.125
+            left_pad = self.master.winfo_width()*0.03
+            figure_start_x = self.master.winfo_rootx()
+
+            brkpt_xdata = closest_brkpt.x
+            clicked_pixel_x = event.x + figure_start_x
+
+            # The pixel location of the breakpoint is interpolated based on the
+            # known event pixel x and data x, the known data minimum and
+            # assumed pixel x at that minimum, and the data x of the breakpoint
+            interpolated_pixel = (clicked_pixel_x - figure_start_x - left_pad)
+            interpolated_pixel = interpolated_pixel*(brkpt_xdata - min_graph_xdata)
+            interpolated_pixel = interpolated_pixel/(event.xdata - min_graph_xdata)
+            interpolated_pixel = interpolated_pixel + left_pad + figure_start_x
+            breakpoint_pixel_x = round(interpolated_pixel)
             tolerance = 20
-            min_data_x = self.audio_canvas.figure.dataLim.x0
-            max_data_x = self.audio_canvas.figure.dataLim.x1
+            min_data_x = self.figure.dataLim.x0
+            max_data_x = self.figure.dataLim.x1
             visible_ratio = ((max_graph_xdata - min_graph_xdata)/
                              (max_data_x - min_data_x))
 
@@ -1098,11 +1126,6 @@ class AudioCanvas:
                 return closest_brkpt
         else:
             return closest_brkpt
-
-    @log_class
-    def get_scale(self):
-        try: return self.scale
-        except AttributeError: return 1
 
     @log_class
     def tune_get_closest(self, **kwargs):
@@ -1131,17 +1154,27 @@ class AudioCanvas:
         """
         This contains all the button press handling events (e.g. mouse)
         """
-        return #TODO
         if event.button == 1:
-            self.force()
+            self.focus()
         if event.button == 1 and self._control_pressed:
-            self._change_outside_breakpoint(event)
+            bp = self.get_closest_breakpoint(
+                event = event,
+                only_ends = True,
+                exclude_ends = False,
+                sensitivity = 0,
+                only_visible = False
+                )
+            if bp is None: return
+            bp.move(x = event.xdata)
+            self.breakpoints.enforce_ends()
         elif event.button == 1 and self._shift_pressed:
             bp = self.get_closest_breakpoint(event)
-            self.remove_breakpoint(bp)
+            self.breakpoints.remove(bp)
         elif event.button == 1 and self._alt_pressed:
             bp = self.get_closest_breakpoint(event)
-            self.move_breakpoint(bp, x = event.xdata)
+            if bp is None: return
+            bp.move(x = event.xdata)
+            self.breakpoints.enforce_ends()
 
     @log_class
     def _on_key_press(self, event):
@@ -1161,10 +1194,10 @@ class AudioCanvas:
             self._control_pressed = True
         elif event.key == "shift":
             self._shift_pressed = True
-            self.tab.after(500, self._depress_key, event.key)
+            self.master.after(500, self._depress_key, event.key)
         elif event.key == "alt":
             self._alt_pressed = True
-            self.tab.after(500, self._depress_key, event.key)
+            self.master.after(500, self._depress_key, event.key)
 
     @log_class
     def _on_key_release(self, event):
