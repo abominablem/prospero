@@ -9,7 +9,6 @@ import tkinter as tk
 from datetime import datetime
 import threading
 import os
-import copy
 import re
 
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
@@ -20,7 +19,7 @@ from matplotlib.figure import Figure
 
 from io_directory import IODirectory
 from value_from_filename import ValueFromFilename
-from audio_interface import AudioInterface, ProgressBar
+from audio_interface import AudioInterface
 from search_box import SearchBox
 from arrange_widgets import WidgetSet
 import config
@@ -70,8 +69,7 @@ class AudioFunctions():
         self.audio_interface = AudioInterface(
             parent = self,
             master = self.widget_frame,
-            audio_breakpoints = self.audio_canvas.breakpoints,
-            trace = {"source": "initialise class", "parent": self.name}
+            audio_canvas = self.audio_canvas
             )
         self.search_box = SearchBox(parent = self, master = self.widget_frame)
 
@@ -806,14 +804,14 @@ class AudioBreakpoints:
     @log_class
     @locked_function
     @draw_function
-    def remove(self, brkpt):
+    def remove(self, brkpt, redraw = True):
         """ Remove a given breakpoint from the figure and internal memory """
+        if brkpt is None: return
         index = self.breakpoints.index(brkpt)
         self.breakpoints.pop(index)
         brkpt._remove()
 
-        if self.draw:
-            self.reset_numbers()
+        if self.draw and redraw: self.reset_numbers()
 
     @log_class
     @locked_function
@@ -902,7 +900,7 @@ class AudioBreakpoints:
     def reset(self):
         """ Remove all breakpoints """
         for brkpt in self:
-            self.remove(brkpt)
+            self.remove(brkpt, redraw = False)
         self.breakpoints = []
 
     @log_class
@@ -1034,16 +1032,16 @@ class AudioCanvas:
                              color = "black", figure = self.figure)
 
         self.breakpoints.reset_numbers()
+        self.scale_canvas()
         self.draw()
-        self.scale()
         self.toolbar.update()
 
     @log_class
     @locked_function
-    def scale(self):
+    def scale_canvas(self):
         self.figure.set_autoscalex_on(True)
         self.figure.set_autoscaley_on(True)
-        self.figure.set_xlim(xmin=0, xmax=self.sound_subsample_length)
+        self.figure.set_xlim(xmin = 0, xmax = self.sound_subsample_length)
 
     @log_class
     def draw(self):
