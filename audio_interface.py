@@ -12,355 +12,300 @@ from pydub.playback import play
 from kthread import KThread
 import config
 from arrange_widgets import WidgetSet
+from mh_logging import log_class
 
 class ProgressBar:
-    def __init__(self, figure, draw_func, sound_scale):
+    @log_class
+    def __init__(self, figure, draw_func, sound_scale = 1):
         self.figure = figure
         self.draw_func = draw_func
-        self.scale = sound_scale
+        self.sound_scale = sound_scale
         self.playpoint = 0
         self.line  = None
 
+    @log_class
     def draw(self, x):
-        x *= self.scale
+        x = x/self.sound_scale
         if self.line is None:
             self.line = self.figure.axvline(x = x, color = "red")
         else:
             self.line.set_xdata([x, x])
         self.draw_func()
 
+    @log_class
     def remove(self):
         if not self.line is None:
             self.line.remove()
             self.line = None
 
-class AudioInterface:
-    def __init__(self, master, audio_breakpoints, progress_bar = None, trace = None):
+def audio_function(func):
+    """
+    Decorator for functions which should not be run if self.audio is None
+    """
+    def _func_with_play_check(self, *args, **kwargs):
+        if self.audio is None: return
+        return func(self, *args, **kwargs)
+    return _func_with_play_check
 
+class AudioInterface:
+    @log_class
+    def __init__(self, parent, master, audio_canvas):
         self.name = self.__class__.__name__
         self.pr = parent.pr
         self.master = master
-        self.audio_breakpoints = audio_breakpoints
-        self.progress_bar = progress_bar
+        self.audio_canvas = audio_canvas
+        self.audio_breakpoints = audio_canvas.breakpoints
+        self.progress_bar = None
 
-        self.pr.f._log_trace(self, "__init__", trace)
-        inf_trace = {"source": "function call",
-                     "parent": self.name + ".__init__"}
-        
         self.audio = None
-        self.load_from_config(trace = inf_trace)
+        self.load_from_config()
 
         """
         ### BUTTONS ###
         """
         self.frame = tk.Frame(self.master,
                               background = self.pr.c.colour_background)
-        
-        self.AudioControlsSpacer1_GridColumn = 0
-        self.btnSkipToPrevious_GridColumn = self.AudioControlsSpacer1_GridColumn + 1
-        self.btnRewind_GridColumn = self.btnSkipToPrevious_GridColumn + 1
-        self.btnTogglePlayPause_GridColumn = self.btnRewind_GridColumn + 1
-        self.btnFastForward_GridColumn = self.btnTogglePlayPause_GridColumn + 1
-        self.btnSkipToNext_GridColumn = self.btnFastForward_GridColumn + 1
-        self.AudioControlsSpacer2_GridColumn = self.btnSkipToNext_GridColumn + 1
-        
+
         self.audio_button_standard_args = {
             "background" : self.pr.c.colour_interface_button,
             "font" : self.pr.c.font_prospero_interface_button
             }
-                
-        self.AudioControlsSpacer1 = tk.Label(
-            self.frame,
-            text="",
-            bg = self.pr.c.colour_background
-            )
-        self.btnSkipToPrevious = tk.Button(
+
+        self.btn_skip_to_previous = tk.Button(
             self.frame,
             text="⏮",
-            command = self._btnSkipToPrevious_Click,
+            command = self._btn_skip_to_previous_click,
             **self.audio_button_standard_args
             )
-        self.btnRewind = tk.Button(
+        self.btn_rewind = tk.Button(
             self.frame,
             text="⏪",
-            command = self._btnRewind_Click,
+            command = self._btn_rewind_click,
             **self.audio_button_standard_args
             )
-        self.btnTogglePlayPause = tk.Button(
+        self.btn_toggle_play_pause = tk.Button(
             self.frame,
             text="▶️",
-            command = self._btnTogglePlayPause_Click,
+            command = self._btn_toggle_play_pause_click,
             **self.audio_button_standard_args
             )
-        self.btnFastForward = tk.Button(
+        self.btn_fast_forward = tk.Button(
             self.frame,
             text="⏩",
-            command = self._btnFastForward_Click,
+            command = self._btn_fast_forward_click,
             **self.audio_button_standard_args
             )
-        self.btnSkipToNext = tk.Button(
+        self.btn_skip_to_next = tk.Button(
             self.frame,
             text="⏭",
-            command = self._btnSkipToNext_Click,
+            command = self._btn_skip_to_next_click,
             **self.audio_button_standard_args
             )
-        self.AudioControlsSpacer2 = tk.Label(
-            self.frame,
-            text="",
-            bg = self.pr.c.colour_background
-            )
 
-        self.AudioControlsSpacer1.grid(
-            row = 0,
-            column = self.AudioControlsSpacer1_GridColumn,
-            sticky = "nesw"
-            )
-        self.btnSkipToPrevious.grid(
-            row = 0,
-            column = self.btnSkipToPrevious_GridColumn,
-            sticky = "nesw"
-            )
-        self.btnRewind.grid(
-            row = 0,
-            column = self.btnRewind_GridColumn,
-            sticky = "nesw"
-            )
-        self.btnTogglePlayPause.grid(
-            row = 0,
-            column = self.btnTogglePlayPause_GridColumn,
-            sticky = "nesw"
-            )
-        self.btnFastForward.grid(
-            row = 0,
-            column = self.btnFastForward_GridColumn,
-            sticky = "nesw"
-            )
-        self.btnSkipToNext.grid(
-            row = 0,
-            column = self.btnSkipToNext_GridColumn,
-            sticky = "nesw"
-            )
-        self.AudioControlsSpacer2.grid(
-            row = 0,
-            column = self.AudioControlsSpacer2_GridColumn,
-            sticky = "nesw"
-            )
-        
-        """
-       ### ALLOCATE SCALING ###
-        """
-        
-        self.frame.columnconfigure(self.AudioControlsSpacer1_GridColumn, 
-                                   weight = 1)
-        self.frame.columnconfigure(self.AudioControlsSpacer2_GridColumn, 
-                                   weight = 1)
+        widgets = {1: {'widget': self.btn_skip_to_previous,
+                       'grid_kwargs': self.pr.c.grid_sticky},
+                   2: {'widget': self.btn_rewind,
+                       'grid_kwargs': self.pr.c.grid_sticky},
+                   3: {'widget': self.btn_toggle_play_pause,
+                       'grid_kwargs': self.pr.c.grid_sticky},
+                   4: {'widget': self.btn_fast_forward,
+                       'grid_kwargs': self.pr.c.grid_sticky},
+                   5: {'widget': self.btn_skip_to_next,
+                       'grid_kwargs': self.pr.c.grid_sticky},
+                   -1: {'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                        'widget_kwargs': {'bg': self.pr.c.colour_background,
+                                          'text': ""},
+                       'stretch_width': True},
+                   }
 
-    def load_audio(self, audio, trace = None):
+        self.widget_set = WidgetSet(
+            self.frame, widgets, layout = [[-1, 1, 2, 3, 4, 5, -1]])
+
+    @log_class
+    def load_audio(self, audio):
         """
-        Takes one parameter of type pydub AudioSegment. Prepares audio for
+        Take one parameter of type pydub AudioSegment. Prepare audio for
         playback.
         """
-        self.pr.f._log_trace(self, "load_audio", trace)
-        
         self.audio = audio
         self.audio_length = len(audio)
         self.play_point = 0
         self.playing = False
         self.play_start_datetime = None
-    
-    def refresh_breakpoints(self, trace = None):
+
+        if not self.progress_bar is None:
+            self.progress_bar.remove()
+
+        self.progress_bar = ProgressBar(
+            self.audio_canvas.figure,
+            self.audio_canvas.draw,
+            self.audio_canvas.get_scale()
+            )
+
+    @log_class
+    def refresh_breakpoints(self):
         """
         Refreshes the list of audio breakpoints. Includes the start and end of
         the audio.
         """
-        self.pr.f._log_trace(self, "refresh_breakpoints", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".refresh_breakpoints"}
         self.breakpoints = self.audio_breakpoints.true_breakpoints(
             scale_to_sound = True)
-    
-    def _btnSkipToPrevious_Click(self, trace = None):
+
+    @log_class
+    @audio_function
+    def _btn_skip_to_previous_click(self):
         """
         Skip to last breakpoint before the current playback point.
         """
-        self.pr.f._log_trace(self, "_btnSkipToPrevious_Click", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + 
-                         "._btnSkipToPrevious_Click"}
-        
-        if self.audio is None: return
         was_playing = self.playing
-        
-        if was_playing: self.end_audio_process(trace = inf_trace)
-        
-        self.set_play_point(trace = inf_trace)
-        play_point = self.get_play_point(trace = inf_trace)
-        breakpoint_range = self._get_breakpoint_index(play_point, 
-                                                      trace = inf_trace)
+
+        if was_playing: self.end_audio_process()
+
+        self.set_play_point()
+        play_point = self.get_play_point()
+        breakpoint_range = self._get_breakpoint_index(play_point,
+                                                      )
         prev_brkpt = int(self.breakpoints[breakpoint_range[0]])
-        
+
         #To ensure you don't get stuck on a breakpoint, utilise a grace period
         #where you will instead go to the breakpoint before
         if play_point - prev_brkpt < self.breakpoint_grace_period:
-            breakpoint_range = self._get_breakpoint_index(play_point, 
-                                                          trace = inf_trace)
+            breakpoint_range = self._get_breakpoint_index(play_point,
+                                                          )
             self.play_point = int(self.breakpoints[breakpoint_range[0]-1])
         else:
             self.play_point = int(self.breakpoints[breakpoint_range[0]])
-            
-        self.draw_progress_bar(trace = inf_trace)
-        if was_playing: self._start_audio_process(trace = inf_trace)
+
+        self.draw_progress_bar()
+        if was_playing: self._start_audio_process()
         return
-    
-    def _btnRewind_Click(self, trace = None):
+
+    @log_class
+    @audio_function
+    def _btn_rewind_click(self):
         """
         Moves the playback point back a pre-determined distance
         """
-        self.pr.f._log_trace(self, "_btnRewind_Click", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + "._btnRewind_Click"}
-        if self.audio is None: return
         if not self.playing:
-            self.set_play_point(offset = -1*self.rewind_milliseconds, 
-                                trace = inf_trace)
-            self.draw_progress_bar(trace = inf_trace)
+            self.set_play_point(offset = -1*self.rewind_milliseconds,
+                                )
+            self.draw_progress_bar()
         else:
-            self.end_audio_process(trace = inf_trace)
-            self.set_play_point(offset = -1*self.rewind_milliseconds, 
-                                trace = inf_trace)
-            self._start_audio_process(trace = inf_trace)
+            self.end_audio_process()
+            self.set_play_point(offset = -1*self.rewind_milliseconds,
+                                )
+            self._start_audio_process()
         return
-    
-    def _btnTogglePlayPause_Click(self, trace = None):
+
+    @log_class
+    @audio_function
+    def _btn_toggle_play_pause_click(self):
         """
         Start/end the audio playback process. Saves the progress of playback.
         """
-        self.pr.f._log_trace(self, "_btnTogglePlayPause_Click", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + 
-                         "._btnTogglePlayPause_Click"}
-        if self.audio is None: return
-
-        self.refresh_breakpoints(trace = inf_trace)
+        self.refresh_breakpoints()
 
         # Update the icon
-        if self.btnTogglePlayPause['text'] == "⏸":
+        if self.btn_toggle_play_pause['text'] == "⏸":
             self.playing = False
-            self.btnTogglePlayPause['text'] = "▶️"
+            self.btn_toggle_play_pause['text'] = "▶️"
             if not self.audio_process is None:
-                self.set_play_point(offset = 0, trace = inf_trace)
-                self.end_audio_process(trace = inf_trace)
+                self.set_play_point(offset = 0, )
+                self.end_audio_process()
         else:
-            self.btnTogglePlayPause['text'] = "⏸"
+            self.btn_toggle_play_pause['text'] = "⏸"
             if self.play_point >= self.breakpoints[-1]:
                 self.play_point = self.breakpoints[0]
             if not self.playing:
-                self._start_audio_process(trace = inf_trace)
-            
-        self.draw_progress_bar(trace = inf_trace)
+                self._start_audio_process()
+
+        self.draw_progress_bar()
         return
-        
-    def _btnFastForward_Click(self, trace = None):
+
+    @log_class
+    @audio_function
+    def _btn_fast_forward_click(self):
         """
         Moves the playback point forward a pre-determined distance
         """
-        self.pr.f._log_trace(self, "_btnFastForward_Click", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + 
-                         "._btnFastForward_Click"}
-        if self.audio is None: return
         if not self.playing:
-            self.set_play_point(offset = self.fast_forward_milliseconds, 
-                                trace = inf_trace)
-            self.draw_progress_bar(trace = inf_trace)
+            self.set_play_point(offset = self.fast_forward_milliseconds)
+            self.draw_progress_bar()
         else:
-            self.end_audio_process(trace = inf_trace)
-            self.set_play_point(offset = self.fast_forward_milliseconds, 
-                                trace = inf_trace)
-            self._start_audio_process(trace = inf_trace)
+            self.end_audio_process()
+            self.set_play_point(offset = self.fast_forward_milliseconds)
+            self._start_audio_process()
         return
-    
-    def _btnSkipToNext_Click(self, trace = None):
+
+    @log_class
+    @audio_function
+    def _btn_skip_to_next_click(self):
         """
         Skip to next breakpoint after the current playback point.
         """
-        self.pr.f._log_trace(self, "_btnSkipToNext_Click", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + 
-                         "._btnSkipToNext_Click"}
-        if self.audio is None or not self.playing: return
-        
-        self.end_audio_process(trace = inf_trace)
-        self.set_play_point(trace = inf_trace)
+        self.end_audio_process()
+        self.set_play_point()
         breakpoint_range = self._get_breakpoint_index(
-            self.get_play_point(trace = inf_trace), trace = inf_trace
+            self.get_play_point(),
             )
         self.play_point = int(self.breakpoints[breakpoint_range[1]])
-        self._start_audio_process(trace = inf_trace)
+        self._start_audio_process()
         return
-    
-    def _start_audio_process(self, trace = None):
+
+    @log_class
+    def _start_audio_process(self):
         """
         Start a new audio playback thread at the current playpoint
         """
-        self.pr.f._log_trace(self, "_create_audio_process", trace)
         # create killable thread since tkinter does not play well with
         # multiprocessing
         self.playing = True
-        self.btnTogglePlayPause['text'] = "⏸"
+        self.btn_toggle_play_pause['text'] = "⏸"
         self.audio_process = KThread(target = self.play_audio)
         self.audio_process.daemon = True
-        
+
         # set time of playback start
         self.play_start_datetime = datetime.now()
         self.audio_process.start()
-    
-    def end_audio_process(self, trace = None):
+
+    @log_class
+    def end_audio_process(self):
         """
         End the current audio playback thread
         """
-        self.pr.f._log_trace(self, "end_audio_process", trace)
-        
         self.playing = False
-        self.btnTogglePlayPause['text'] = "▶️"
+        self.btn_toggle_play_pause['text'] = "▶️"
         try:
             self.audio_process.kill()
         except AttributeError:
             pass
-        
-    def play_audio(self, trace = None):
-        self.pr.f._log_trace(self, "play_audio", trace, 
-                             add = "Started playing audio at play_point %d"
-                             % self.play_point)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".play_audio"}
-        
+
+    @log_class
+    def play_audio(self):
         # pydub.playback.play
         play(self.audio[self.get_play_point():])
         # toggle back to paused mode when track finishes
         # this does not run if the thread is ended early e.g. through pausing
         # or skipping around
-        self._btnTogglePlayPause_Click(trace = inf_trace)
+        self._btn_toggle_play_pause_click()
         self.play_point = 0
-        
-    def get_play_point(self, trace = None):
+
+    @log_class
+    def get_play_point(self):
         """
         Returns the currently stored playpoint, within the bounds of the audio.
         """
-        self.pr.f._log_trace(self, "get_play_point", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".get_play_point"}
-        self.refresh_breakpoints(trace = inf_trace)
+        self.refresh_breakpoints()
         self.play_point = max(self.breakpoints[0], self.play_point)
-        self.play_point = min(self.breakpoints[-1], self.play_point)
+        self.play_point = min(self.breakpoints[1], self.play_point)
         return self.play_point
-    
-    def set_play_point(self, offset = 0, trace = None):
+
+    @log_class
+    def set_play_point(self, offset = 0):
         """
         Update the playpoint based on time elapsed since playback was started.
         Optionally provide an offset for e.g. fast forward/rewinding.
         """
-        self.pr.f._log_trace(self, "set_play_point", trace)
         # calculate the new starting point for playing next time
         # based on elapsed time since starting playback
         if self.play_start_datetime is None: return #new waveform being loaded
@@ -369,52 +314,46 @@ class AudioInterface:
         self.play_start_datetime = datetime.now()
         self.play_point += offset
         self.play_point = int(self.play_point)
-    
-    def _get_breakpoint_index(self, num, trace = None):
+
+    @log_class
+    def _get_breakpoint_index(self, num):
         """
         Provides the index of the breakpoints to either side of the play point
         num, based on the list self.breakpoints.
         """
-        self.pr.f._log_trace(self, "_get_breakpoint_index", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + "._get_breakpoint_index"}
-        
-        self.refresh_breakpoints(trace = inf_trace)
+        self.refresh_breakpoints()
         num_breakpoints = len(self.breakpoints)
-        
+
         for k in range(num_breakpoints - 1):
             if num >= self.breakpoints[k] and num <= self.breakpoints[k+1]:
                 return (k, k+1)
-        
+
         # if num is outside of the allowed range
         if num > self.breakpoints[-1]:
             return (num_breakpoints, num_breakpoints)
         else:
             return (0, 0)
-    
-    def draw_progress_bar(self, freq = 1000, trace = None):
+
+    @log_class
+    def draw_progress_bar(self, freq = 1000):
         """
         Draw the playback progress bar on the audio waveform, auto-updating
         after a defined period in ms.
         """
-        self.pr.f._log_trace(self, "draw_progress_bar", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".draw_progress_bar"}
-        
-        self.set_play_point(offset = 0, trace = inf_trace)
+        self.set_play_point(offset = 0)
         if self.progress_bar is not None:
-            self.progress_bar.draw(self.get_play_point(trace = inf_trace))
+            self.progress_bar.draw(self.get_play_point())
         if not self.playing: return
-        
-        # loop while the audio is playing (ms refresh time)
-        self.master.after(freq,lambda: self.draw_progress_bar(trace=inf_trace))
 
-    def grid(self, trace = None, **kwargs):
-        self.pr.f._log_trace(self, "grid", trace)
+        # loop while the audio is playing (ms refresh time)
+        self.master.after(freq,lambda: self.draw_progress_bar())
+
+    @log_class
+    def grid(self, **kwargs):
         self.frame.grid(**kwargs)
 
-    def load_from_config(self, trace = None):
-        self.pr.f._log_trace(self, "load_from_config", trace)
+    @log_class
+    def load_from_config(self):
         self.rewind_milliseconds = config.config.config_dict["AudioFunctions"]["AudioInterface"]["rewind_seconds"]*1000
         self.fast_forward_milliseconds = config.config.config_dict["AudioFunctions"]["AudioInterface"]["fast_forward_seconds"]*1000
         self.breakpoint_grace_period = config.config.config_dict["AudioFunctions"]["AudioInterface"]["breakpoint_grace_period"]*1000
