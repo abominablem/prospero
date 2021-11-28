@@ -767,10 +767,11 @@ class AudioBreakpoints:
         return self
 
     def __next__(self):
-        if self._i < len(self.breakpoints) - 1:
+        if self._i < self.count() - 1:
             self._i += 1
             return self.breakpoints[self._i]
         else:
+            self._i = None
             raise StopIteration
 
     @log_class
@@ -819,11 +820,6 @@ class AudioBreakpoints:
     def move(self, brkpt, x):
         """ Move a given breakpoint to a given x coordinate """
         brkpt.move(x)
-        # remove newly out of bounds breakpoints
-        minmax = self.minmax()
-        for other_brkpt in self:
-            if not self.x_in_bounds(other_brkpt.x, minmax, inclusive = True):
-                self.remove(other_brkpt)
 
     @log_class
     def count(self):
@@ -858,9 +854,14 @@ class AudioBreakpoints:
     def enforce_ends(self):
         """ Remove breakpoints not between the first and last """
         minmax = self.minmax()
+        # avoid changing the thing we're looping through as we loop through it
+        brkpt_to_remove = []
         for brkpt in self:
             if not self.x_in_bounds(brkpt.x, minmax, inclusive = True):
-                self.remove(brkpt)
+                brkpt_to_remove.append(brkpt)
+
+        for brkpt in brkpt_to_remove:
+            self.remove(brkpt)
 
     @log_class
     @draw_function
@@ -1223,50 +1224,50 @@ class AudioCanvas:
             self._alt_pressed = False
 
 
-# if __name__ == "__main__":
-#     pass
-#     import prospero_constants as prc
-#     import prospero_functions as prf
-#     import prospero_resources as prr
-#     from tkinter import ttk
+if __name__ == "__main__":
+    pass
+    import prospero_constants as prc
+    import prospero_functions as prf
+    import prospero_resources as prr
+    from tkinter import ttk
 
-#     class Prospero:
-#         def __init__(self, trace):
-#             self.pr = self
-#             self.root = tk.Tk()
+    class Prospero:
+        def __init__(self, trace):
+            self.pr = self
+            self.root = tk.Tk()
 
-#             self.testing_mode = True
-#             self.running = True
-#             self.start_time = datetime.now()
+            self.testing_mode = True
+            self.running = True
+            self.start_time = datetime.now()
 
-#             self.f = prf.Functions(parent = self)
-#             self.c = prc.Constants(parent = self)
-#             self.r = prr.Resources(parent = self)
+            self.f = prf.Functions(parent = self)
+            self.c = prc.Constants(parent = self)
+            self.r = prr.Resources(parent = self)
 
-#             self.tab_audio_functions = tk.Frame(
-#                 self.root, bg = self.c.colour_background)
+            self.tab_audio_functions = tk.Frame(
+                self.root, bg = self.c.colour_background)
 
-#             self.audio_functions = AudioFunctions(parent = self)
+            self.audio_functions = AudioFunctions(parent = self)
 
-#             self.tab_audio_functions.grid(row = 0, column = 0,
-#                                       **self.pr.c.grid_sticky)
-#             self.root.rowconfigure(0, weight = 1)
-#             self.root.columnconfigure(0, weight = 1)
+            self.tab_audio_functions.grid(row = 0, column = 0,
+                                      **self.pr.c.grid_sticky)
+            self.root.rowconfigure(0, weight = 1)
+            self.root.columnconfigure(0, weight = 1)
 
-#             #handles the window close event
-#             self.root.protocol("WM_DELETE_WINDOW", self.destroy)
+            #handles the window close event
+            self.root.protocol("WM_DELETE_WINDOW", self.destroy)
 
-#         def start(self):
-#             self.root.eval('tk::PlaceWindow . center')
-#             self.root.mainloop()
+        def start(self):
+            self.root.eval('tk::PlaceWindow . center')
+            self.root.mainloop()
 
-#         def destroy(self, event = None):
-#             self.running = False
-#             self.audio_functions.audio_interface.end_audio_process()
-#             self.root.quit()
-#             self.root.destroy()
-#             return event
+        def destroy(self, event = None):
+            self.running = False
+            self.audio_functions.audio_interface.end_audio_process()
+            self.root.quit()
+            self.root.destroy()
+            return event
 
-#     prospero = Prospero(trace = {"source": "initialise class",
-#                                  "parent": __name__})
-#     prospero.start()
+    prospero = Prospero(trace = {"source": "initialise class",
+                                  "parent": __name__})
+    prospero.start()
