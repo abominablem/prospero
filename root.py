@@ -66,7 +66,7 @@ class Prospero:
                                      bg = self.pr.c.colour_background)
         self._style()
 
-        self.root.iconphoto(False, self.r.logo_circular_small)
+        self.root.iconphoto(True, self.r.logo_circular_small)
         #Add the logo in the top left position
         self.logo_image = tk.Label(
             self.widget_frame,
@@ -94,11 +94,7 @@ class Prospero:
             padx = self.c.padding_large,
             pady = self.c.padding_small
             )
-        self.icon_settings.bind("<1>", lambda event: self.open_settings(
-                event, trace = {"source": "bound event",
-                                "widget": self.name + ".icon_settings",
-                                "event": "<1>"})
-            )
+        self.icon_settings.bind("<1>", self.open_settings)
 
         self.notebook = ttk.Notebook(self.widget_frame)
 
@@ -140,9 +136,8 @@ class Prospero:
         #handles the window close event
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
 
+    @log_class
     def _style(self, trace = None):
-        self.pr.f._log_trace(self, "_style", trace)
-
         self.style = ttk.Style(self.root)
         self.style.theme_use("clam")
         #This handles the styling for the Treeview HEADER
@@ -157,13 +152,9 @@ class Prospero:
                              rowheight = self.c.treeview_item_height,
                              font = self.c.font_prospero_text)
         #This handles the styling for Frames
-        self.style.configure("TFrame",
-                             background = self.c.colour_background
-                             )
+        self.style.configure("TFrame", background = self.c.colour_background)
         #This handles the styling for Labels
-        self.style.configure("TLabel",
-                             background = self.c.colour_background
-                             )
+        self.style.configure("TLabel", background = self.c.colour_background)
         #This handles the styling for the Notebook tabs
         self.style.configure("TNotebook.Tab",
                              background = self.c.colour_interest_point_light,
@@ -177,20 +168,15 @@ class Prospero:
         self.style.map("TNotebook.Tab", background = [('selected', self.c.colour_prospero_blue_pastel)])
         self.style.map("TNotebook.Tab", foreground = [('selected', self.c.colour_offwhite_text)])
 
+    @log_class
     def start(self, trace = None):
-        self.pr.f._log_trace(self, "start", trace)
-
         self.root.eval('tk::PlaceWindow . center')
         self.root.mainloop()
 
+    @log_class
     def destroy(self, event = None, trace = None):
-        self.pr.f._log_trace(self, "destroy", trace)
-        inf_trace = {"source": "function call",
-                     "parent": self.name + ".destroy"}
-
         self.running = False
-        self.audio_functions.audio_interface.end_audio_process(
-            trace = inf_trace)
+        self.audio_functions.audio_interface.end_audio_process()
         self.insight_rn.close()
         self.root.quit()
         self.root.destroy()
@@ -202,27 +188,22 @@ class Prospero:
         config.numerals_dict.dump_values()
         return event
 
+    @log_class
     def open_settings(self, event = None, trace = None):
-        self.pr.f._log_trace(self, "open_settings", trace)
-        inf_trace = {"source": "function call",
-                     "parent": self.name + ".open_settings"}
-        self.settings = Settings(self, trace = inf_trace,
-                                 run_on_destroy = self.apply_settings)
-        self.settings.start(trace = inf_trace)
+        self.settings = Settings(self, run_on_destroy = self.apply_settings)
+        self.settings.start()
 
+    @log_class
     def apply_settings(self, event = None, trace = None):
-        self.pr.f._log_trace(self, "apply_settings", trace)
-        inf_trace = {"source": "open_settings call",
-                     "parent": self.name + ".apply_settings"}
         # Update the settings changed for each tab
-        self.audio_functions.load_from_config(trace = inf_trace)
-        self.audio_functions.audio_interface.load_from_config(trace = inf_trace)
-        self.naming.load_from_config(trace = inf_trace)
-        self.tagging.load_from_config(trace = inf_trace)
+        self.audio_functions.load_from_config()
+        self.audio_functions.audio_interface.load_from_config()
+        self.naming.load_from_config()
+        self.tagging.load_from_config()
 
-        self.audio_functions.io_directory.load_from_config(trace = inf_trace)
-        self.naming.io_directory.load_from_config(trace = inf_trace)
-        self.tagging.io_directory.load_from_config(trace = inf_trace)
+        self.audio_functions.io_directory.load_from_config()
+        self.naming.io_directory.load_from_config()
+        self.tagging.io_directory.load_from_config()
 
 prospero = Prospero()
 prospero.start()
