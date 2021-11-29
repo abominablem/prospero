@@ -66,6 +66,8 @@ class AudioFunctions():
             waveform_colour = self.pr.c.colour_prospero_blue_pastel,
             background_colour = self.pr.c.colour_background
             )
+        self.mpl_connect_canvas()
+
         self.audio_interface = AudioInterface(
             parent = self,
             master = self.widget_frame,
@@ -285,23 +287,19 @@ class AudioFunctions():
                 start = true_breakpoints[k]
                 end = true_breakpoints[k+1]
                 iid = str(k+1)
-                filename = (
-                    self.treeview_file_names.set_translate(iid, "Final name")
-                    + self.pr.c.file_extension
-                            )
+                filename = (self.treeview_file_names.set(iid, "Final name")
+                            + self.pr.c.file_extension)
 
                 #Write audio to file
                 try:
-                    self.write_audio(self.sound[start:end], filename,
-                                     )
+                    self.write_audio(self.sound[start:end], filename)
                 except:
                     text = "Failed to write audio"
                     raise
 
                 #tag file
                 try:
-                    self.tag_file(iid = iid, filename = filename,
-                                  )
+                    self.tag_file(iid = iid, filename = filename)
                 except ValueError as e:
                     text = str(e)
                     raise
@@ -544,6 +542,23 @@ class AudioFunctions():
             self.treeview_file_names.delete(
                 self.treeview_file_names.get_children()[-1])
             treeview_count = len(self.treeview_file_names.get_children())
+
+    @log_class
+    def mpl_connect_canvas(self):
+        self.audio_canvas.mpl_connect("key_press_event", self._on_key_press)
+        self.audio_canvas.mpl_connect("button_press_event", self._on_button_press)
+
+    @log_class
+    def _on_key_press(self, event):
+        if event.key in ['enter', ' ']:
+            self.update_treeview_numbers()
+        elif event.key == 'ctrl+z':
+            self.update_treeview_numbers()
+
+    @log_class
+    def _on_button_press(self, event):
+        if event.button == 1 and self.audio_canvas._shift_pressed:
+            self.update_treeview_numbers()
 
     @log_class
     def copy_from_above(self, event):
@@ -982,9 +997,20 @@ class AudioCanvas:
         self.locked = False
         self.waveform = None
 
-        self.canvas.mpl_connect("key_press_event", self._on_key_press)
-        self.canvas.mpl_connect("button_press_event", self._on_button_press)
-        self.canvas.mpl_connect("key_release_event", self._on_key_release)
+        self._mpl_connect("key_press_event", self._on_key_press)
+        self._mpl_connect("button_press_event", self._on_button_press)
+        self._mpl_connect("key_release_event", self._on_key_release)
+
+        # dictionary of functions to run in each event.
+        self.mpl_connections = {
+            "key_press_event": [],
+            "button_press_event": [],
+            "key_release_event": []
+            }
+        self._mpl_connect("key_press_event", self._on_key_press_default)
+        self._mpl_connect("button_press_event", self._on_button_press_default)
+        self._mpl_connect("key_release_event", self._on_key_release_default)
+
         self._control_pressed = False
         self._shift_pressed = False
         self._alt_pressed = False
@@ -993,6 +1019,18 @@ class AudioCanvas:
     def config(self, **kwargs):
         #TODO
         return
+
+    def _mpl_connect(self, s, func):
+        """ Bind the default functions which handle future calls with additional
+        bound functions """
+        self.canvas.mpl_connect(s, func)
+
+    def mpl_connect(self, s, func):
+        """ Bind a canvas event to a particular function. Can be run multiple
+        times to bind multiple functions """
+        if not s in self.mpl_connections:
+            raise ValueError(f"{s} is not a valid event string")
+        self.mpl_connections[s] += func
 
     @log_class
     def mpl_connect(self, s, func):
@@ -1049,12 +1087,10 @@ class AudioCanvas:
         self.canvas.draw()
 
     @log_class
-    def get_closest_breakpoint(self, event,
-                               only_visible = True,
-                               only_ends = False,
-                               exclude_ends = True,
-                               sensitivity = 2,
-                               trace = None):
+    def get_closest_breakpoint(
+            self, event, only_visible = True, only_ends = False,
+            exclude_ends = True, sensitivity = 2, trace = None
+            ):
         """
         Return the closest breakpoint to the given x coordinate. If there are
         no breakpoints within the tolerance, return None.
@@ -1149,10 +1185,24 @@ class AudioCanvas:
         self.canvas.get_tk_widget().focus_force()
 
     @log_class
+    def _call_mpl_connections(self, s, event):
+        for func in self.mpl_connections[s]:
+            func(event = event)
+
+    @log_class
+    def _on_key_press(self, event):
+        self._call_mpl_connections("key_press_event", event)
+
+    @log_class
     def _on_button_press(self, event):
-        """
-        This contains all the button press handling events (e.g. mouse)
-        """
+        self._call_mpl_connections("button_press_event", event)
+
+    @log_class
+    def _on_key_release(self, event):
+        self._call_mpl_connections("key_release_event", event)
+
+    @log_class
+    def _on_button_press_default(self, event):
         if event.button == 1:
             self.focus()
         if event.button == 1 and self._control_pressed:
@@ -1176,11 +1226,7 @@ class AudioCanvas:
             self.breakpoints.enforce_ends()
 
     @log_class
-    def _on_key_press(self, event):
-        """
-        This contains all the key press handling events
-        Replaces bound functions usually in __init__
-        """
+    def _on_key_press_default(self, event):
         key_press_handler(event, self.canvas, self.toolbar)
 
         if event.key == 'enter':
@@ -1199,10 +1245,7 @@ class AudioCanvas:
             self.master.after(500, self._depress_key, event.key)
 
     @log_class
-    def _on_key_release(self, event):
-        """
-        This contains all the key release handling events
-        """
+    def _on_key_release_default(self, event):
         if event.key == "control":
             self._control_pressed = False
         elif event.key == "shift":
@@ -1229,7 +1272,6 @@ if __name__ == "__main__":
     import prospero_constants as prc
     import prospero_functions as prf
     import prospero_resources as prr
-    from tkinter import ttk
 
     class Prospero:
         def __init__(self, trace):
