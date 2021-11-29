@@ -104,6 +104,52 @@ class SimpleTreeview(ttk.Treeview):
         func = self.events._add_log_call(sequence = sequence, func = func)
         super().bind(sequence, func, add)
 
+    def to_json(self):
+        json_dict = {}
+        for child in treeview.get_children():
+            json_dict[child] = self.item(child, 'values')
+        return json_dict
+
+    def from_json(self, json_dict):
+        if not isinstance(json_dict, dict): raise TypeError
+        for key, value in json_dict.items():
+            treeview.insert("", index = "end", text = key, iid = key,
+                            values = value)
+
+    def to_dict(self, iid = None, include_key = False):
+        if isinstance(iid, str):
+            iid = [iid]
+        elif iid is None:
+            iid = self.get_children()
+
+        columns = self.get_columns(ids = False, include_key = include_key)
+        if include_key:
+            key_col = columns[0]
+            columns = columns[1:]
+
+        treeview_dict = {}
+        for child in iid:
+            values = self.item(iid, "values")
+            values_dict = {key_col: iid} if include_key else {}
+            for i, col in enumerate(columns):
+                values_dict[col] = values[i]
+            treeview_dict[child] = values_dict
+
+    def values_dict(self, iid, include_key = False):
+        values = self.item(iid, "values")
+        columns = self.get_columns(ids = False, include_key = include_key)
+
+        if include_key:
+            values_dict = {columns[0]: iid}
+            columns = columns[1:]
+        else:
+            values_dict = {}
+
+        for i, col in enumerate(columns):
+            values_dict[col] = values[i]
+
+        return values_dict
+
 class SimpleTreeviewColumn:
     def __init__(self, treeview, column, cdict):
         self.treeview = treeview
@@ -130,8 +176,8 @@ class SimpleTreeviewEvents:
         self.last = {"column": None, "row": None, "cell": None}
 
     def log_event(self, sequence, event, *args, **kwargs):
-        """ 
-        Log the col/row/cell under the cursor when the event is triggered 
+        """
+        Log the col/row/cell under the cursor when the event is triggered
         """
         event_col = self._treeview.identify_column(event.x)
         event_row = self._treeview.identify_row(event.y)
@@ -177,7 +223,7 @@ if __name__ == "__main__":
                    "stretch": False, "anchor": "center"},
                3: {"header": "Column 3", "width": 300,
                    "stretch": True, "anchor": "w"},}
-    
+
     root = tk.Tk()
     treeview = SimpleTreeview(root, columns)
 
