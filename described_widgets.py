@@ -135,6 +135,8 @@ class SimpleTreeview(ttk.Treeview):
                 values_dict[col] = values[i]
             treeview_dict[child] = values_dict
 
+        return treeview_dict
+
     def values_dict(self, iid, include_key = False):
         values = self.item(iid, "values")
         columns = self.get_columns(ids = False, include_key = include_key)
