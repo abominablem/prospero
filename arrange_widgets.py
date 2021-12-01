@@ -273,13 +273,11 @@ class WidgetSetComponent:
 
         self.is_spacer = (self.id < 0)
 
-    @log_class
     def __iter__(self):
         """ For simplicity, create an iterator of length 1 """
         self._i = -1
         return self
 
-    @log_class
     def __next__(self):
         if self._i < 0:
             self._i += 1
@@ -470,7 +468,7 @@ class WidgetSet(WidgetLayout):
                 self.frame.rowconfigure(r, weight = 0)
             else:
                 weights = [0]
-                for widget in self.widgets.values():
+                for widget_lst in self.widgets.values():
                     for widget in widget_lst:
                         if widget.check_collision((r, None)):
                             weights.append(widget.stretch_height_weight)
