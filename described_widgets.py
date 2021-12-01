@@ -4,12 +4,59 @@ Created on Sun Oct 31 15:30:08 2021
 
 @author: marcu
 """
-
+import inspect
 import tkinter as tk
 from tkinter import ttk
 
 def null_function(self, *args, **kwargs):
     return
+
+def test_not_none(val):
+    return not val is None
+
+def __func_arg_dict__(func, args, kwargs, exclude_self = True):
+    """ Return a dictionary of all named function arguments and their values """
+    sig = inspect.signature(func)
+    pars = sig.parameters.items()
+    par_names = [k for k, v in pars]
+    args_dict = {k: "__placeholder__" for k, v in pars}
+    if exclude_self:
+        del args_dict["self"]
+        par_names.remove("self")
+
+    # update with default argument values
+    args_dict.update({k: v.default for k, v in pars
+                      if v.default is not inspect.Parameter.empty})
+    # update with arg values aligned to the list of arg names
+    infer_args = {k: v for k, v in zip(par_names, args)}
+    args_dict.update(infer_args)
+    # update with kwargs
+    args_dict.update(kwargs)
+    return args_dict
+
+def __generate_event__(events, _test_arg = [], _cond = "or"):
+    """
+    Generate a list of events after the decorated function has been called
+    """
+    if isinstance(events, str):
+        events = [events]
+    def event_decorator(func):
+        def func_with_events(self, *args, **kwargs):
+            res = func(self, *args, **kwargs)
+            # get effective kwarg dict including args and default values
+            arg_dict = __func_arg_dict__(func, args, kwargs)
+            # test using the tuples of arg keywords and functions
+            arg_test_bool = [arg[1](arg_dict[arg[0]]) for arg in _test_arg]
+            arg_test_res = sum(arg_test_bool)
+
+            if ((_cond == "or" and arg_test_res > 0) or
+                (_cond == "and" and arg_test_res == len(arg_test_bool) - 1) or
+                _test_arg == []):
+                for event in events:
+                    self.event_generate(event, when = "tail")
+            return res
+        return func_with_events
+    return event_decorator
 
 class SimpleTreeview(ttk.Treeview):
     def __init__(self, master, colsdict, **kwargs):
@@ -25,6 +72,10 @@ class SimpleTreeview(ttk.Treeview):
 
         self.create_columns()
         self.events = SimpleTreeviewEvents(self)
+        """ custom event triggered when a value in the treeview is updated. In
+        practice this means whenever the set function is called with value not
+        None, or the item values are set """
+        self.events.add("<<ValueChange>>")
 
     def create_columns(self):
         self['columns'] = [col for col in self.columns if col != "#0"]
@@ -56,6 +107,7 @@ class SimpleTreeview(ttk.Treeview):
         except KeyError:
             return False
 
+    @__generate_event__("<<ValueChange>>", _test_arg = [("value", test_not_none)])
     def set_translate(self, item, column = None, value = None):
         """
         Equivalent to the parent set method except the column is translated
@@ -64,14 +116,23 @@ class SimpleTreeview(ttk.Treeview):
         if not column is None:
             column = self.translate_column(
                 column, to_id = not self.is_id(column))
-
         return super().set(item, column, value)
 
+    @__generate_event__("<<ValueChange>>", _test_arg = [("value", test_not_none)])
     def set(self, item, column = None, value = None):
         try:
             return super().set(item, column, value)
         except tk.TclError:
             return self.set_translate(item, column, value)
+
+
+    @__generate_event__("<<ValueChange>>")
+    def insert(self, parent, index, iid = None, **kw):
+        return super().insert(parent, index, iid, **kw)
+
+    @__generate_event__("<<ValueChange>>", _test_arg = [("values", test_not_none)])
+    def item(self, item, option = None, **kw):
+        return super().item(item, option, **kw)
 
     def clear(self):
         self.delete(*self.get_children())
@@ -113,10 +174,10 @@ class SimpleTreeview(ttk.Treeview):
     def from_json(self, json_dict):
         if not isinstance(json_dict, dict): raise TypeError
         for key, value in json_dict.items():
-            treeview.insert("", index = "end", text = key, iid = key,
-                            values = value)
+            self.insert("", index = "end", text = key, iid = key,
+                        values = value)
 
-    def to_dict(self, iid = None, include_key = False):
+    def get_dict(self, iid = None, include_key = False):
         if isinstance(iid, str):
             iid = [iid]
         elif iid is None:
@@ -229,8 +290,20 @@ if __name__ == "__main__":
     root = tk.Tk()
     treeview = SimpleTreeview(root, columns)
 
-    treeview.bind("<a>")
-    treeview.bind("<1>")
+    def test(event):
+        print("<<ValueChange>>")
+        print(event)
+
+    def addrow(event):
+        try:
+            treeview.insert('', 'end', iid = 'thing',
+                            text = 'thing%s' % event.serial)
+        except:
+            treeview.item('thing', values = ["abc", "def"])
+    treeview.bind("<1>", addrow)
+    treeview.bind("<<ValueChange>>", test)
+
+    # treeview.insert('', 'end', iid = 'thing', text = 'thing')
 
     treeview.grid(row = 0, column = 0)
     root.rowconfigure(0, weight = 1)
