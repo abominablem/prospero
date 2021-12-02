@@ -181,7 +181,7 @@ class SimpleTreeview(ttk.Treeview):
 
     def to_json(self):
         json_dict = {}
-        for child in treeview.get_children():
+        for child in self.get_children():
             json_dict[child] = self.item(child, 'values')
         return json_dict
 
