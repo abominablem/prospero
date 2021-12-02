@@ -34,26 +34,40 @@ def __func_arg_dict__(func, args, kwargs, exclude_self = True):
     args_dict.update(kwargs)
     return args_dict
 
-def __generate_event__(events, _test_arg = [], _cond = "or"):
+def __generate_event__(_events, _test_arg = [], _cond = "or"):
     """
     Generate a list of events after the decorated function has been called
+
+    _events is the list of event strings to generate. A string may be passed
+    to generate a single event.
+
+    _test_arg must be a list of tuples (kw, func) where kw is a keyword
+    argument of the decorated function, and func is a function evaluating to
+    True or False depending on if the event should be generated or not.
+
+    _cond must be either "or" or "and". If "or", the event is generated if at
+    least one test succeeds. If "and", the event is generated only if all tests
+    succeed.
     """
-    if isinstance(events, str):
-        events = [events]
+    if isinstance(_events, str):
+        _events = [_events]
     def event_decorator(func):
         def func_with_events(self, *args, **kwargs):
             res = func(self, *args, **kwargs)
             # get effective kwarg dict including args and default values
             arg_dict = __func_arg_dict__(func, args, kwargs)
             # test using the tuples of arg keywords and functions
-            arg_test_bool = [arg[1](arg_dict[arg[0]]) for arg in _test_arg]
+            arg_test_bool = []
+            for _arg in _test_arg:
+                try: arg_test_bool.append(_arg[1](arg_dict[_arg[0]]))
+                except: arg_test_bool.append(False)
             arg_test_res = sum(arg_test_bool)
 
             if ((_cond == "or" and arg_test_res > 0) or
                 (_cond == "and" and arg_test_res == len(arg_test_bool) - 1) or
                 _test_arg == []):
-                for event in events:
-                    self.event_generate(event, when = "tail")
+                for _event in _events:
+                    self.event_generate(_event, when = "tail")
             return res
         return func_with_events
     return event_decorator
@@ -178,7 +192,9 @@ class SimpleTreeview(ttk.Treeview):
                         values = value)
 
     def get_dict(self, iid = None, include_key = False):
+        single_iid = False
         if isinstance(iid, str):
+            single_iid = True
             iid = [iid]
         elif iid is None:
             iid = self.get_children()
@@ -190,8 +206,8 @@ class SimpleTreeview(ttk.Treeview):
 
         treeview_dict = {}
         for child in iid:
-            values = self.item(iid, "values")
-            values_dict = {key_col: iid} if include_key else {}
+            values = self.item(child, "values")
+            values_dict = {key_col: child} if include_key else {}
             for i, col in enumerate(columns):
                 values_dict[col] = values[i]
             treeview_dict[child] = values_dict
@@ -292,7 +308,6 @@ if __name__ == "__main__":
 
     def test(event):
         print("<<ValueChange>>")
-        print(event)
 
     def addrow(event):
         try:
@@ -300,6 +315,7 @@ if __name__ == "__main__":
                             text = 'thing%s' % event.serial)
         except:
             treeview.item('thing', values = ["abc", "def"])
+
     treeview.bind("<1>", addrow)
     treeview.bind("<<ValueChange>>", test)
 
