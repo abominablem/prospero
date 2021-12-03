@@ -352,8 +352,7 @@ class ValueFromFilename:
         else:
             set_text = self.txt_tag.get().strip()
 
-        set_text = self.clean_submission(set_text, self.column_string,
-                                         )
+        set_text = self.clean_submission(set_text, self.column_string)
 
         self.treeview.set(self.focus, self.column_id, set_text)
 
@@ -366,7 +365,6 @@ class ValueFromFilename:
             self.parent.set_final_name(self.focus)
 
         self.destroy()
-        self.parent.treeview_info["unsaved_changes"] = True
 
     def btnSubmit_ShiftClick(self, event):
         self.btnSubmit_Click(event)
@@ -379,11 +377,9 @@ class ValueFromFilename:
 
         if (self.txt_tag.get() == ""
             and self.txt_filename.selection_present() == True):
-            new_text = self.Get_SelectedTextClean(
-                self.txt_filename)
+            new_text = self.Get_SelectedTextClean(self.txt_filename)
         else:
-            new_text = self.Get_SelectedTextClean(
-                self.txt_tag)
+            new_text = self.Get_SelectedTextClean(self.txt_tag)
         new_text = new_text.lower()
 
         if self.txt_tag.selection_present():
@@ -402,11 +398,9 @@ class ValueFromFilename:
             return event
 
         if self.txt_tag.get() == "" and self.txt_filename.selection_present():
-            new_text = self.Get_SelectedTextClean(
-                self.txt_filename)
+            new_text = self.Get_SelectedTextClean(self.txt_filename)
         else:
-            new_text = self.Get_SelectedTextClean(
-                self.txt_tag)
+            new_text = self.Get_SelectedTextClean(self.txt_tag)
 
         new_text = new_text.upper()
 
@@ -526,22 +520,22 @@ class ValueFromFilename:
                 iid = self.row_iid,
                 columns = self.treeview.get_columns(include_key = True)
                 )
+
+            invalid_cols = ["Done", "Final name", "Genre", "Performer(s)",
+                            "URL", "", "Original name"]
+
+            # All columns we don't want to filter on
+            for col in invalid_cols:
+                try: del values[col]
+                except KeyError: pass
         else:
             values = {}
-
-        invalid_cols = ["Done", "Final name", "Genre", "Performer(s)", "URL",
-                        "", "Original name"]
-
-        # All columns we don't want to filter on
-        for col in invalid_cols:
-            try: del values[col]
-            except KeyError: pass
 
         insight_col = self.pr.insight_rn.map_field_names(self.column_string)
 
         if insight_col in invalid_cols:
             self.insight_values = []
-            return
+
 
         query = self.pr.insight_rn.get_insight(
             values = values, column = insight_col, distinct = True)

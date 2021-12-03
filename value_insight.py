@@ -40,7 +40,7 @@ class Insight(TableCon):
                 del_list.append(k)
 
         for k in del_list:
-                del values[k]
+            del values[k]
 
         filtered = self.filter(values, column, **f_kwargs)
         for k, v in filtered.items():
