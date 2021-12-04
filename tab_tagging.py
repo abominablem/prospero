@@ -14,16 +14,12 @@ from arrange_widgets import WidgetSet
 
 
 class Tagging :
-    def __init__(self, parent, trace = None):
+    def __init__(self, parent):
         self.name = "Tagging"
         self.pr = parent.pr
         self.root = parent.root
         self.parent = parent
         self.tab = parent.tab_tagging
-        
-        self.pr.f._log_trace(self, "__init__", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".__init__"}
         """
         ### FRAMES ###
         """
@@ -33,7 +29,6 @@ class Tagging :
         self.io_directory = IODirectory(
             parent = self,
             master = self.widget_frame,
-            trace = inf_trace,
             call_after_input = self.populate_file_list
             )
         """
@@ -61,7 +56,7 @@ class Tagging :
                                     "stretch": True}}
             )
 
-        self.treeviews = [self.treeview_input_files, 
+        self.treeviews = [self.treeview_input_files,
                           self.treeview_current_tags,
                           self.treeview_suggested_tags]
 
@@ -74,7 +69,7 @@ class Tagging :
             command = self.pr.f.null_function,
             **self.pr.c.button_light_standard_args
             )
-        
+
         """
         ### IMPORT FILES ###
         """
@@ -164,8 +159,7 @@ class Tagging :
                                               [6, -1, 5, -1, -1]
                                               ]
                                     )
-        self.widget_set.grid(row = 0, column = 0, **self.pr.c.grid_sticky,
-                             trace = inf_trace)
+        self.widget_set.grid(row = 0, column = 0, **self.pr.c.grid_sticky)
 
         self.tab.columnconfigure(index = 0, weight = 1)
         self.tab.rowconfigure(index = 0, weight = 1)
@@ -174,72 +168,67 @@ class Tagging :
         #refresh tags when moving up and down the file list with the arrow keys
         self.treeview_input_files.bind("<KeyRelease-Up>", lambda event: self.populate_current_tags_box(event, trace={"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<KeyRelease-Up>"}))
         self.treeview_input_files.bind("<KeyRelease-Down>", lambda event: self.populate_current_tags_box(event, trace={"source": "bound event", "widget": self.name + ".treeview_input_files", "event": "<KeyRelease-Down>"}))
-        
-        self.populate_file_list(trace = inf_trace)
+
+        self.populate_file_list()
         self._configure_last_called = datetime.min
 
-    def populate_file_list(self, event = None, trace = None):
-        self.pr.f._log_trace(self, "populate_file_list", trace)
+    def populate_file_list(self, event = None):
         """
         Clears all treeviews and re-populates the list of filenames
         """
-        
+
         if os.path.isdir(self.io_directory.input_directory):
             #clear all treeviews
             for tv in self.treeviews:
                 tv.clear()
-               
+
         #add all files in the specified directory with the correct extension
             for file in os.listdir(self.io_directory.input_directory):
                 filename, extension = os.path.splitext(file)
-                if extension == self.pr.c.file_extension:  
+                if extension == self.pr.c.file_extension:
                     self.treeview_input_files.insert(
                         "", index="end", text = filename, iid = filename)
         return event
-    
-    def populate_current_tags_box(self, event, trace = None):
-        self.pr.f._log_trace(self, "populate_current_tags_box", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".populate_current_tags_box"}
+
+    def populate_current_tags_box(self, event):
         """
         Updates the current and suggested tags Treeviews for the selected file
         """
         #Remove the current contents of each treeview
         for tv in [self.treeview_suggested_tags, self.treeview_current_tags]:
             tv.clear()
-        
+
         #Get the selected file in the inputs files treeview
         #Exit if nothing is selected
         if len(self.treeview_input_files.selection()) == 0:
             return
-        
+
         filename = self.treeview_input_files.selection()[0]
-        
+
         #Add suggested values to the relevant treeview
         suggested_tag_dict = \
-            self.pr.f.parse_tags_from_filename(filename, trace = inf_trace)
-        
+            self.pr.f.parse_tags_from_filename(filename, )
+
         #Add current values to the relevant treeview
         current_tag_dict = self.pr.f.get_tags(
-            directory = self.io_directory.input_directory, 
-            filename = filename + self.pr.c.file_extension, 
-            trace = inf_trace
+            directory = self.io_directory.input_directory,
+            filename = filename + self.pr.c.file_extension,
+
             )
-        
+
         for dct in [suggested_tag_dict, current_tag_dict]:
             for key, value in dct.items():
                 if value is None: value = ""
                 dct[key] = [value]
-        
+
         self.pr.f.json_to_treeview(treeview = self.treeview_suggested_tags,
                                    json_dict = suggested_tag_dict,
-                                   trace = inf_trace)
-        
+                                   )
+
         self.pr.f.json_to_treeview(treeview = self.treeview_current_tags,
                                    json_dict = current_tag_dict,
-                                   trace = inf_trace)
+                                   )
         return event
-   
-    def load_from_config(self, trace = None):
-        self.pr.f._log_trace(self, "load_from_config", trace)
-    
+
+    def load_from_config(self):
+        return
