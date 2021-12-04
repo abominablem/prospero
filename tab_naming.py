@@ -8,7 +8,6 @@ Created on Tue Apr 20 20:07:22 2021
 import tkinter as tk
 import config
 import os
-import re
 from datetime import datetime
 from search_box import SearchBox
 from io_directory import IODirectory
@@ -27,34 +26,25 @@ class Naming:
                   'year': 'Year',
                   'genre': 'genre',
                   'url': 'URL'}
-    
-    def __init__(self, parent, trace = None):
+
+    def __init__(self, parent):
         self.root = parent.root
         self.parent = parent
         self.pr = parent.pr
         self.tab = parent.tab_naming
         self.name = self.__class__.__name__
-        
-        self.pr.f._log_trace(self, "__init__", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".__init__"}
 
         frame_kwargs = {"bg": self.pr.c.colour_background}
         self.widget_frame = tk.Frame(self.tab, **frame_kwargs)
-        
+
         self.io_directory = IODirectory(
             parent = self,
             master = self.widget_frame,
-            trace = inf_trace, 
-            call_after_input = self.populate_treeview, 
+            call_after_input = self.populate_treeview,
             call_after_input_kwargs = {"populate_values": False}
             )
-        
-        self.search_box = SearchBox(
-            parent = self,
-            master = self.widget_frame,
-            trace = inf_trace
-            )
+
+        self.search_box = SearchBox(parent = self, master = self.widget_frame)
 
         self.treeview_info = {
             1: {"header": "Original name", "width": self.pr.c.width_text_long,
@@ -84,53 +74,55 @@ class Naming:
         self.file_list_treeview = dw.SimpleTreeview(
             self.widget_frame, self.treeview_info)
 
-        btnImportFiles = tk.Button(
+        btn_import_files = tk.Button(
             self.io_directory.frame,
-            text = "Import Files", 
-            background = self.pr.c.colour_interface_button, 
-            command = self._btnImportFiles_Click
+            text = "Import Files",
+            background = self.pr.c.colour_interface_button,
+            command = self._btn_import_files_Click
             )
-        self.io_directory.add_widget(widget = btnImportFiles, 
-                                     fixed_width = True, trace = inf_trace, 
-                                     row = "input", column = "end")
-        
-        btnRenameFiles = tk.Button(
+        self.io_directory.add_widget(
+            widget = btn_import_files, fixed_width = True, row = "input",
+            column = "end"
+            )
+
+        btn_rename_files = tk.Button(
             self.io_directory.frame,
-            text="Rename Files", 
-            background = self.pr.c.colour_interface_button, 
-            command = self._btnRenameFiles_click
+            text="Rename Files",
+            background = self.pr.c.colour_interface_button,
+            command = self._btn_rename_files_click
             )
-        self.io_directory.add_widget(widget = btnRenameFiles, 
-                                     fixed_width = True, trace = inf_trace, 
-                                     row = "output", column = btnImportFiles)
+        self.io_directory.add_widget(
+            widget = btn_rename_files, fixed_width = True, row = "output",
+            column = btn_import_files
+            )
 
         #search box
-        self.file_list_treeview.bind("<KeyPress-Alt_L>", lambda event: self._key_press_alt(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<KeyPress-Alt_L>"}))
-        self.file_list_treeview.bind("<KeyRelease-Alt_L>", lambda event: self._key_release_alt(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<KeyRelease-Alt_L>"}))
-        self.file_list_treeview.bind("<Alt-1>", lambda event: self._alt_mouse_1(event, trace = {"source": "bound event", "widget": "Naming.FileListTreeview", "event": "<Alt-1>"}))
-        
+        self.file_list_treeview.bind("<KeyPress-Alt_L>", self._key_press_alt)
+        self.file_list_treeview.bind("<KeyRelease-Alt_L>", self._key_release_alt)
+        self.file_list_treeview.bind("<Alt-1>", self._alt_mouse_1)
+
         #treeview values
         self.file_list_treeview.events.add("<1>")
-        self.file_list_treeview.bind("<Double-1>", lambda event: self.edit_value_via_interface(event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Double-1>"}))
-        self.file_list_treeview.bind("<Control-Shift-D>", lambda event: self.copy_around(direction = "up", event = event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
-        self.file_list_treeview.bind("<Control-d>", lambda event: self.copy_around(direction = "down", event = event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
-        self.file_list_treeview.bind("<Control-Shift-R>", lambda event: self.copy_around(direction = "left", event = event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
-        self.file_list_treeview.bind("<Control-r>", lambda event: self.copy_around(direction = "right", event = event, trace = {"source": "bound event", "widget": self.name + ".FileListTreeview", "event": "<Control-d>"}))
-        self.file_list_treeview.bind("<Control-s>", lambda event: self.save_treeview(event, trace = {"source": "bound event", "widget": self.name + ".save_treeview", "event": "<Control-s>"}))
-        
-        widgets = {1: {'widget': self.io_directory,
-                       'grid_kwargs': self.pr.c.grid_sticky,
-                       'stretch_width': True},
-                   2: {'widget': self.file_list_treeview,
-                       'grid_kwargs': self.pr.c.grid_sticky_padding_small,
-                       'stretch_width': True, 'stretch_height': True},
-                   3: {'widget': self.search_box,
-                       'grid_kwargs': self.pr.c.grid_sticky,
-                       'stretch_width': True},
-                   }
+        self.file_list_treeview.bind("<Double-1>", self.edit_value_via_interface)
+        self.file_list_treeview.bind("<Control-Shift-D>", lambda event: self.copy_around(direction = "up", event = event))
+        self.file_list_treeview.bind("<Control-d>", lambda event: self.copy_around(direction = "down", event = event))
+        self.file_list_treeview.bind("<Control-Shift-R>", lambda event: self.copy_around(direction = "left", event = event))
+        self.file_list_treeview.bind("<Control-r>", lambda event: self.copy_around(direction = "right", event = event))
+        self.file_list_treeview.bind("<Control-s>", self.save_treeview)
 
-        self.widget_set = WidgetSet(self.widget_frame,
-                                    widgets,
+        widgets = {
+            1: {'widget': self.io_directory,
+                'grid_kwargs': self.pr.c.grid_sticky,
+                'stretch_width': True},
+            2: {'widget': self.file_list_treeview,
+                'grid_kwargs': self.pr.c.grid_sticky_padding_small,
+                'stretch_width': True, 'stretch_height': True},
+            3: {'widget': self.search_box,
+                'grid_kwargs': self.pr.c.grid_sticky,
+                'stretch_width': True},
+            }
+
+        self.widget_set = WidgetSet(self.widget_frame, widgets,
                                     layout = [[1], [2], [3]])
         self.widget_set.grid(row = 0, column = 0, **self.pr.c.grid_sticky)
         self.tab.rowconfigure(index = 0, weight = 1)
@@ -138,63 +130,43 @@ class Naming:
 
         treeview_config = \
             config.config.config_dict[self.name]["FileListTreeview"]
-        
-        if "FileListTreeview" in config.config.config_dict[self.name].keys():
+
+        if "FileListTreeview" in config.config.config_dict[self.name]:
             if treeview_config["load_from_json"] == True:
                 if "treeview_values" in treeview_config.keys():
-                    self.pr.f.json_to_treeview(
-                        treeview = self.file_list_treeview,
-                        json_dict = treeview_config["treeview_values"],
-                        trace = inf_trace
-                        )
+                    self.file_list_treeview.from_json(
+                        treeview_config["treeview_values"])
         else:
-            self.populate_treeview(populate_values = False, trace = inf_trace)
-            
+            self.populate_treeview(populate_values = False)
+
         self._configure_last_called = datetime.min
 
-        return
-    
-    def _btnRenameFiles_click(self, trace = None):
-        self.pr.f._log_trace(self, "_btnRenameFiles_click", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + "._btnRenameFiles_click"}
-        
-        self.rename_valid_files(trace = inf_trace)
-        return
-    
-    def _btnImportFiles_Click(self, trace = None):
-        self.pr.f._log_trace(self, "_btnInputFiles_click", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + "._btnInputFiles_click"}
-        
+    def _btn_rename_files_click(self):
+        self.rename_valid_files()
+
+    def _btn_import_files_Click(self):
         populate_values = tk.messagebox.askquestion(
-            "Reset field values?", 
-            message="Do you want to reset all field values?", 
+            "Reset field values?",
+            message="Do you want to reset all field values?",
             default='no'
             )
         populate_values = (populate_values == 'yes')
-        self.populate_treeview(populate_values = populate_values, 
-                               trace = inf_trace)
-        return
-    
-    def populate_treeview(self, populate_values = True, trace = None):
-        self.pr.f._log_trace(self, "populate_treeview", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".populate_treeview"}
+        self.populate_treeview(populate_values = populate_values)
+
+    def populate_treeview(self, populate_values = True):
         """
-        Populate the treeview with file names, and optionally with 
+        Populate the treeview with file names, and optionally with
         suggested values
         """
         current_filenames = list(self.file_list_treeview.get_children())
         file_list = os.listdir(self.io_directory.input_directory)
-        new_filenames = [file[:-4] for file in file_list 
+        new_filenames = [file[:-4] for file in file_list
                          if file[-4:] == self.pr.c.file_extension]
-        
+
         #Update the list of filenames in the treeview, adding new filenames and
         #deleting old ones where appropriate
         #Assumes that the two lists of filenames are sorted in ascending
         #alphabetical order
-        
         i=0 #iterable for current_filenames
         j=0 #iterable for new_filenames
         len_c = len(current_filenames)
@@ -204,43 +176,42 @@ class Naming:
                 # Add the rest of the elements of New Filenames as rows
                 add, remove = True, False
                 new_name = new_filenames[j]
-                
+
             elif j > len_n-1:
                 # Remove the rest of the elements of Current Filenames
                 add, remove = False, True
                 cur_name = current_filenames[i]
-                
+
             else:
                 cur_name = current_filenames[i]
                 new_name = new_filenames[j]
                 cur_name_lower = cur_name.lower()
                 new_name_lower = new_name.lower()
-                
+
                 if cur_name == new_name:
                     add, remove = False, False
-                    
+
                 elif cur_name_lower < new_name_lower:
                     add, remove = False, True
-                    
+
                 elif cur_name_lower > new_name_lower:
                     add, remove = True, False
-                    
+
                 else:
                     add, remove = False, False
-            
-            #######
+
             if add:
-                values = self.get_values_from_filename(new_name, 
-                                                       trace = inf_trace)
-                self.file_list_treeview.insert("", 
-                                             index=j, 
-                                             text = new_name, 
-                                             iid = new_name, 
+                values = self.get_values_from_filename(new_name,
+                                                       )
+                self.file_list_treeview.insert("",
+                                             index=j,
+                                             text = new_name,
+                                             iid = new_name,
                                              values = values
                                              )
-                self.match_filename_pattern(new_name, trace = inf_trace)
-                self.match_keywords(new_name, trace = inf_trace)
-                self.set_final_name(new_name, trace = inf_trace)
+                self.match_filename_pattern(new_name)
+                self.match_keywords(new_name)
+                self.set_final_name(new_name)
                 i+=0
                 j+=1
             elif remove:
@@ -248,25 +219,22 @@ class Naming:
                 i+=1
                 j+=0
             elif populate_values:
-                values = self.get_values_from_filename(new_name, 
-                                                       trace = inf_trace)
+                values = self.get_values_from_filename(new_name,
+                                                       )
                 self.file_list_treeview.item(new_name, values = values)
-                self.match_filename_pattern(new_name, trace = inf_trace)
-                self.match_keywords(new_name, trace = inf_trace)
-                self.set_final_name(new_name, trace = inf_trace)
+                self.match_filename_pattern(new_name)
+                self.match_keywords(new_name)
+                self.set_final_name(new_name)
                 i+=1
                 j+=1
             else:
                 pass
                 i, j = i+1, j+1
         return
-        
-    def edit_value_via_interface(self, event, trace = None):
-        self.pr.f._log_trace(self, "edit_value_via_interface", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".edit_value_via_interface"}
+
+    def edit_value_via_interface(self, event):
         """
-        Open a window with the selected filename where a value can be specified 
+        Open a window with the selected filename where a value can be specified
         for the selected cell
         """
         #Identify the column clicked
@@ -274,14 +242,14 @@ class Naming:
 
         #exit if the first column (filename) is clicked
         if clicked_column_id == "#0":
-            return event 
-        
+            return
+
         #Identify the filename of the row clicked
         clicked_row = self.file_list_treeview.events.last["row"]
 
         # exit if an empty row is clicked
         if clicked_row is None or clicked_row == "":
-            return event
+            return
 
         ValueFromFilename(
             parent = self,
@@ -290,23 +258,20 @@ class Naming:
                 clicked_column_id
                 ),
             columnId = clicked_column_id,
-            treeview = self.file_list_treeview,
-            trace = inf_trace
+            treeview = self.file_list_treeview
             )
-        return event
-    
-    def match_keywords(self, filename, overwrite = False, trace = None):
+
+    def match_keywords(self, filename, overwrite = False):
         """
         Matches filename fields based on already entered keywords.
         Can take any number of Composer/Album/#/Track/Genre/Year and outputs
         some subset of those not taken as inputs.
         """
-        self.pr.f._log_trace(self, "match_keywords", trace)
         values_dict = {}
         for field in ["Composer", "Album", "#", "Genre", "Year", "Track"]:
             values_dict[field] = self.file_list_treeview.set_translate(
                 filename, field)
-            
+
         keyword_dicts = config.keyword_dict.regex_dict
 
         for keyword_key in keyword_dicts:
@@ -322,17 +287,13 @@ class Naming:
             #run only once a full set of valid pattern matches has been made
             for field in compare_dict['value']:
                 if values_dict[field] == "" or overwrite:
-                    self.file_list_treeview.set(filename, field, 
+                    self.file_list_treeview.set(filename, field,
                                               compare_dict['value'][field])
                     values_dict[field] = compare_dict['value'][field]
         return values_dict
-    
-    def match_filename_pattern(self, filename, overwrite = False, trace = None):
-        self.pr.f._log_trace(self, "match_filename_pattern", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name 
-                          + ".match_filename_pattern"}
-        match = self.pr.f.match_filename_pattern(filename, inf_trace)
+
+    def match_filename_pattern(self, filename, overwrite = False):
+        match = self.pr.f.match_filename_pattern(filename)
         for k in match:
             coln = self.column_map[k]
             if overwrite:
@@ -341,26 +302,17 @@ class Naming:
                 cur_v = self.file_list_treeview.set(filename, coln)
                 if cur_v.strip() == "" or cur_v is None:
                     self.file_list_treeview.set(filename, coln, match[k])
-        
-    
-    def get_values_from_filename(self, filename, trace = None):
-        self.pr.f._log_trace(self, "get_values_from_filename", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name 
-                         + ".get_values_from_filename"}
-        
-        values = [self.pr.f.suggest_value(filename, field, trace = inf_trace) 
+
+
+    def get_values_from_filename(self, filename):
+        values = [self.pr.f.suggest_value(filename, field)
                   for field in self.file_list_treeview.get_columns()]
         return values
 
-    def copy_around(self, direction, event = None, trace = None):
+    def copy_around(self, direction, event = None):
         """
         Copy a single value to multiple contiguous rows or an adjacent column.
         """
-        self.pr.f._log_trace(self, "copy_around", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".copy_around"}
-
         if not self.file_list_treeview.has_selection():
             return
 
@@ -395,148 +347,115 @@ class Naming:
                     func_map[direction](value_row), click_col_id)
 
             for item in selected_items:
-                self.set_treeview_value(item, click_col_id, copy_value,
-                                        trace = inf_trace)
+                self.set_treeview_value(item, click_col_id, copy_value)
         else:
             value_col = func_map[direction](click_col_id)
             for item in selected_items:
                 copy_value = self.file_list_treeview.set(item, value_col)
-                self.set_treeview_value(item, click_col_id, copy_value,
-                                        trace = inf_trace)
+                self.set_treeview_value(item, click_col_id, copy_value)
 
-    def set_treeview_value(self, item, column = None,
-                           value = None, trace = None):
-        self.pr.f._log_trace(self, "set_treeview_value", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".set_treeview_value"}
-
+    def set_treeview_value(self, item, column = None, value = None):
         self.file_list_treeview.set(item, column, value)
-        self.match_filename_pattern(item, trace = inf_trace)
-        self.match_keywords(item, trace = inf_trace)
-        self.set_final_name(item, trace = inf_trace)
+        self.match_filename_pattern(item)
+        self.match_keywords(item)
+        self.set_final_name(item)
 
-    def _key_press_alt(self, event, trace = None):
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + "._key_press_alt"}
+    def _key_press_alt(self, event):
         """
-        Create the search box GUI and maintain it while the bound key is held 
+        Create the search box GUI and maintain it while the bound key is held
         down
         """
-        self.search_box.maintain(trace = inf_trace)
-        return event
-    
-    def _key_release_alt(self, event, trace = None):
-        self.pr.f._log_trace(self, "_key_release_alt", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + "._key_release_alt"}
+        self.search_box.maintain()
+
+    def _key_release_alt(self, event):
         """
         Destroy the search box GUI when the bound key is released
         """
-        self.search_box.destroy(trace = inf_trace)
-        return event
-    
-    def _alt_mouse_1(self, event, trace = None):
-        self.pr.f._log_trace(self, "_alt_mouse_1", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + "._alt_mouse_1"}
-        
+        self.search_box.destroy()
+
+    def _alt_mouse_1(self, event):
         if self.search_box is None:
-            return event
-        
-        self.search_box.add(
-            self.file_list_treeview.events["Alt-1"]["cell"],
-            trace = inf_trace
-            )
-        return event
-    
-    def rename_valid_files(self, trace = None):
+            return
+        self.search_box.add(self.file_list_treeview.events["Alt-1"]["cell"])
+
+    def rename_valid_files(self):
         #prompt for confirmation of action
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".rename_valid_files"}
         message_box = tk.messagebox.askquestion(
-            "Rename all files", 
+            "Rename all files",
             "Are you sure you wish to tag and rename all files? Only files "
             "with valid final names will be affected.",
             icon = "warning"
             )
-        
-        if message_box == "yes":
-            self.pr.f._log_trace(self, "rename_valid_files", trace)
-            for filename in self.file_list_treeview.get_children():
-                new_filename = self.file_list_treeview.set(filename, "Final name")
-                inf_trace = {"source": "function call", 
-                             "parent": self.name + ".rename_valid_files", 
-                             "add": f"Tagged file {filename}, and renamed "
-                             f"to {new_filename}."}
-                if ((new_filename != "" and not new_filename is None) and
-                    (self.file_list_treeview.set(filename, "Done") != "✓")):
-                    exception = False
-                    text = None
-                    #File operation related exceptions, can be raised at any
-                    #point
+
+        if message_box != "yes":
+            return
+
+        for filename in self.file_list_treeview.get_children():
+            new_filename = self.file_list_treeview.set(filename, "Final name")
+            if ((new_filename != "" and not new_filename is None) and
+                (self.file_list_treeview.set(filename, "Done") != "✓")):
+                exception = False
+                text = None
+                #File operation related exceptions, can be raised at any
+                #point
+                try:
+                    #Tag file with ID3 tags
                     try:
-                        #Tag file with ID3 tags
-                        try:
-                            self.tag_file(filename, trace = inf_trace)
-                        except ValueError as e:
-                            text = str(e)
-                            raise
-                        except:
-                            text = "Failed to tag file"
-                            raise
-                        
-                        #Add keyword matches
-                        try:
-                            self.add_keyword_matching(filename, 
-                                                      trace = inf_trace)
-                        except:
-                            text = "Failed to add keyword matching"
-                            raise
-                            
-                        #Add to Insight
-                        try:
-                            self.add_insight(filename, trace = inf_trace)
-                        except:
-                            text = "Failed to add to Insight"
-                            raise
-                            
-                        #rename file
-                        v = {"old_directory": self.io_directory.input_directory,
-                             "old_name": filename + self.pr.c.file_extension,
-                             "new_directory": self.io_directory.output_directory,
-                             "new_name": new_filename + self.pr.c.file_extension}
-                        try:
-                            self.pr.f.rename_file(**v, trace = inf_trace)
-                        except:
-                            text = "Failed to rename file"
-                            raise
+                        self.tag_file(filename)
+                    except ValueError as e:
+                        text = str(e)
+                        raise
+                    except:
+                        text = "Failed to tag file"
+                        raise
 
-                    except FileNotFoundError:
-                        exception = True
-                        text = "Renaming failed, original file not found"
-                    except FileExistsError:
-                        exception = True
-                        text = "Renaming failed, new file already exists"
-                    except Exception as err:
-                        """ All errors not handled elsewhere """
-                        exception = True
-                        error = err
+                    #Add keyword matches
+                    try:
+                        self.add_keyword_matching(filename,
+                                                  )
+                    except:
+                        text = "Failed to add keyword matching"
+                        raise
 
-                    if exception:
-                        if text is None: text = "An unexpected error occurred"
-                        done_text = "✘ - %s (%s)" % (text, error)
-                    else:
-                        done_text = "✓"
-                    self.file_list_treeview.set(filename, "Done", done_text)
-                        
-            self.save_treeview(None, trace = inf_trace)
-        return
-    
-    def tag_file(self, filename, trace = None):
-        self.pr.f._log_trace(self, "tag_file", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".tag_file"}
-        
+                    #Add to Insight
+                    try:
+                        self.add_insight(filename)
+                    except:
+                        text = "Failed to add to Insight"
+                        raise
+
+                    #rename file
+                    v = {"old_directory": self.io_directory.input_directory,
+                         "old_name": filename + self.pr.c.file_extension,
+                         "new_directory": self.io_directory.output_directory,
+                         "new_name": new_filename + self.pr.c.file_extension}
+                    try:
+                        self.pr.f.rename_file(**v)
+                    except:
+                        text = "Failed to rename file"
+                        raise
+
+                except FileNotFoundError:
+                    exception = True
+                    text = "Renaming failed, original file not found"
+                except FileExistsError:
+                    exception = True
+                    text = "Renaming failed, new file already exists"
+                except Exception as err:
+                    """ All errors not handled elsewhere """
+                    exception = True
+                    error = err
+
+                if exception:
+                    if text is None: text = "An unexpected error occurred"
+                    done_text = "✘ - %s (%s)" % (text, error)
+                else:
+                    done_text = "✓"
+                self.file_list_treeview.set(filename, "Done", done_text)
+
+        self.save_treeview()
+
+    def tag_file(self, filename):
         tags = {
             "composer": self.file_list_treeview.set(filename, "Composer"),
             "album": self.file_list_treeview.set(filename, "Album"),
@@ -550,65 +469,44 @@ class Naming:
         self.pr.f.tag_file(
             directory = self.io_directory.input_directory,
             filename = filename,
-            tags = tags,
-            trace = inf_trace
+            tags = tags
             )
 
-    def save_treeview(self, event, trace = None):
-        self.pr.f._log_trace(self, "save_treeview", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".save_treeview"}
-        
-        config.config.config_dict[self.name]["FileListTreeview"]["treeview_values"] = (
-            self.pr.f.treeview_to_json(self.file_list_treeview, trace = inf_trace)
-            )
+    def save_treeview(self, event = None):
+        """ Save the treeview contents for recovery later. Immediately
+        dump to disk so if the program exits early the data is still
+        saved """
+        config.config.config_dict[self.name]["FileListTreeview"]["treeview_values"] = self.file_list_treeview.to_json()
         config.config.dump_values()
 
-    def set_final_name(self, filename, trace = None):
-        self.pr.f._log_trace(self, "set_final_name", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".set_final_name"}
+    def set_final_name(self, filename):
         self.file_list_treeview.set_translate(
             filename,
             "Final name",
             self.pr.f.filename_from_dict(
-                parts_dict = self.pr.f.get_values_dict(
-                    self.file_list_treeview,
-                    filename,
-                    self.file_list_treeview.get_columns(include_key = True)
-                    ),
-                trace = inf_trace
+                parts_dict = self.file_list_treeview.get_dict(
+                    iid = filename, include_key = True)
                 )
             )
 
-    def add_keyword_matching(self, filename, trace = None):
-        self.pr.f._log_trace(self, "add_keyword_matching", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".add_keyword_matching"}
+    def add_keyword_matching(self, filename):
         values_dict = {}
         for field in ["Composer", "Album", "#", "Genre", "Year", "Track"]:
             values_dict[field] = self.file_list_treeview.set(filename, field)
-        
-        self.pr.f.add_keyword_pattern(values_dict, trace = inf_trace)
-        
-    def add_insight(self, filename, trace = None):
-        self.pr.f._log_trace(self, "add_insight", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".add_insight"}
-        
-        values = self.pr.f.get_values_dict(
-            self.file_list_treeview,
-            filename,
-            columns = self.file_list_treeview.get_columns(include_key = True)
-            )
+
+        self.pr.f.add_keyword_pattern(values_dict)
+
+    def add_insight(self, filename):
+        values = self.file_list_treeview.get_dict(iid = filename,
+                                                  include_key = True)
         del values["Done"]
         values["original_path"] = self.io_directory.input_directory
         values["final_path"] = self.io_directory.output_directory
-        filepath = os.path.join(self.io_directory.input_directory, 
+        filepath = os.path.join(self.io_directory.input_directory,
                                 filename + self.pr.c.file_extension)
         ctime = datetime.utcfromtimestamp(os.path.getmtime(filepath))
         values["date_created"] = ctime
-        self.pr.insight_rn.add_row(**values, trace = inf_trace)
-        
-    def load_from_config(self, trace = None):
-        self.pr.f._log_trace(self, "load_from_config", trace)
+        self.pr.insight_rn.add_row(**values)
+
+    def load_from_config(self):
+        return
