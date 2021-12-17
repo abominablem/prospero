@@ -7,6 +7,9 @@ Created on Sun Oct 31 15:30:08 2021
 import inspect
 import tkinter as tk
 from tkinter import ttk
+from datetime import datetime
+from mh_logging import log_class
+from global_vars import LOG_LEVEL
 
 def null_function(self, *args, **kwargs):
     return
@@ -66,8 +69,13 @@ def __generate_event__(_events, _test_arg = [], _cond = "or"):
             if ((_cond == "or" and arg_test_res > 0) or
                 (_cond == "and" and arg_test_res == len(arg_test_bool) - 1) or
                 _test_arg == []):
+                event_args = {
+                    "x": self.winfo_pointerx(), "y": self.winfo_pointery(),
+                    "rootx": self.winfo_pointerx() - self.winfo_rootx(),
+                    "rooty": self.winfo_pointery() - self.winfo_rooty()
+                    }
                 for _event in _events:
-                    self.event_generate(_event, when = "tail")
+                    self.event_generate(_event, when = "tail", **event_args)
             return res
         return func_with_events
     return event_decorator
@@ -89,7 +97,7 @@ class SimpleTreeview(ttk.Treeview):
         """ custom event triggered when a value in the treeview is updated. In
         practice this means whenever the set function is called with value not
         None, or the item values are set """
-        self.events.add("<<ValueChange>>")
+        self.events.add("<<ValueChange>>", log = False)
 
     def create_columns(self):
         self['columns'] = [col for col in self.columns if col != "#0"]
@@ -108,11 +116,17 @@ class SimpleTreeview(ttk.Treeview):
 
     def translate_column(self, column, to_id = False):
         if to_id:
+            if self.is_id(column):
+                return column
+
             for col in self.columns.values():
                 if col.header == column:
                     return col.column
         else:
-            return self.columns[column].header
+            try:
+                return self.columns[column].header
+            except KeyError:
+                return column
 
     def is_id(self, field):
         try:
@@ -121,7 +135,6 @@ class SimpleTreeview(ttk.Treeview):
         except KeyError:
             return False
 
-    @__generate_event__("<<ValueChange>>", _test_arg = [("value", test_not_none)])
     def set_translate(self, item, column = None, value = None):
         """
         Equivalent to the parent set method except the column is translated
@@ -130,23 +143,46 @@ class SimpleTreeview(ttk.Treeview):
         if not column is None:
             column = self.translate_column(
                 column, to_id = not self.is_id(column))
-        return super().set(item, column, value)
+        res = super().set(item, column, value)
 
-    @__generate_event__("<<ValueChange>>", _test_arg = [("value", test_not_none)])
+        if value is not None:
+            self.events.log_event_dict("<<ValueChange>>", {
+                "row": item, "column": self.translate_column(column),
+                "cell": self.set(item, column)
+                })
+            self.event_generate("<<ValueChange>>", when = "tail")
+        return res
+
     def set(self, item, column = None, value = None):
         try:
-            return super().set(item, column, value)
+            res = super().set(item, column, value)
         except tk.TclError:
-            return self.set_translate(item, column, value)
+            res = self.set_translate(item, column, value)
 
+        if value is not None:
+            self.events.log_event_dict("<<ValueChange>>", {
+                "row": item, "column": self.translate_column(column),
+                "cell": self.set(item, column)
+                })
+            self.event_generate("<<ValueChange>>", when = "tail")
+        return res
 
-    @__generate_event__("<<ValueChange>>")
     def insert(self, parent, index, iid = None, **kw):
-        return super().insert(parent, index, iid, **kw)
+        res = super().insert(parent, index, iid, **kw)
 
-    @__generate_event__("<<ValueChange>>", _test_arg = [("values", test_not_none)])
+        self.events.log_event_dict("<<ValueChange>>", {
+            "row": iid, "column": "#0", "cell": None})
+        self.event_generate("<<ValueChange>>", when = "tail")
+        return res
+
     def item(self, item, option = None, **kw):
-        return super().item(item, option, **kw)
+        res = super().item(item, option, **kw)
+
+        if "values" in kw and kw["values"] is not None:
+            self.events.log_event_dict("<<ValueChange>>", {
+                "row": item, "column": "#0", "cell": None})
+            self.event_generate("<<ValueChange>>", when = "tail")
+        return res
 
     def clear(self):
         self.delete(*self.get_children())
@@ -176,7 +212,10 @@ class SimpleTreeview(ttk.Treeview):
 
     def bind(self, sequence = None, func = None, add = None):
         self.events.add(sequence, bind = False)
-        func = self.events._add_log_call(sequence = sequence, func = func)
+
+        if self.events._log_dict[sequence]:
+            func = self.events._add_log_call(sequence = sequence, func = func)
+
         super().bind(sequence, func, add)
 
     def to_json(self):
@@ -192,9 +231,7 @@ class SimpleTreeview(ttk.Treeview):
                         values = value)
 
     def get_dict(self, iid = None, include_key = False):
-        single_iid = False
         if isinstance(iid, str):
-            single_iid = True
             iid = [iid]
         elif iid is None:
             iid = self.get_children()
@@ -223,9 +260,12 @@ class SimpleTreeview(ttk.Treeview):
             columns = columns[1:]
         else:
             values_dict = {}
-
-        for i, col in enumerate(columns):
-            values_dict[col] = values[i]
+        try:
+            for i, col in enumerate(columns):
+                values_dict[col] = values[i]
+        except IndexError:
+            print("iid: %s" % iid) # debug
+            raise
 
         return values_dict
 
@@ -252,8 +292,11 @@ class SimpleTreeviewEvents:
             raise ValueError("Treeview must be instance of SimpleTreeview")
         self._treeview = simple_treeview
         self._edict = {}
-        self.last = {"column": None, "row": None, "cell": None}
+        self._log_dict = {}
+        self.last = {"column": None, "row": None, "cell": None,
+                     "sequence": None}
 
+    @log_class("min")
     def log_event(self, sequence, event, *args, **kwargs):
         """
         Log the col/row/cell under the cursor when the event is triggered
@@ -264,21 +307,37 @@ class SimpleTreeviewEvents:
             event_row if event_col == "#0" else
             self._treeview.set(event_row, event_col)
             )
-        self.last = {"column": event_col, "row": event_row, "cell": event_cell}
+        self.last = {"column": event_col, "row": event_row, "cell": event_cell,
+                     "sequence": sequence, "time": datetime.now()}
         self._edict[sequence] = {
-            "column": event_col, "row": event_row, "cell": event_cell
+            "column": event_col, "row": event_row, "cell": event_cell,
+            "time": datetime.now()
             }
 
-    def add(self, sequence, bind = True):
+    def log_event_dict(self, sequence, event_dict):
+        """
+        Log the col/row/cell using provided values
+        """
+        self._edict[sequence] = event_dict
+        event_dict["sequence"] = sequence
+        event_dict["time"] = datetime.now()
+        self.last = event_dict
+
+    def add(self, sequence, bind = True, log = True):
         """ Add an event for reference later """
         if not isinstance(sequence, str):
             for seq in sequence: self.add(seq)
         self._edict[sequence] = {"column": None, "row": None, "cell": None}
+
+        if sequence in self._log_dict:
+            log = self._log_dict[sequence]
+        else:
+            self._log_dict[sequence] = log
+
         if bind:
-            self._treeview.bind(
-                sequence,
-                self._add_log_call(sequence, null_function)
-                )
+            func = (self._add_log_call(sequence, null_function)
+                    if log else null_function)
+            self._treeview.bind(sequence, func)
 
     def _add_log_call(self, sequence, func = None):
         log_event = lambda event: self.log_event(sequence, event)
@@ -310,6 +369,7 @@ if __name__ == "__main__":
         print("<<ValueChange>>")
 
     def addrow(event):
+        print(treeview.events["<<ValueChange>>"])
         try:
             treeview.insert('', 'end', iid = 'thing',
                             text = 'thing%s' % event.serial)
