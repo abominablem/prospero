@@ -10,6 +10,7 @@ from functools import reduce
 import tkinter as tk
 
 from mh_logging import log, log_class
+from global_vars import LOG_LEVEL
 
 @log
 def lcm(*args):
@@ -23,7 +24,7 @@ class WidgetLayout:
     Base class containing layout logic for the WidgetSet classes. Should
     not be instantiated directly.
     """
-    @log_class
+    @log_class(LOG_LEVEL)
     def __init__(self, layout):
         self.original_layout = layout[:]
         self.span, self.height, self.indices = None, None, None
@@ -33,7 +34,7 @@ class WidgetLayout:
         self.height = self.get_height(layout)
         self.layout = self._normalise_layout(layout)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _normalise_layout(self, layout):
         """
         Clean the specified layout. If all values are non-lists, assume all
@@ -163,14 +164,14 @@ class WidgetLayout:
         # self.span_dict = {k: int(span_dict[k]/span_gcd) for k in span_dict}
         return layout
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _scale_list(self, lst, scale):
         lst_out = []
         for x in lst:
             lst_out += [x]*scale
         return lst_out
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _reduce_layout(self, layout):
         """
         Reduce a layout to the smallest possible version which preserves all
@@ -184,7 +185,7 @@ class WidgetLayout:
         count_gcd = reduce(gcd, counts)
         return [layer[::count_gcd] for layer in layout], count_gcd
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _count_sequence(self, lst, value, start = 0):
         """
         Count the number of sequential occurrences of a value in a list after
@@ -200,7 +201,7 @@ class WidgetLayout:
         except ValueError:
             return 0
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _get_indices(self, layout):
         if self.indices is None:
             indices = list(set([i for layer in layout
@@ -208,7 +209,7 @@ class WidgetLayout:
             self.indices = indices
         return self.indices
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _check_layout(self, layout):
         for i, layer in enumerate(layout):
             vdict = {x: layer.count(x) for x in set(layer)}
@@ -222,7 +223,7 @@ class WidgetLayout:
                    "columnspan": self._get_column_span(num)
                    })
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def get_span(self, layout = None):
         if self.span is None:
             if layout is None: layout = self.layout
@@ -230,7 +231,7 @@ class WidgetLayout:
             self.span = lcm(*lengths)
         return self.span
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def get_height(self, layout = None):
         if self.height is None:
             if layout is None: layout = self.layout
@@ -244,7 +245,7 @@ class WidgetSetComponent:
     Container for attributes of a widget. Grid references must be set
     externally.
     """
-    @log_class
+    @log_class(LOG_LEVEL)
     def __init__(self, id, wdict):
         self.name = __class__.__name__
         self.id = id
@@ -285,23 +286,23 @@ class WidgetSetComponent:
         else:
             raise StopIteration
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def set_grid_refs(self, **kwargs):
         self.__dict__.update(kwargs)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def grid_refs(self):
         return {"row": self.row,
                 "column": self.column,
                 "rowspan": self.rowspan,
                 "columnspan": self.columnspan}
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def grid(self, **kwargs):
         self.widget.grid(**kwargs)
         self.placed = True
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def check_collision(self, rc):
         assert len(rc) == 2
         # If widget has not been placed in window, it cannot collide
@@ -316,7 +317,7 @@ class WidgetSetComponent:
 
 
 class WidgetSet(WidgetLayout):
-    @log_class
+    @log_class(LOG_LEVEL)
     def __init__(self, frame, widgets, layout):
         """
         Parameters
@@ -356,7 +357,7 @@ class WidgetSet(WidgetLayout):
 
         self.create_widgets()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def create_widgets(self):
         if self.widgets == {}: return
         for wdgt_lst in self.widgets.values():
@@ -368,14 +369,14 @@ class WidgetSet(WidgetLayout):
         self._create_spacers()
         self.rc_configure()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _get_grid_refs(self, key):
         return {"row": self._get_grid_row(key),
                 "column": self._get_grid_column(key),
                 "rowspan": self._get_row_span(key),
                 "columnspan": self._get_column_span(key)}
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _get_row_span(self, key):
         i = 0
         for n, layer in enumerate(self.layout):
@@ -383,19 +384,19 @@ class WidgetSet(WidgetLayout):
                 i += 1
         return None if i == 0 else i
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _get_column_span(self, key):
         for layer in self.layout:
             count = layer.count(key)
             if count != 0: return count
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _get_grid_row(self, key):
         for n, layer in enumerate(self.layout):
             if key in layer:
                 return n
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _get_grid_column(self, key):
         """
         Return index of first column widget appears
@@ -406,7 +407,7 @@ class WidgetSet(WidgetLayout):
             except:
                 continue
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _create_spacers(self):
         for i, layer in enumerate(self.layout):
             for j, x in enumerate(layer):
@@ -420,14 +421,14 @@ class WidgetSet(WidgetLayout):
                     else:
                         self.widgets[x] += widget
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _get_spacer(self, id, wdict):
         if not 'widget' in wdict:
             widget_kwargs = wdict.get('widget_kwargs', {})
             wdict['widget'] = tk.Label(self.frame, **widget_kwargs)
         return WidgetSetComponent(id, wdict)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def rc_configure(self):
         """
         Configure the row/column allocation of scaling changes. Strictly
@@ -476,15 +477,15 @@ class WidgetSet(WidgetLayout):
 
         self.rc_config = rc_cfg
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def grid(self, **kwargs):
         self.frame.grid(**kwargs)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def rowconfigure(self, **kwargs):
         self.frame.rowconfigure(**kwargs)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def columnconfigure(self, **kwargs):
         self.frame.columnconfigure(**kwargs)
 
@@ -496,7 +497,7 @@ class ButtonSet(WidgetSet):
 
     Creates a frame which contains the button set.
     """
-    @log_class
+    @log_class(LOG_LEVEL)
     def __init__(self, root, buttons, set_width, layout, frm_kwargs,
                  trace = None):
         self.buttons = buttons
@@ -507,21 +508,19 @@ class ButtonSet(WidgetSet):
         for key in self._get_indices(self.layout):
             if key < 0:
                 self.buttons[key] = {
-                    "widget_kwargs": {
-                        "width": int(self.set_width/self.span)
-                                     }
+                    "widget_kwargs": {"width": int(self.set_width/self.span)}
                     }
             else:
                 self.add_button(key)
         self.set_widgets(self.buttons)
         self.create_widgets()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def set_widgets(self, wdict):
         self.widgets = {key: WidgetSetComponent(key, wdict[key])
                         for key in wdict}
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def add_button(self, key):
         if key < 0: return
         btn_width = int(self.set_width*self._get_column_span(key)/self.span)
