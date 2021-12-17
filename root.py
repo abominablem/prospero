@@ -21,9 +21,10 @@ from settings_window import Settings
 from arrange_widgets import WidgetSet
 import config
 from mh_logging import log_class
+from global_vars import LOG_LEVEL
 
 class Prospero:
-    @log_class
+    @log_class(LOG_LEVEL)
     def __init__(self):
         self.pr = self
         self.root = tk.Tk()
@@ -34,9 +35,7 @@ class Prospero:
         self.start_time = datetime.now()
 
         self.f = prf.Functions(parent = self)
-
         self.c = prc.Constants(parent = self)
-
         self.r = prr.Resources(parent = self)
 
         self.insight_rn = Insight(type = "renames", debug = self.testing_mode)
@@ -54,8 +53,6 @@ class Prospero:
             "URL": "url",
             "Final name": "final_name"}
             )
-
-        # self.f._log_trace(self, "__init__", trace)
 
         self.root.title("Prospero - MP3 file handling and ID3v2 tagging")
         self.root.configure(bg = self.c.colour_background,
@@ -136,7 +133,7 @@ class Prospero:
         #handles the window close event
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _style(self, trace = None):
         self.style = ttk.Style(self.root)
         self.style.theme_use("clam")
@@ -168,12 +165,12 @@ class Prospero:
         self.style.map("TNotebook.Tab", background = [('selected', self.c.colour_prospero_blue_pastel)])
         self.style.map("TNotebook.Tab", foreground = [('selected', self.c.colour_offwhite_text)])
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def start(self, trace = None):
         self.root.eval('tk::PlaceWindow . center')
         self.root.mainloop()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def destroy(self, event = None, trace = None):
         self.running = False
         self.audio_functions.audio_interface.end_audio_process()
@@ -188,12 +185,12 @@ class Prospero:
         config.numerals_dict.dump_values()
         return event
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def open_settings(self, event = None, trace = None):
         self.settings = Settings(self, run_on_destroy = self.apply_settings)
         self.settings.start()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def apply_settings(self, event = None, trace = None):
         # Update the settings changed for each tab
         self.audio_functions.load_from_config()
