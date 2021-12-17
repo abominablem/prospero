@@ -14,8 +14,9 @@ import prospero_constants as prc
 import prospero_functions as prf
 import prospero_resources as prr
 
-from mh_logging import Logging
-
+from global_vars import LOG_LEVEL
+from mh_logging import Logging, log_class
+from arrange_widgets import WidgetSet
 log = Logging()
 
 class SettingsWidget:
@@ -23,8 +24,8 @@ class SettingsWidget:
     Wraps a tkinter widget and provides generic getter/setter methods.
     Must explicitly support a given tkinter widget type.
     """
-    def __init__(self, root, type, trace = None, datatype = str, **kwargs):
-        log.log_trace(self, "__init__", trace)
+    @log_class(LOG_LEVEL)
+    def __init__(self, root, type, datatype = str, **kwargs):
         self.root = root
         self.type = type.lower()
         self.datatype = datatype
@@ -44,16 +45,16 @@ class SettingsWidget:
         else:
             raise ValueError("Unsupported widget type %s" % type)
 
-    def get_value(self, trace = None):
-        log.log_trace(self, "get_value", trace)
+    @log_class(LOG_LEVEL)
+    def get_value(self):
         if self.type == "entry":
             v = self.widget.get()
         elif self.type == "checkbutton":
             v = (self.var.get() == 1)
         return self.datatype(v)
 
-    def set_value(self, value, trace = None):
-        log.log_trace(self, "set_value", trace)
+    @log_class(LOG_LEVEL)
+    def set_value(self, value):
         if self.type == "entry":
             self.widget.delete(0, "end")
             self.widget.insert(0, value)
@@ -61,8 +62,8 @@ class SettingsWidget:
             value = 1 if value == True else 0
             self.var.set(value)
 
-    def grid(self, trace = None, **kwargs):
-        log.log_trace(self, "grid", trace)
+    @log_class(LOG_LEVEL)
+    def grid(self, **kwargs):
         self.widget.grid(**kwargs)
 
 
@@ -74,11 +75,9 @@ class SettingsTab:
     widgets based on specified value locations in the config, and save the
     updated values back to the config.
     """
-    def __init__(self, root, tab_list, kwargs_dict = None, trace = None):
-        log.log_trace(self, "__init__", trace)
+    @log_class(LOG_LEVEL)
+    def __init__(self, root, tab_list, kwargs_dict = None):
         self.name = self.__class__.__name__
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".__init__"}
         self.root = root
         self.tab_list = tab_list
         self.widgets = {}
@@ -94,7 +93,7 @@ class SettingsTab:
         self.frame.rowconfigure(0, weight = 1)
 
         for i, row in enumerate(tab_list):
-            wrow = self.create_row(**row, trace = inf_trace,
+            wrow = self.create_row(**row,
                                    frame = self.frame)
             wrow["label"].grid(row = i, column = 0,
                                **self.kwargs_dict["grid"])
@@ -103,14 +102,13 @@ class SettingsTab:
 
         self.populate()
 
-    def create_row(self, label, type, location, datatype = str, frame = None,
-                   trace = None):
+    @log_class(LOG_LEVEL)
+    def create_row(self, label, type, location, datatype = str, frame = None):
         """
         Create a label and widget pair tied to a specific location in the
         config file and widget type. Optionally, specify a frame to add the
         widget to for alignment purposes.
         """
-        log.log_trace(self, "create_row", trace)
         if frame is None:
             row_frame = tk.Frame(self.frame, **self.kwargs_dict["frame"])
         else:
@@ -134,14 +132,13 @@ class SettingsTab:
             return {"label": label,
                     "widget": widget}
 
-    def get_config_value(self, location, trace = None):
+    @log_class(LOG_LEVEL)
+    def get_config_value(self, location):
         """
-        Get the value at a given location in the config. Location is a list, 
+        Get the value at a given location in the config. Location is a list,
         with the first entry specifying the file, and all others iterating
         through dictionary layers.
         """
-        log.log_trace(self, "get_config_value", trace)
-
         file = location[0]
         if file == "config":
             value = config.config.config_dict
@@ -153,14 +150,15 @@ class SettingsTab:
 
         return value
 
-    def set_config_value(self, value, location, trace = None):
+    @log_class(LOG_LEVEL)
+    def set_config_value(self, value, location):
         """
         Set the value at a given location in the config.
         """
         if value == "D:/Users/Marcus/Documents/R Documents/Music/Test":
             print("123")
             pass
-        log.log_trace(self, "set_config_value", trace,
+        log.log_trace(self, "set_config_value", None,
                       add = "Updated config value at location %s to %s"
                           % (".".join(location), value)
                       )
@@ -176,23 +174,21 @@ class SettingsTab:
             else:
                 vdict[key] = value
 
-    def save(self, trace = None):
+    @log_class(LOG_LEVEL)
+    def save(self):
         """
         Save all updated values in the widgets to the config file.
         """
-        log.log_trace(self, "save", trace)
-
         for label, widget in self.widgets.items():
             value = widget.get_value()
             location = self.locations[label]
             self.set_config_value(value, location)
 
-    def populate(self, trace = None):
+    @log_class(LOG_LEVEL)
+    def populate(self):
         """
         Populate widgets with the current config values.
         """
-        log.log_trace(self, "populate", trace)
-
         for label, widget in self.widgets.items():
             location = self.locations[label]
             value = self.get_config_value(location)
@@ -205,14 +201,12 @@ class Settings:
     Toplevel class wrapping the Settings window. This allows interaction with
     the underlying config JSON.
     """
-    def __init__(self, parent, run_on_destroy = None, trace = None):
+    @log_class(LOG_LEVEL)
+    def __init__(self, parent, run_on_destroy = None):
         self.parent = parent
         self.root = parent.root
         self.pr = parent.pr
         self.name = self.__class__.__name__
-        self.pr.f._log_trace(self, "__init__", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".__init__"}
 
         self.run_on_destroy = run_on_destroy
 
@@ -220,129 +214,28 @@ class Settings:
                                   background = self.pr.c.colour_background)
         self.window.title("Prospero - Settings and config")
 
-        self.title_frame = tk.Frame(
-            self.window, 
-            background = self.pr.c.colour_prospero_blue
-            )
-        TitleFrameGridRow = 0
-        TitleFrameGridColumn = 0
-        TitleFrameColumnSpan = self.pr.c.columnspan_all
-        TitleFrameRowSpan = 1
-        self.title_frame.grid(row = TitleFrameGridRow,
-                              column = TitleFrameGridColumn,
-                              columnspan = TitleFrameColumnSpan,
-                              rowspan = TitleFrameRowSpan,
-                              sticky = "nesw"
-                              )
-        
-        self.selection_frame = tk.Frame(
-            self.window, 
-            background = self.pr.c.colour_background
-            )
-        SelectionFrameGridRow = TitleFrameGridRow + TitleFrameRowSpan
-        SelectionFrameGridColumn = TitleFrameGridColumn
-        SelectionFrameColumnSpan = 1
-        SelectionFrameRowSpan = 1
-        self.selection_frame.grid(row = SelectionFrameGridRow,
-                              column = SelectionFrameGridColumn,
-                              columnspan = SelectionFrameColumnSpan,
-                              rowspan = SelectionFrameRowSpan,
-                              sticky = "nesw"
-                              )
-        
-        self.settings_frame = tk.Frame(
-            self.window, 
-            background = self.pr.c.colour_background
-            )
-        SettingsFrameGridRow = SelectionFrameGridRow
-        SettingsFrameGridColumn = (SelectionFrameGridColumn 
-                                   + SelectionFrameColumnSpan)
-        SettingsFrameColumnSpan = 1
-        SettingsFrameRowSpan = SelectionFrameRowSpan
-        self.settings_frame.grid(row = SettingsFrameGridRow,
-                              column = SettingsFrameGridColumn,
-                              columnspan = SettingsFrameColumnSpan,
-                              rowspan = SettingsFrameRowSpan,
-                              sticky = "nesw"
-                              )
-        """
-        #######################################################################
-        ############################ TITLE BAR ################################
-        #######################################################################
-        """
-        
-        SettingsIconGridRow = 0
-        SettingsIconGridColumn = 0
-        SettingsIconColumnSpan = 1
-        SettingsIconRowSpan = 1
+        frame_kwargs = {"bg": self.pr.c.colour_background}
+        self.widget_frame = tk.Frame(self.window, **frame_kwargs)
 
-        try:
-            if self.pr.draw_logo:
-                self.icon_settings = tk.Label(
-                    self.title_frame,
-                    image = self.pr.r.icon_settings_image,
-                    background = self.pr.c.colour_prospero_blue, 
-                    anchor = "e", 
-                    padx = self.pr.c.padding_large, 
-                    pady = self.pr.c.padding_small
-                    )
-                self.icon_settings.grid(row = SettingsIconGridRow,
-                                        column = SettingsIconGridColumn,
-                                        columnspan = SettingsIconColumnSpan,
-                                        rowspan = SettingsIconRowSpan, 
-                                        sticky = "nsew")
-        except tk.TclError:
-            pass
+        self.settings_icon = tk.Label(
+            self.window, image = self.pr.r.icon_settings_image,
+            background = self.pr.c.colour_prospero_blue, anchor = "e",
+            padx = self.pr.c.padding_large, pady = self.pr.c.padding_small)
 
-        MainTitleGridRow = SettingsIconGridRow
-        MainTitleGridColumn = SettingsIconGridColumn + SettingsIconColumnSpan
-        MainTitleColumnSpan = 1
-        MainLogoRowSpan = SettingsIconRowSpan
-        
         #Add the title next to it
-        self.labelTitle = tk.Label(
-            self.title_frame,
-            text = "Settings",
+        self.title_label = tk.Label(
+            self.window, text = "Settings",
             background = self.pr.c.colour_prospero_blue,
             foreground = self.pr.c.colour_offwhite_text,
-            padx = 20,
-            pady = 10,
-            font = self.pr.c.font_prospero_title, 
-            anchor = "w"
-            ) 
-        self.labelTitle.grid(row = MainTitleGridRow,
-                            column = MainTitleGridColumn,
-                            columnspan = MainTitleColumnSpan,
-                            rowspan = MainLogoRowSpan, 
-                            sticky = "nesw")
+            padx = 20, pady = 10, font = self.pr.c.font_prospero_title,
+            anchor = "w")
 
-        """
-        #######################################################################
-        ########################## SELECTION TREE #############################
-        #######################################################################
-        """
-        
-        self.selection_treeview = ttk.Treeview(self.selection_frame, 
-                                               show = "tree")
-        
-        self.selection_treeview.grid(row=0,column=0, columnspan=1, 
-                                     rowspan=self.pr.c.columnspan_all, 
-                                     **self.pr.c.grid_sticky_padding_small
-                                     )
-        self.selection_separator = ttk.Separator(self.selection_frame, 
-                                                 orient = "vertical")
-        self.selection_separator.grid(row=0, column=1, columnspan=1,
-                                      rowspan = self.pr.c.columnspan_all,
-                                      sticky="nesw")
-        
-        """
-        #######################################################################
-        ########################## SETTINGS TABS ##############################
-        #######################################################################
-        """
+        self.selection_treeview = ttk.Treeview(self.window, show = "tree")
+
+        self.selection_separator = ttk.Separator(self.window, orient = "vertical")
         self.settings_tabs = ttk.Notebook(self.window)
-        
-        nb_kwargs = {"master": self.settings_tabs, 
+
+        nb_kwargs = {"master": self.settings_tabs,
                      "bg": self.pr.c.colour_background}
         self.naming_settings = tk.Frame(**nb_kwargs)
         self.audio_functions_settings = tk.Frame(**nb_kwargs)
@@ -358,11 +251,6 @@ class Settings:
         for tab in self.tabs_dict:
             self.settings_tabs.add(self.tabs_dict[tab],
                                    text = tab, **tab_kwargs)
-
-        self.settings_tabs.grid(row = 1, column = 1,
-                                columnspan = self.pr.c.columnspan_all,
-                                sticky = "nesw")
-
 
         self.entries = {
             "Naming": [
@@ -438,7 +326,7 @@ class Settings:
                 root = self.tabs_dict[tab],
                 tab_list = self.entries[tab],
                 kwargs_dict = self.kwargs_dict,
-                trace = inf_trace
+
                 )
 
         self.footer_frame = tk.Frame(
@@ -453,8 +341,6 @@ class Settings:
             command = self.apply_settings,
             width = 8
             )
-        self.apply_button.grid(row = 0, column = 1,
-                               **self.pr.c.grid_sticky_padding_small)
 
         self.cancel_button = tk.Button(
             self.footer_frame,
@@ -463,8 +349,6 @@ class Settings:
             command = self.destroy,
             width = 8
             )
-        self.cancel_button.grid(row = 0, column = 2,
-                               **self.pr.c.grid_sticky_padding_small)
 
         self.ok_button = tk.Button(
             self.footer_frame,
@@ -473,34 +357,54 @@ class Settings:
             command = self.apply_and_exit,
             width = 8
             )
-        self.ok_button.grid(row = 0, column = 3,
-                               **self.pr.c.grid_sticky_padding_small)
 
-        self.footer_frame.grid(row = 2, column = 0,
-                               columnspan = self.pr.c.columnspan_all,
-                               **self.pr.c.grid_sticky)
+        widgets = {
+            1: {'widget': self.settings_icon,
+                'grid_kwargs': self.pr.c.grid_sticky},
+            2: {'widget': self.title_label,
+                'grid_kwargs': self.pr.c.grid_sticky,
+                'stretch_width': True},
+            3: {'widget': self.selection_treeview,
+                'grid_kwargs': self.pr.c.grid_sticky,
+                'stretch_height': True},
+            4: {'widget': self.selection_separator,
+                'grid_kwargs': self.pr.c.grid_sticky,
+                'stretch_height': True},
+            5: {'widget': self.settings_tabs,
+                'grid_kwargs': self.pr.c.grid_sticky,
+                'stretch_width': True, 'stretch_height': True},
+            6: {'widget': self.footer_frame,
+                'grid_kwargs': self.pr.c.grid_sticky,
+                'stretch_width': True},
+            }
+
+        self.widget_set = WidgetSet(self.widget_frame, widgets,
+                                    layout = [[1, 2], [3, 4, 5], [6]])
+        self.widget_set.grid(row = 0, column = 0, **self.pr.c.grid_sticky)
+        self.window.rowconfigure(index = 0, weight = 1)
+        self.window.columnconfigure(index = 0, weight = 1)
 
         """
         #######################################################################
         ######################## ALLOCATE SCALING #############################
         #######################################################################
         """
-        self.window.columnconfigure(TitleFrameGridColumn, weight=1)
-        self.window.columnconfigure(SelectionFrameGridColumn, weight=1)
-        self.window.columnconfigure(SettingsFrameGridColumn, weight=4)
-        self.selection_frame.columnconfigure(0, weight=1)
-        self.selection_frame.columnconfigure(1, weight=0)
-        self.title_frame.columnconfigure(MainTitleGridColumn, weight=0)
+        # self.window.columnconfigure(TitleFrameGridColumn, weight=1)
+        # self.window.columnconfigure(SelectionFrameGridColumn, weight=1)
+        # self.window.columnconfigure(SettingsFrameGridColumn, weight=4)
+        # self.selection_frame.columnconfigure(0, weight=1)
+        # self.selection_frame.columnconfigure(1, weight=0)
+        # self.title_frame.columnconfigure(MainTitleGridColumn, weight=0)
 
-        # Fix the widths of the three buttons
-        self.footer_frame.columnconfigure(0, weight = 1)
-        self.footer_frame.columnconfigure(1, weight = 0)
-        self.footer_frame.columnconfigure(2, weight = 0)
-        self.footer_frame.columnconfigure(3, weight = 0)
-        
-        self.window.rowconfigure(SelectionFrameGridRow, weight=1)
-        self.selection_frame.rowconfigure(0, weight=1)
-        self.selection_frame.rowconfigure(1, weight=0)
+        # # Fix the widths of the three buttons
+        # self.footer_frame.columnconfigure(0, weight = 1)
+        # self.footer_frame.columnconfigure(1, weight = 0)
+        # self.footer_frame.columnconfigure(2, weight = 0)
+        # self.footer_frame.columnconfigure(3, weight = 0)
+
+        # self.window.rowconfigure(SelectionFrameGridRow, weight=1)
+        # self.selection_frame.rowconfigure(0, weight=1)
+        # self.selection_frame.rowconfigure(1, weight=0)
 
         """
         #######################################################################
@@ -510,37 +414,34 @@ class Settings:
         self.populate_settings_list()
         self.window.protocol("WM_DELETE_WINDOW", self.destroy)
 
-    def apply_settings(self, *args, trace = None):
-        self.pr.f._log_trace(self, "apply_settings", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".apply_settings"}
+    @log_class(LOG_LEVEL)
+    def apply_settings(self, *args):
         for tab in self.SettingsTab_dict.values():
-            tab.save(trace = inf_trace)
+            tab.save()
 
-    def apply_and_exit(self, *args, trace = None):
-        self.pr.f._log_trace(self, "apply_and_exit", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.name + ".apply_and_exit"}
-        self.apply_settings(*args, trace = inf_trace)
-        self.destroy(*args, trace = inf_trace)
+    @log_class(LOG_LEVEL)
+    def apply_and_exit(self, *args):
+        self.apply_settings(*args)
+        self.destroy(*args)
 
-    def populate_settings_list(self, trace = None):
-        self.pr.f._log_trace(self, "populate_settings_list", trace)
+    @log_class(LOG_LEVEL)
+    def populate_settings_list(self):
         for txt in self.tabs_dict:
             self.selection_treeview.insert("", index = "end",
                                            text = txt, iid = txt)
 
-    def start(self, trace = None):
-        self.pr.f._log_trace(self, "start", trace)
+    @log_class(LOG_LEVEL)
+    def start(self):
         self.root.eval('tk::PlaceWindow %s center' % str(self.window))
         self.window.attributes('-topmost', 'true')
         self.window.transient(self.root)
         self.window.grab_set()
         self.window.mainloop()
-        
-    def destroy(self, *args, trace = None):
-        self.pr.f._log_trace(self, "destroy", trace)
-        self.run_on_destroy()
+
+    @log_class(LOG_LEVEL)
+    def destroy(self, *args):
+        if not self.run_on_destroy is None:
+            self.run_on_destroy()
         self.window.destroy()
 
 
@@ -552,7 +453,7 @@ if __name__ == "__main__":
             self.root.title("Prospero main window")
             self.testing_mode = True
             self.draw_logo = True
-            
+
             self.f = prf.Functions(parent = self)
             self.c = prc.Constants(parent = self)
             self.r = prr.Resources(parent = self)
