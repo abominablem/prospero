@@ -7,6 +7,7 @@ Created on Tue Apr 20 20:10:38 2021
 
 import json
 from mh_logging import log_class
+from global_vars import LOG_LEVEL
 
 class JSONDict:
     """
@@ -57,7 +58,7 @@ class JSONDict:
 
         Allowed parameters are composer, album, number, track, genre, and year.
     """
-    @log_class
+    @log_class(LOG_LEVEL)
     def __init__(self, dict_type):
         """
         Takes one string parameter. This should correspond to a json file
@@ -72,7 +73,7 @@ class JSONDict:
         if self.dict_type == "config":
             self.config_dict = self.regex_dict
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def add_value(self, regex, result, override_existing = False):
         """
         Given a RegEx pattern and result, tries to create a map between them in
@@ -90,7 +91,7 @@ class JSONDict:
         else:
             self.regex_dict[regex] = result
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def delete_value(self, keys):
         """
         Given a list of keys, remove the corresponding dictionary entries
@@ -104,7 +105,7 @@ class JSONDict:
             except KeyError:
                 raise KeyError("Invalid key, nothing to delete")
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def dump_values(self):
         """
         Writes the current dictionary state to file
@@ -115,7 +116,7 @@ class JSONDict:
         with open(self.filename, "w", encoding='utf-8') as json_file:
             json.dump(self.regex_dict, json_file)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def add_regex_pattern_words(self, include_words, exclude_words, result):
         """
         Given a list of words to include and words to exclude, adds a regex
@@ -139,7 +140,7 @@ class JSONDict:
         #add to dictionary
         self.add_value(regex_str, result)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def add_keyword_pattern(self, **kwargs):
         """
         Each input should be a dictionary of (value, role) where role is
