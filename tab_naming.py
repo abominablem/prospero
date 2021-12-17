@@ -8,12 +8,15 @@ Created on Tue Apr 20 20:07:22 2021
 import tkinter as tk
 import config
 import os
+import inspect
 from datetime import datetime
 from search_box import SearchBox
 from io_directory import IODirectory
 from arrange_widgets import WidgetSet
 from value_from_filename import ValueFromFilename
+from global_vars import LOG_LEVEL
 import described_widgets as dw
+from mh_logging import log_class
 
 class Naming:
     column_map = {'composer': 'Composer',
@@ -27,6 +30,7 @@ class Naming:
                   'genre': 'genre',
                   'url': 'URL'}
 
+    @log_class(LOG_LEVEL)
     def __init__(self, parent):
         self.root = parent.root
         self.parent = parent
@@ -104,10 +108,10 @@ class Naming:
         #treeview values
         self.file_list_treeview.events.add("<1>")
         self.file_list_treeview.bind("<Double-1>", self.edit_value_via_interface)
-        self.file_list_treeview.bind("<Control-Shift-D>", lambda event: self.copy_around(direction = "up", event = event))
-        self.file_list_treeview.bind("<Control-d>", lambda event: self.copy_around(direction = "down", event = event))
-        self.file_list_treeview.bind("<Control-Shift-R>", lambda event: self.copy_around(direction = "left", event = event))
-        self.file_list_treeview.bind("<Control-r>", lambda event: self.copy_around(direction = "right", event = event))
+        self.file_list_treeview.bind("<Control-Shift-D>", lambda event: self.copy_around("up", event))
+        self.file_list_treeview.bind("<Control-d>", lambda event: self.copy_around("down", event))
+        self.file_list_treeview.bind("<Control-Shift-R>", lambda event: self.copy_around("left", event))
+        self.file_list_treeview.bind("<Control-r>", lambda event: self.copy_around("right", event))
         self.file_list_treeview.bind("<Control-s>", self.save_treeview)
 
         widgets = {
@@ -140,10 +144,30 @@ class Naming:
             self.populate_treeview(populate_values = False)
 
         self._configure_last_called = datetime.min
+        self.iter_check = 0
+        self.file_list_treeview.bind("<<ValueChange>>", self.update_final_name)
 
+    @log_class(LOG_LEVEL)
+    def update_final_name(self, event):
+        """
+        Update the final name of the last updated file names treeview row
+        """
+        vc_event = self.file_list_treeview.events["<<ValueChange>>"]
+        updated_col = vc_event["column"]
+        updated_row = vc_event["row"]
+        if updated_col == "Final name": return
+        elif updated_row is None: return
+
+        new_filename = self.pr.f.filename_from_dict(
+            parts_dict = self.file_list_treeview.values_dict(updated_row)
+            )
+        self.file_list_treeview.set(updated_row, "Final name", new_filename)
+
+    @log_class(LOG_LEVEL)
     def _btn_rename_files_click(self):
         self.rename_valid_files()
 
+    @log_class(LOG_LEVEL)
     def _btn_import_files_Click(self):
         populate_values = tk.messagebox.askquestion(
             "Reset field values?",
@@ -153,6 +177,7 @@ class Naming:
         populate_values = (populate_values == 'yes')
         self.populate_treeview(populate_values = populate_values)
 
+    @log_class(LOG_LEVEL)
     def populate_treeview(self, populate_values = True):
         """
         Populate the treeview with file names, and optionally with
@@ -203,15 +228,11 @@ class Naming:
             if add:
                 values = self.get_values_from_filename(new_name,
                                                        )
-                self.file_list_treeview.insert("",
-                                             index=j,
-                                             text = new_name,
-                                             iid = new_name,
-                                             values = values
-                                             )
+                self.file_list_treeview.insert(
+                    "", index = j, text = new_name, iid = new_name,
+                    values = values)
                 self.match_filename_pattern(new_name)
                 self.match_keywords(new_name)
-                self.set_final_name(new_name)
                 i+=0
                 j+=1
             elif remove:
@@ -224,7 +245,6 @@ class Naming:
                 self.file_list_treeview.item(new_name, values = values)
                 self.match_filename_pattern(new_name)
                 self.match_keywords(new_name)
-                self.set_final_name(new_name)
                 i+=1
                 j+=1
             else:
@@ -232,6 +252,7 @@ class Naming:
                 i, j = i+1, j+1
         return
 
+    @log_class(LOG_LEVEL)
     def edit_value_via_interface(self, event):
         """
         Open a window with the selected filename where a value can be specified
@@ -261,6 +282,7 @@ class Naming:
             treeview = self.file_list_treeview
             )
 
+    @log_class(LOG_LEVEL)
     def match_keywords(self, filename, overwrite = False):
         """
         Matches filename fields based on already entered keywords.
@@ -292,6 +314,7 @@ class Naming:
                     values_dict[field] = compare_dict['value'][field]
         return values_dict
 
+    @log_class(LOG_LEVEL)
     def match_filename_pattern(self, filename, overwrite = False):
         match = self.pr.f.match_filename_pattern(filename)
         for k in match:
@@ -303,12 +326,13 @@ class Naming:
                 if cur_v.strip() == "" or cur_v is None:
                     self.file_list_treeview.set(filename, coln, match[k])
 
-
+    @log_class(LOG_LEVEL)
     def get_values_from_filename(self, filename):
         values = [self.pr.f.suggest_value(filename, field)
                   for field in self.file_list_treeview.get_columns()]
         return values
 
+    @log_class(LOG_LEVEL)
     def copy_around(self, direction, event = None):
         """
         Copy a single value to multiple contiguous rows or an adjacent column.
@@ -332,7 +356,7 @@ class Naming:
 
         single_row = (len(selected_items) == 1)
 
-        index_map = {"up": 0, "down": -1, "left": 0, "right": -1}
+        index_map = {"up": -1, "down": 0, "left": 0, "right": -1}
         func_map = {
             "up": self.file_list_treeview.next,
             "down": self.file_list_treeview.prev,
@@ -345,6 +369,9 @@ class Naming:
             if single_row:
                 copy_value = self.file_list_treeview.set(
                     func_map[direction](value_row), click_col_id)
+            else:
+                copy_value = self.file_list_treeview.set(
+                    value_row, click_col_id)
 
             for item in selected_items:
                 self.set_treeview_value(item, click_col_id, copy_value)
@@ -354,12 +381,13 @@ class Naming:
                 copy_value = self.file_list_treeview.set(item, value_col)
                 self.set_treeview_value(item, click_col_id, copy_value)
 
+    @log_class(LOG_LEVEL)
     def set_treeview_value(self, item, column = None, value = None):
         self.file_list_treeview.set(item, column, value)
         self.match_filename_pattern(item)
         self.match_keywords(item)
-        self.set_final_name(item)
 
+    @log_class(LOG_LEVEL)
     def _key_press_alt(self, event):
         """
         Create the search box GUI and maintain it while the bound key is held
@@ -367,17 +395,20 @@ class Naming:
         """
         self.search_box.maintain()
 
+    @log_class(LOG_LEVEL)
     def _key_release_alt(self, event):
         """
         Destroy the search box GUI when the bound key is released
         """
         self.search_box.destroy()
 
+    @log_class(LOG_LEVEL)
     def _alt_mouse_1(self, event):
         if self.search_box is None:
             return
         self.search_box.add(self.file_list_treeview.events["Alt-1"]["cell"])
 
+    @log_class(LOG_LEVEL)
     def rename_valid_files(self):
         #prompt for confirmation of action
         message_box = tk.messagebox.askquestion(
@@ -455,6 +486,7 @@ class Naming:
 
         self.save_treeview()
 
+    @log_class(LOG_LEVEL)
     def tag_file(self, filename):
         tags = {
             "composer": self.file_list_treeview.set(filename, "Composer"),
@@ -472,23 +504,14 @@ class Naming:
             tags = tags
             )
 
+    @log_class(LOG_LEVEL)
     def save_treeview(self, event = None):
         """ Save the treeview contents for recovery later. Immediately
-        dump to disk so if the program exits early the data is still
-        saved """
+        dump to disk so if the program exits early the data is still saved """
         config.config.config_dict[self.name]["FileListTreeview"]["treeview_values"] = self.file_list_treeview.to_json()
         config.config.dump_values()
 
-    def set_final_name(self, filename):
-        self.file_list_treeview.set_translate(
-            filename,
-            "Final name",
-            self.pr.f.filename_from_dict(
-                parts_dict = self.file_list_treeview.get_dict(
-                    iid = filename, include_key = True)
-                )
-            )
-
+    @log_class(LOG_LEVEL)
     def add_keyword_matching(self, filename):
         values_dict = {}
         for field in ["Composer", "Album", "#", "Genre", "Year", "Track"]:
@@ -496,6 +519,7 @@ class Naming:
 
         self.pr.f.add_keyword_pattern(values_dict)
 
+    @log_class(LOG_LEVEL)
     def add_insight(self, filename):
         values = self.file_list_treeview.get_dict(iid = filename,
                                                   include_key = True)
@@ -508,5 +532,6 @@ class Naming:
         values["date_created"] = ctime
         self.pr.insight_rn.add_row(**values)
 
+    @log_class(LOG_LEVEL)
     def load_from_config(self):
         return
