@@ -8,6 +8,7 @@ Created on Thu Jul 29 23:40:24 2021
 from datetime import datetime
 import inspect
 import os
+from global_vars import LOG_LEVEL
 
 class Logging:
     def __init__(self, log = True):
@@ -113,26 +114,56 @@ def try_iterate(f_dict, keys, err):
         except err:
             continue
 
-def log_class(func):
-    """ Decorator to add simple logging to class function """
-    def _func_with_log(self, *args, **kwargs):
-        try:
-            stack_level = inspect.stack()[1]
-            parent, key = try_iterate(
-                stack_level[0].f_locals,
-                ["__class__", "__file__", "self", "event"],
-                KeyError
-                )
-            if key == "__file__":
-                parent = os.path.basename(parent)
+def log_class(log_level = "all"):
+    """
+    Decorator to add simple logging to class function
+    log_levels:
+        all : Inspect the stack to determine where function was called from.
+              This is the slowest option
+        min : Log the function call but do not inspect the stack
+        none : No logging.
+    """
+    # if no log_level provided, assume log_level is "all" and the argument
+    # is in fact the function itself.
+    inferred_func = None
+    if not log_level in ["all", "min", "none"]:
+        inferred_func = log_level
+        log_level = "all"
 
-            trace = _log_instance.get_trace(
-                parent = parent,
-                source = "function call",
-                function = stack_level[3]
-                )
-        except:
-            trace = {"trace": None}
-        _log_instance(self, func.__name__, **trace)
-        return func(self, *args, **kwargs)
-    return _func_with_log
+    def decorator_creator(func):
+        def _log_all(self, *args, **kwargs):
+            try:
+                stack_level = inspect.stack()[1]
+                parent, key = try_iterate(
+                    stack_level[0].f_locals,
+                    ["__class__", "__file__", "self", "event"],
+                    KeyError
+                    )
+                if key == "__file__":
+                    parent = os.path.basename(parent)
+
+                trace = _log_instance.get_trace(
+                    parent = parent,
+                    source = "function call",
+                    function = stack_level[3]
+                    )
+            except:
+                trace = {"trace": None}
+            _log_instance(self, func.__name__, **trace)
+            return func(self, *args, **kwargs)
+
+        def _log_min(self, *args, **kwargs):
+            _log_instance(self, func.__name__, trace = None)
+            return func(self, *args, **kwargs)
+
+        def _log_none(self, *args, **kwargs):
+            return func(self, *args, **kwargs)
+
+        if log_level == "all": return _log_all
+        elif log_level == "min": return _log_min
+        else: return _log_none
+
+    if inferred_func is not None:
+        return decorator_creator(inferred_func)
+    else:
+        return decorator_creator
