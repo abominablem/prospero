@@ -28,7 +28,6 @@ class Prospero:
     def __init__(self):
         self.pr = self
         self.root = tk.Tk()
-        self.name = self.__class__.__name__
 
         self.testing_mode = True
         self.running = True
@@ -56,8 +55,8 @@ class Prospero:
 
         self.root.title("Prospero - MP3 file handling and ID3v2 tagging")
         self.root.configure(bg = self.c.colour_background,
-                            padx = 15,
-                            pady = 10)
+                            padx = 0,
+                            pady = 0)
 
         self.widget_frame = tk.Frame(self.root,
                                      bg = self.pr.c.colour_background)
@@ -134,7 +133,7 @@ class Prospero:
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
 
     @log_class(LOG_LEVEL)
-    def _style(self, trace = None):
+    def _style(self):
         self.style = ttk.Style(self.root)
         self.style.theme_use("clam")
         #This handles the styling for the Treeview HEADER
@@ -166,12 +165,12 @@ class Prospero:
         self.style.map("TNotebook.Tab", foreground = [('selected', self.c.colour_offwhite_text)])
 
     @log_class(LOG_LEVEL)
-    def start(self, trace = None):
+    def start(self):
         self.root.eval('tk::PlaceWindow . center')
         self.root.mainloop()
 
     @log_class(LOG_LEVEL)
-    def destroy(self, event = None, trace = None):
+    def destroy(self, event = None):
         self.running = False
         self.audio_functions.audio_interface.end_audio_process()
         self.insight_rn.close()
@@ -186,12 +185,12 @@ class Prospero:
         return event
 
     @log_class(LOG_LEVEL)
-    def open_settings(self, event = None, trace = None):
+    def open_settings(self, event = None):
         self.settings = Settings(self, run_on_destroy = self.apply_settings)
         self.settings.start()
 
     @log_class(LOG_LEVEL)
-    def apply_settings(self, event = None, trace = None):
+    def apply_settings(self, event = None):
         # Update the settings changed for each tab
         self.audio_functions.load_from_config()
         self.audio_functions.audio_interface.load_from_config()
