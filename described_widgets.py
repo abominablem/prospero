@@ -11,9 +11,6 @@ from datetime import datetime
 from mh_logging import log_class
 from global_vars import LOG_LEVEL
 
-def null_function(self, *args, **kwargs):
-    return
-
 def test_not_none(val):
     return not val is None
 
@@ -79,6 +76,70 @@ def __generate_event__(_events, _test_arg = [], _cond = "or"):
             return res
         return func_with_events
     return event_decorator
+
+class WidgetEvents:
+    @log_class(LOG_LEVEL)
+    def __init__(self, widget):
+        self.widget = widget
+        self._edict = {}
+        self._log_dict = {}
+        self.last = {}
+
+    @log_class(LOG_LEVEL)
+    def null_function(self, *args, **kwargs):
+        return
+
+    @log_class(LOG_LEVEL)
+    def log_event(self, sequence, event, **kwargs):
+        """
+        This method should be overwritten with the logic for any specific event
+        attributes to be logged
+        """
+        raise NotImplementedError
+        event_dict = {}
+        self.log_event_dict(sequence, event_dict)
+
+    @log_class(LOG_LEVEL)
+    def log_event_dict(self, sequence, event_dict):
+        """ Log the event using provided dict """
+        event_dict["time"] = datetime.now()
+        event_dict["sequence"] = sequence
+        self._edict[sequence] = event_dict
+        self.last = event_dict
+
+    @log_class(LOG_LEVEL)
+    def add(self, sequence, bind = True, log = True):
+        """ Add an event for reference later """
+        if not isinstance(sequence, str):
+            for seq in sequence: self.add(seq)
+        self._edict[sequence] = {"column": None, "row": None, "cell": None}
+
+        if sequence in self._log_dict:
+            log = self._log_dict[sequence]
+        else:
+            self._log_dict[sequence] = log
+
+        if bind:
+            func = (self._add_log_call(sequence, self.null_function)
+                    if log else self.null_function)
+            self.widget.bind(sequence, func)
+
+    @log_class(LOG_LEVEL)
+    def _add_log_call(self, sequence, func = None):
+        log_event = lambda event: self.log_event(sequence, event)
+        if func is None:
+            return log_event
+        else:
+            def _log_call_with_func(event):
+                log_event(event)
+                return func(event)
+            return _log_call_with_func
+
+    def __getitem__(self, arg):
+        if arg[0] != "<" and arg[-1] != ">":
+            arg = "<%s>" % arg
+        return self._edict[arg]
+
 
 class SimpleTreeview(ttk.Treeview):
     def __init__(self, master, colsdict, **kwargs):
@@ -286,73 +347,30 @@ class SimpleTreeviewColumn:
             )
         self.treeview.heading(self.column, text = self.header)
 
-class SimpleTreeviewEvents:
+class SimpleTreeviewEvents(WidgetEvents):
+    @log_class(LOG_LEVEL)
     def __init__(self, simple_treeview):
         if not isinstance(simple_treeview, SimpleTreeview):
             raise ValueError("Treeview must be instance of SimpleTreeview")
-        self._treeview = simple_treeview
-        self._edict = {}
-        self._log_dict = {}
+        super().__init__(simple_treeview)
         self.last = {"column": None, "row": None, "cell": None,
-                     "sequence": None}
+                     "sequence": None, "time": None}
 
-    @log_class("min")
-    def log_event(self, sequence, event, *args, **kwargs):
+    @log_class(LOG_LEVEL)
+    def log_event(self, sequence, event, **kwargs):
         """
         Log the col/row/cell under the cursor when the event is triggered
         """
-        event_col = self._treeview.identify_column(event.x)
-        event_row = self._treeview.identify_row(event.y)
+        event_col = self.widget.identify_column(event.x)
+        event_row = self.widget.identify_row(event.y)
         event_cell = (
             event_row if event_col == "#0" else
-            self._treeview.set(event_row, event_col)
+            self.widget.set(event_row, event_col)
             )
-        self.last = {"column": event_col, "row": event_row, "cell": event_cell,
-                     "sequence": sequence, "time": datetime.now()}
-        self._edict[sequence] = {
-            "column": event_col, "row": event_row, "cell": event_cell,
-            "time": datetime.now()
+        event_dict = {
+            "column": event_col, "row": event_row, "cell": event_cell, **kwargs
             }
-
-    def log_event_dict(self, sequence, event_dict):
-        """
-        Log the col/row/cell using provided values
-        """
-        self._edict[sequence] = event_dict
-        event_dict["sequence"] = sequence
-        event_dict["time"] = datetime.now()
-        self.last = event_dict
-
-    def add(self, sequence, bind = True, log = True):
-        """ Add an event for reference later """
-        if not isinstance(sequence, str):
-            for seq in sequence: self.add(seq)
-        self._edict[sequence] = {"column": None, "row": None, "cell": None}
-
-        if sequence in self._log_dict:
-            log = self._log_dict[sequence]
-        else:
-            self._log_dict[sequence] = log
-
-        if bind:
-            func = (self._add_log_call(sequence, null_function)
-                    if log else null_function)
-            self._treeview.bind(sequence, func)
-
-    def _add_log_call(self, sequence, func = None):
-        log_event = lambda event: self.log_event(sequence, event)
-        if func is None:
-            return log_event
-        else:
-            def _log_call_with_func(event):
-                log_event(event)
-                return func(event)
-            return _log_call_with_func
-
-    def __getitem__(self, arg):
-        if arg[0] != "<" and arg[-1] != ">":
-            arg = "<%s>" % arg
-        return self._edict[arg]
+        self.log_event_dict(sequence, event_dict)
 
 if __name__ == "__main__":
     columns = {1: {"header": "Column 1", "width": 400,
