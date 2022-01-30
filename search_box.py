@@ -10,26 +10,20 @@ import os
 from datetime import datetime
 
 class SearchBox:
-    def __init__(self, parent, master, trace = None):
+    def __init__(self, parent, master):
         self.pr = parent.pr
         self.parent = parent
         self.master = master
-
-        self.pr.f._log_trace(self, "__init__", trace)
 
         self._last_destroyed = datetime.min
         self._last_button_pressed = datetime.min
         self.active = False
 
-    def maintain(self, trace = None):
-        inf_trace = {"source": "function call", 
-                     "parent": self.__class__.__name__ + ".maintain"}
+    def maintain(self):
         if not self.active:
-            self.pr.f._log_trace(self, "maintain", trace)
-            self.create(trace = inf_trace)
+            self.create()
 
-    def create(self, trace = None):
-        self.pr.f._log_trace(self, "create", trace)
+    def create(self):
         """
         Create the search box GUI
         """
@@ -41,7 +35,7 @@ class SearchBox:
             datetime.now() - self._last_button_pressed).total_seconds()
         if seconds_elapsed_destroyed < 1 and seconds_elapsed_button < 1:
             return
-            
+
         self.active = True
 
         self.frame = tk.Frame(self.master,
@@ -80,26 +74,26 @@ class SearchBox:
             width = 15,
             command = self.pr.f.null_function
             )
-        
-        self.search_box_label.grid(row = 0, column = 0, sticky = "nesw", 
-                                   padx = self.pr.c.padding_small, 
+
+        self.search_box_label.grid(row = 0, column = 0, sticky = "nesw",
+                                   padx = self.pr.c.padding_small,
                                    pady = self.pr.c.padding_small)
-        self.search_box.grid(row = 0, column = 1, sticky = "nesw", 
-                             padx = self.pr.c.padding_small, 
+        self.search_box.grid(row = 0, column = 1, sticky = "nesw",
+                             padx = self.pr.c.padding_small,
                              pady = self.pr.c.padding_small)
-        self.google_button.grid(row = 0, column = 2, sticky = "nesw", 
-                                padx = self.pr.c.padding_small_left_only, 
+        self.google_button.grid(row = 0, column = 2, sticky = "nesw",
+                                padx = self.pr.c.padding_small_left_only,
                                 pady = self.pr.c.padding_small)
-        self.imslp_button.grid(row = 0, column = 3, sticky = "nesw", 
+        self.imslp_button.grid(row = 0, column = 3, sticky = "nesw",
                                pady = self.pr.c.padding_small)
-        self.go_to_url_button.grid(row = 0, column = 4, sticky = "nesw", 
-                                   padx = self.pr.c.padding_small_right_only, 
+        self.go_to_url_button.grid(row = 0, column = 4, sticky = "nesw",
+                                   padx = self.pr.c.padding_small_right_only,
                                    pady = self.pr.c.padding_small)
-        
+
         self.google_button.bind("<Alt-1>", lambda event: self.search(event, "google", trace = {"source": "bound event", "widget": "SearchBox.create", "event": "<Alt-1>"}))
         self.imslp_button.bind("<Alt-1>", lambda event: self.search(event, "imslp", trace = {"source": "bound event", "widget": "SearchBox.create", "event": "<Alt-1>"}))
         self.go_to_url_button.bind("<Alt-1>", lambda event: self.search(event, "go_to_url", trace = {"source": "bound event", "widget": "SearchBox.create", "event": "<Alt-1>"}))
-        
+
         #weight the label and textbox equally so the textbox always takes up half the window, minus the fixed width buttons
         self.frame.columnconfigure(0, weight=1)
         self.frame.columnconfigure(1, weight=1)
@@ -116,8 +110,7 @@ class SearchBox:
         if self.active:
             self.frame.grid(**kwargs)
 
-    def destroy(self, trace = None):
-        self.pr.f._log_trace(self, "destroy", trace)
+    def destroy(self):
         """
         Destroy the search box GUI
         """
@@ -128,17 +121,13 @@ class SearchBox:
             self.imslp_button.destroy()
             self.frame.destroy()
             self.go_to_url_button.destroy()
-            
+
             self._last_destroyed = datetime.now()
             self.active = False
 
-    def search(self, event, site, trace = None):
-        self.pr.f._log_trace(self, "search", trace)
-        inf_trace = {"source": "function call", 
-                     "parent": self.__class__.__name__ + ".search"}
-        
+    def search(self, event, site):
         self._last_button_pressed = datetime.now()
-        
+
         site = site.lower()
         if site == "google":
             url_prefix = "http://google.com/search?q="
@@ -149,20 +138,18 @@ class SearchBox:
         elif site == "go_to_url":
             url_prefix = ""
             phrase = self.search_box.get().strip()
-            
+
         phrase = self.search_box.get().strip().replace(" ", "+")
-        self.destroy(trace = inf_trace)
+        self.destroy()
         command = 'start "" %s%s' % (url_prefix, phrase)
         os.system(command)
         return event
 
-    def add(self, text, trace = None):
-        self.pr.f._log_trace(self, "add", trace)
-        
+    def add(self, text):
         if not self.active:
             raise Exception("Object %s.search_box not active"
                             % self.__class__.__name__)
             return
-        
+
         if text != "":
             self.search_box.insert("end", " " + text)
