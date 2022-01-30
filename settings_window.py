@@ -7,6 +7,8 @@ Created on Mon Jun  7 21:59:50 2021
 
 import tkinter as tk
 from tkinter import ttk
+import sys
+sys.path.append("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Packages")
 
 import config
 
@@ -16,7 +18,7 @@ import prospero_resources as prr
 
 from global_vars import LOG_LEVEL
 from mh_logging import Logging, log_class
-from arrange_widgets import WidgetSet
+from tk_arrange import WidgetSet
 log = Logging()
 
 class SettingsWidget:
@@ -155,9 +157,6 @@ class SettingsTab:
         """
         Set the value at a given location in the config.
         """
-        if value == "D:/Users/Marcus/Documents/R Documents/Music/Test":
-            print("123")
-            pass
         log.log_trace(self, "set_config_value", None,
                       add = "Updated config value at location %s to %s"
                           % (".".join(location), value)
@@ -384,33 +383,7 @@ class Settings:
         self.window.rowconfigure(index = 0, weight = 1)
         self.window.columnconfigure(index = 0, weight = 1)
 
-        """
-        #######################################################################
-        ######################## ALLOCATE SCALING #############################
-        #######################################################################
-        """
-        # self.window.columnconfigure(TitleFrameGridColumn, weight=1)
-        # self.window.columnconfigure(SelectionFrameGridColumn, weight=1)
-        # self.window.columnconfigure(SettingsFrameGridColumn, weight=4)
-        # self.selection_frame.columnconfigure(0, weight=1)
-        # self.selection_frame.columnconfigure(1, weight=0)
-        # self.title_frame.columnconfigure(MainTitleGridColumn, weight=0)
-
-        # # Fix the widths of the three buttons
-        # self.footer_frame.columnconfigure(0, weight = 1)
-        # self.footer_frame.columnconfigure(1, weight = 0)
-        # self.footer_frame.columnconfigure(2, weight = 0)
-        # self.footer_frame.columnconfigure(3, weight = 0)
-
-        # self.window.rowconfigure(SelectionFrameGridRow, weight=1)
-        # self.selection_frame.rowconfigure(0, weight=1)
-        # self.selection_frame.rowconfigure(1, weight=0)
-
-        """
-        #######################################################################
-        ######################## POPULATE VALUES ##############################
-        #######################################################################
-        """
+        """ ### POPULATE VALUES ### """
         self.populate_settings_list()
         self.window.protocol("WM_DELETE_WINDOW", self.destroy)
 
