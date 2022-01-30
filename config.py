@@ -6,6 +6,8 @@ Created on Tue Apr 20 20:10:38 2021
 """
 
 import json
+import sys
+sys.path.append("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Packages")
 from mh_logging import log_class
 from global_vars import LOG_LEVEL
 
@@ -32,24 +34,23 @@ class JSONDict:
 
     Methods:
     ----------
-    dd_value(self, regex, result, override_existing = False, trace = None):
+    dd_value(self, regex, result, override_existing = False):
         Given a RegEx pattern and result, tries to create a map between them in
         the regex_dict object. If the map already exists, gives the option to
         change the mapped output.
 
-    delete_value(self, regex_pattern, trace = None):
+    delete_value(self, regex_pattern):
         Given a regex pattern, remove the corresponding dictionary entry
 
     dump_values(self, trace = None):
         Writes the current dictionary state to file
 
-    add_regex_pattern_words(self, include_words, exclude_words,
-                                result, trace = None):
+    add_regex_pattern_words(self, include_words, exclude_words, result):
         Given a list of words to include and words to exclude, adds a regex
         pattern to the dictionary which matches any string including all of the
         former and excluding all of the latter, mapping to the specified result
 
-    add_keyword_pattern(self, trace = None, **kwargs):
+    add_keyword_pattern(self, **kwargs):
         Each input should be a dictionary of (value, role) where role is
         "key"/"value", corresponding to whether the value is a key in the
         pattern matching, or the result of the pattern matching. Value is then

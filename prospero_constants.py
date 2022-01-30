@@ -13,7 +13,6 @@ class Constants:
         self.class_name = "Constants"
         self.pr = parent.pr
         self.root = parent.root
-        self.pr.f._log_trace(self, "__init__", trace)
 
         """
         ### Constant definitions ###

@@ -13,8 +13,7 @@ class IODirectory():
                  call_after_input = None,
                  call_after_input_kwargs = None,
                  call_after_output = None,
-                 call_after_output_kwargs = None,
-                 trace = None):
+                 call_after_output_kwargs = None):
         """
         Creates a frame with user editable input/output directories. If
         specified, the methods "call_after_input" and "call_after_output" will
@@ -26,10 +25,6 @@ class IODirectory():
         self.parent_class = parent.__class__.__name__
         self.master = master
 
-        self.pr.f._log_trace(self, "__init__", trace)
-        inf_trace = {"source": "function call",
-                     "parent": self.name + ".__init__"}
-
         self.call_after_input = call_after_input
         self.call_after_input_kwargs = call_after_input_kwargs
         self.call_after_output = call_after_output
@@ -37,12 +32,10 @@ class IODirectory():
 
         self.frame = tk.Frame(self.master, bg = self.pr.c.colour_background)
 
-        self.place_widgets(trace = inf_trace)
-        self.load_from_config(trace= inf_trace)
+        self.place_widgets()
+        self.load_from_config()
 
-    def place_widgets(self, trace = None):
-        self.pr.f._log_trace(self, "place_widgets", trace)
-
+    def place_widgets(self):
         self.label_input = tk.Label(self.frame, text="Input Directory",
                                     **self.pr.c.label_standard_args)
 
@@ -69,10 +62,10 @@ class IODirectory():
                         "btn_output": {"row": 1, "column": 2}
                         }
 
-        self.max_row = max([self.grid_rc[key]["row"] 
+        self.max_row = max([self.grid_rc[key]["row"]
                             for key in self.grid_rc.keys()])
-        
-        self.max_column = max([self.grid_rc[key]["column"] 
+
+        self.max_column = max([self.grid_rc[key]["column"]
                                for key in self.grid_rc.keys()])
 
         self.label_input.grid(**self.grid_rc["label_input"],
@@ -97,14 +90,10 @@ class IODirectory():
         self.frame.columnconfigure(1, weight=1)
         self.frame.columnconfigure(2, weight=0)
 
-    def _btnInputDirectory_Click(self, trace = None):
-        self.pr.f._log_trace(self, "_btnInputDirectory_Click", trace)
-        inf_trace = {"source": "function call",
-                     "parent": self.name + "._btnInputDirectory_Click"}
-
+    def _btnInputDirectory_Click(self):
         #Ask for the input directory and populate the textbox. Then pull the file list
-        self.input_directory = tk.filedialog.askdirectory(initialdir="../../../../Music",
-                                                          title='Select the input directory')
+        self.input_directory = tk.filedialog.askdirectory(
+            initialdir="../../../../Music", title='Select the input directory')
         self.txt_input.delete(0, "end")
         self.txt_input.insert(0, self.input_directory)
         # self.populate_file_list(event = None)
@@ -112,18 +101,13 @@ class IODirectory():
 
         if not self.call_after_input is None:
             if self.call_after_input_kwargs is None:
-                self.call_after_input(trace = inf_trace)
+                self.call_after_input()
             else:
-                self.call_after_input(**self.call_after_input_kwargs,
-                                      trace = inf_trace)
+                self.call_after_input(**self.call_after_input_kwargs)
 
-    def _btnOutputDirectory_Click(self, trace = None):
-        self.pr.f._log_trace(self, "_btnOutputDirectory_Click", trace)
-        inf_trace = {"source": "function call",
-                     "parent": self.name + "._btnOutputDirectory_Click"}
-
+    def _btnOutputDirectory_Click(self):
         #Ask for the output directory and populate the textbox
-        self.output_directory = tk.filedialog.askdirectory(initialdir="../../../../Music",  
+        self.output_directory = tk.filedialog.askdirectory(initialdir="../../../../Music",
                                                            title='Select the output directory')
         self.txt_output.delete(0, "end")
         self.txt_output.insert(0, self.output_directory)
@@ -131,26 +115,24 @@ class IODirectory():
 
         if not self.call_after_output is None:
             if self.call_after_output_kwargs is None:
-                self.call_after_output(trace = inf_trace)
+                self.call_after_output()
             else:
-                self.call_after_output(**self.call_after_output_kwargs,
-                                       trace = inf_trace)
+                self.call_after_output(**self.call_after_output_kwargs)
 
     def grid(self, **kwargs):
         self.frame.grid(**kwargs)
 
-    def load_from_config(self, trace = None):
-        self.pr.f._log_trace(self, "load_from_config", trace)
+    def load_from_config(self):
         self.input_directory = config.config.config_dict[self.parent_class]['input_directory']
         self.output_directory = config.config.config_dict[self.parent_class]['output_directory']
-        
+
         self.txt_input.delete(0, "end")
         self.txt_output.delete(0, "end")
 
         self.txt_input.insert(0, self.input_directory)
         self.txt_output.insert(0, self.output_directory)
 
-    def add_widget(self, widget, fixed_width = False, trace = None, **grid_kwargs):
+    def add_widget(self, widget, fixed_width = False, **grid_kwargs):
         #options other than integers are "end" (current max + 1), input/output
         #for the row, and a previously added widget. Inputting a previously
         #added widget to the grid_kwargs uses up the value for that argument as

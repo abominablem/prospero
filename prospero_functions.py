@@ -4,36 +4,36 @@ Created on Fri Apr  9 17:15:26 2021
 
 @author: marcu
 """
-import tkinter as tk
 import re
 import enchant
 import config
 from PIL import Image
-from datetime import datetime
 import os
+import sys
+sys.path.append("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Packages")
+from mh_logging import Logging, log_class
+from global_vars import LOG_LEVEL
+log_class = log_class(LOG_LEVEL)
 import shutil
 import eyed3
 import unidecode
+
+log = Logging()
 
 class Functions:
     """
     Provides a variety of generic functions for use in Prospero modules
     """
-    def __init__(self, parent, trace = None):
-        self.parent = parent
-        self.root = parent.root
+    def __init__(self, parent):
         self.pr = parent.pr
-        self.class_name = "Functions"
 
-    def null_function(self, trace = None, *args, **kwargs):
+    def null_function(self, *args, **kwargs):
         return
 
-    def true_titlecase(self, string, trace = None):
-        inf_trace = {"source": "function call",
-                     "parent": self.class_name + ".true_titlecase"}
-
+    @log_class
+    def true_titlecase(self, string):
         if type(string) != str:
-            return([self.true_titlecase(entry, inf_trace) for entry in string])
+            return([self.true_titlecase(entry) for entry in string])
 
         articles = ["a", "an", "and", "of", "the", "is", "to", "via", "for"]
         string = string.lower()
@@ -43,7 +43,8 @@ class Functions:
                                                        for word in words[1:]]
         return " ".join(words_capitalised)
 
-    def filename_from_parts(self, parts, headers, trace = None):
+    @log_class
+    def filename_from_parts(self, parts, headers):
         #parts:
         composer = str(parts[headers.index("Composer")]).strip()
         album = str(parts[headers.index("Album")]).strip()
@@ -82,7 +83,8 @@ class Functions:
 
         return filename
 
-    def filename_from_dict(self, parts_dict, trace = None):
+    @log_class
+    def filename_from_dict(self, parts_dict):
         composer = parts_dict.get("Composer", "")
         album = parts_dict.get("Album", "")
         number = parts_dict.get("#", "")
@@ -113,7 +115,8 @@ class Functions:
 
         return filename
 
-    def suggest_value(self, filename, field, trace = None):
+    @log_class
+    def suggest_value(self, filename, field):
         """
         Given a filename string and specified field, tries to suggest a value
         for it via dictionaries of regex expressions mapped to values
@@ -140,7 +143,8 @@ class Functions:
                 return str(regex_dict[regex_expr]).strip()
         return ""
 
-    def year_from_filename(self, filename, trace = None):
+    @log_class
+    def year_from_filename(self, filename):
         #Match 4 digit number in between some kind of brackets, starting with
         #1 or 2. Always take the last match
         try:
@@ -148,7 +152,8 @@ class Functions:
         except IndexError:
             return ""
 
-    def album_from_filename(self, filename, trace = None):
+    @log_class
+    def album_from_filename(self, filename):
         albums_dict = config.albums_dict.regex_dict
         for key in albums_dict.keys():
             match_type = albums_dict[key]["type"]
@@ -176,8 +181,8 @@ class Functions:
                     return result
         return ""
 
-    def construct_album_regex(self, cd, trace = None):
-
+    @log_class
+    def construct_album_regex(self, cd):
         if type(cd) != dict: return cd
         if cd["type"] != "regex_construct": return cd
 
@@ -212,8 +217,8 @@ class Functions:
         outdict["parse"] = parse
         return outdict
 
-    def parse_tags_from_filename(self, filename, trace = None):
-
+    @log_class
+    def parse_tags_from_filename(self, filename):
         """
         Given a filename in an expected format (post-naming tab), suggests
         suitable metadata tags
@@ -264,8 +269,8 @@ class Functions:
 
         return tag_dict
 
-    def youtube_url_from_filename(self, filename, do_word_check = False,
-                                  trace = None):
+    @log_class
+    def youtube_url_from_filename(self, filename, do_word_check = False):
 
         """
         For a given filename, tries to detect if it ends in a valid YouTube
@@ -298,8 +303,9 @@ class Functions:
 
         return youtube_prefix + youtube_id
 
+    @log_class
     def pad_image_with_transparency(
-            self, image, pixels, keep_size = False, trace = None):
+            self, image, pixels, keep_size = False):
         """
         Pad around the outside of an image with the specified transparent
         pixels on each side. Option to keep the final image the same size
@@ -327,41 +333,9 @@ class Functions:
         new_image.paste(image, (pixels, pixels))
         return new_image
 
-    def _log_trace(self, parent_class, function, trace, add = ""):
-        if self.pr.testing_mode:
-            trace = ({"source": None, "widget": None, "parent": None}
-                     if trace is None else trace)
-
-            if parent_class is None:
-                trace["function"] = function
-            if type(parent_class) is str:
-                trace["function"] = parent_class + "." + function
-            else:
-                trace["function"] = (parent_class.__class__.__name__
-                                     + "." + function)
-
-            if trace["source"] == "bound event":
-                trace_tuple = (datetime.now(), trace["function"],
-                               trace["widget"], trace["event"])
-                prnt = "%s Called %s from widget %s and event %s." % trace_tuple
-            elif trace["source"] == "function call":
-                trace_tuple = (datetime.now(), trace["function"],
-                               trace["parent"])
-                prnt = "%s Called %s from within %s." % trace_tuple
-            elif trace["source"] == "initialise class":
-                trace_tuple = (datetime.now(), parent_class.__class__.__name__,
-                               trace["parent"])
-                prnt = "%s Initialised class %s from within %s." % trace_tuple
-            else:
-                trace_tuple = (datetime.now(), trace["function"])
-                prnt = "%s Called %s without trace." % trace_tuple
-
-            prnt += f" {add}"
-            print(prnt)
-        return
-
+    @log_class
     def rename_file(self, old_directory, old_name, new_directory,
-                    new_name, trace = None):
+                    new_name):
         """
         Move and rename the specified file. Works across drives.
         """
@@ -380,9 +354,7 @@ class Functions:
             raise
         return
 
-    def point_is_inside_widget(self, x, y, widget, trace = None):
-        self.pr.f._log_trace(self, "is_point_inside_widget", trace)
-
+    def point_is_inside_widget(self, x, y, widget):
         widget.update()
         x_min = widget.winfo_rootx()
         x_max = x_min + widget.winfo_width()
@@ -391,7 +363,8 @@ class Functions:
 
         return x_min <= x <= x_max and y_min <= y <= y_max
 
-    def tag_file(self, directory, filename, tags, trace = None):
+    @log_class
+    def tag_file(self, directory, filename, tags):
         """
         Given a filename, adds ID3v2 tags to it based on the provided
         dictionary.
@@ -399,7 +372,6 @@ class Functions:
         Valid values for the dictionary are:
             Composer, Album, Track, Number OR #, Performer(s), Genre, Year, URL
         """
-        self.pr.f._log_trace(self, "tag_file", trace)
         if filename[-4:] != self.pr.c.file_extension:
             filename += self.pr.c.file_extension
 
@@ -469,11 +441,8 @@ class Functions:
         del audiofile
         return
 
-    def add_keyword_pattern(self, values_dict, trace = None):
-        self.pr.f._log_trace(self, "add_keyword_pattern", trace)
-        inf_trace = {"source": "function call",
-                     "parent": self.__class__.__name__ +
-                                 ".add_keyword_pattern"}
+    @log_class
+    def add_keyword_pattern(self, values_dict):
         values_dict  =  {k.lower(): v for k, v in values_dict.items()}
         if 'number' in values_dict.keys():
             values_dict['#'] = values_dict['number']
@@ -498,13 +467,12 @@ class Functions:
                       "Number": (values_dict["#"], "key"),
                       "Track": (values_dict["track"], "value")
                       }
-            pd = config.keyword_dict.add_keyword_pattern(**kwargs,
-                                                         trace = inf_trace)
+            pd = config.keyword_dict.add_keyword_pattern(**kwargs)
             if not pd == 'Pattern exists in dictionary, skipping.':
-                self.pr.f._log_trace(config.keyword_dict,
-                                     "add_keyword_pattern",
-                                     trace = inf_trace,
-                                     add = f"Added pattern {pd} to dictionary.")
+                log.log_trace(config.keyword_dict,
+                              "add_keyword_pattern",
+                              trace = {},
+                              add = f"Added pattern {pd} to dictionary.")
         #Add Composer + Album = Genre + Year
         if valid_values(["composer", "album", "genre"]):
             kwargs = {"Composer": (values_dict["composer"], "key"),
@@ -512,13 +480,12 @@ class Functions:
                       "Genre": (values_dict["genre"], "value"),
                       "Year": (values_dict["year"], "value")
                       }
-            pd = config.keyword_dict.add_keyword_pattern(**kwargs,
-                                                         trace = inf_trace)
+            pd = config.keyword_dict.add_keyword_pattern(**kwargs)
             if not pd == 'Pattern exists in dictionary, skipping.':
-                self.pr.f._log_trace(config.keyword_dict,
-                                     "add_keyword_pattern",
-                                     trace = inf_trace,
-                                     add = f"Added pattern {pd} to dictionary.")
+                log.log_trace(config.keyword_dict,
+                              "add_keyword_pattern",
+                              trace = {},
+                              add = f"Added pattern {pd} to dictionary.")
 
         #Add Composer + Track = Genre + Year
         if (valid_values(["composer", "track", "genre"])
@@ -528,15 +495,15 @@ class Functions:
                       "Genre": (values_dict["genre"], "value"),
                       "Year": (values_dict["year"], "value")
                       }
-            pd = config.keyword_dict.add_keyword_pattern(**kwargs,
-                                                         trace = inf_trace)
+            pd = config.keyword_dict.add_keyword_pattern(**kwargs)
             if not pd == 'Pattern exists in dictionary, skipping.':
-                self.pr.f._log_trace(config.keyword_dict,
-                                     "add_keyword_pattern",
-                                     trace = inf_trace,
-                                     add = f"Added pattern {pd} to dictionary.")
+                log.log_trace(config.keyword_dict,
+                              "add_keyword_pattern",
+                              trace = {},
+                              add = f"Added pattern {pd} to dictionary.")
 
-    def match_filename_pattern(self, filename, trace = None):
+    @log_class
+    def match_filename_pattern(self, filename):
         """
 
         Parameters
@@ -557,11 +524,6 @@ class Functions:
         Does not directly support nested capture groups.
 
         """
-        self.pr.f._log_trace(self, "match_filename_pattern", trace)
-        inf_trace = {"source": "function call",
-                     "parent": self.__class__.__name__ +
-                                 ".match_filename_pattern"}
-
         for d in config.filename_patterns_dict.regex_dict.values():
             if re.match(d["match_pattern"], filename, re.IGNORECASE):
                 captures = re.search(d["parse_pattern"], filename,
@@ -572,10 +534,10 @@ class Functions:
             if type(captures) != dict:
                 continue
 
-            for k in captures.keys():
+            for k in captures:
                 try:
                     if d["rematch_values"][k]:
-                        new_v = self.suggest_value(captures[k], k, inf_trace)
+                        new_v = self.suggest_value(captures[k], k)
                         if new_v != "":
                             captures[k] = new_v
                 except KeyError:
@@ -583,7 +545,8 @@ class Functions:
             return captures
         return {}
 
-    def timecode_to_seconds(self, timecode, trace = None):
+    @log_class
+    def timecode_to_seconds(self, timecode):
         """
         Parameters
         ----------
@@ -598,7 +561,6 @@ class Functions:
         int.
             number of seconds from 00:00:00 to timecode
         """
-        self.pr.f._log_trace(self, "match_filename_pattern", trace)
         timecode = timecode.replace(".", ":")
         parts = timecode.split(":")
         mult = 1
@@ -609,12 +571,8 @@ class Functions:
             parts = parts[:-1]
         return seconds
 
-    def clean_track_string(self, track, iterate = True, trace = None):
-        self.pr.f._log_trace(self, "clean_track_string", trace)
-        inf_trace = {"source": "function call",
-                     "parent": self.__class__.__name__ +
-                                 ".clean_track_string"}
-
+    @log_class
+    def clean_track_string(self, track, iterate = True):
         track = " ".join(track.split())
         track = track.replace(r"\n", "")
 
@@ -649,14 +607,12 @@ class Functions:
             #keep cleaning until no change occur between cleaning cycles
             double_cleaned = ""
             while double_cleaned != track:
-                double_cleaned = self.clean_track_string(
-                    track, iterate = False, trace = inf_trace)
+                double_cleaned = self.clean_track_string(track,iterate = False)
                 track = double_cleaned
         return track
 
-    def get_values_dict(self, treeview, iid, columns, trace = None):
-        self.pr.f._log_trace(self, "clean_track_string", trace)
-
+    @log_class
+    def get_values_dict(self, treeview, iid, columns):
         item_dict = treeview.item(iid)
         values_dict = {columns[0]: item_dict['text']}
         for i, v in enumerate(item_dict['values']):
@@ -664,14 +620,13 @@ class Functions:
 
         return values_dict
 
-    def autocomplete(self, text, options, out = "list", trace = None):
+    @log_class
+    def autocomplete(self, text, options, out = "list"):
         """
         Autocomplete a string from a defined set of options. Either return the
         first match (out = "string"), or a list of all possible matches
         (out = "list").
         """
-        self.pr.f._log_trace(self, "autocomplete", trace)
-
         if not out in ["list", "string"]:
             raise ValueError("Invalid return type specified. out must be one"
                              " of 'list' or 'string'.")
@@ -699,16 +654,15 @@ class Functions:
                     matches.append(str(opt))
         return matches
 
-    def remove_diacritics(self, text, trace = None):
-        self.pr.f._log_trace(self, "remove_diacritics", trace)
+    @log_class
+    def remove_diacritics(self, text):
         return unidecode.unidecode(text)
 
-    def get_tags(self, directory, filename, trace = None):
+    @log_class
+    def get_tags(self, directory, filename):
         """
         Return a dictionary of ID3v2 tags for a specific file.
         """
-        self.pr.f._log_trace(self, "get_tags", trace)
-
         filepath = os.path.join(directory, filename)
         audiofile = eyed3.load(filepath)
 
