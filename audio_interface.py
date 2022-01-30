@@ -5,13 +5,15 @@ Created on Tue Jun  1 23:03:46 2021
 @author: marcu
 """
 
+import sys
+sys.path.append("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Packages")
 import tkinter as tk
 import pydub
 from datetime import datetime
 from pydub.playback import play
 from kthread import KThread
 import config
-from arrange_widgets import WidgetSet
+from tk_arrange import WidgetSet
 from mh_logging import log_class
 
 class ProgressBar:

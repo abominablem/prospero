@@ -7,10 +7,12 @@ Created on Tue Apr 20 19:45:18 2021
 
 import tkinter as tk
 import os
+import sys
+sys.path.append("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Packages")
 from datetime import datetime
 from io_directory import IODirectory
 import described_widgets as dw
-from arrange_widgets import WidgetSet
+from tk_arrange import WidgetSet
 
 
 class Tagging :

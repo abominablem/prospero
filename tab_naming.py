@@ -8,11 +8,12 @@ Created on Tue Apr 20 20:07:22 2021
 import tkinter as tk
 import config
 import os
-import inspect
+import sys
+sys.path.append("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Packages")
 from datetime import datetime
 from search_box import SearchBox
 from io_directory import IODirectory
-from arrange_widgets import WidgetSet
+from tk_arrange import WidgetSet
 from value_from_filename import ValueFromFilename
 from global_vars import LOG_LEVEL
 import described_widgets as dw

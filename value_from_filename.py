@@ -5,10 +5,13 @@ Created on Tue Apr 20 23:51:25 2021
 @author: marcu
 """
 
+import sys
+sys.path.append("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Packages")
 import tkinter as tk
 from datetime import datetime
-from arrange_widgets import WidgetSet, ButtonSet
+from tk_arrange import WidgetSet, ButtonSet
 import described_widgets as dw
+from global_vars import LOG_LEVEL
 
 class ValueFromFilename:
     def __init__(self, parent, filename, columnString, columnId, treeview,
@@ -201,13 +204,15 @@ class ValueFromFilename:
                     }
 
 
-        self.button_set = ButtonSet(root = self.widget_frame,
-                                 buttons = buttons,
-                                 layout = [[1, 2, 3, 4],
-                                           [5, 6, 7, 8],
-                                           [9, 10, 11]],
-                                 frm_kwargs = frame_kwargs,
-                                 set_width = 70)
+        self.button_set = ButtonSet(
+            master = self.widget_frame,
+            buttons = buttons,
+            layout = [[1, 2, 3, 4],
+                      [5, 6, 7, 8],
+                      [9, 10, 11]],
+            frm_kwargs = frame_kwargs,
+            set_width = 70
+            )
 
         """
         ### SUGGESTED VALUES ###
@@ -265,8 +270,7 @@ class ValueFromFilename:
                                               [5],
                                               [6]]
                                     )
-        self.widget_set.grid(row = 0, column = 0,
-                             sticky = "nesw")
+        self.widget_set.grid(row = 0, column = 0, sticky = "nesw")
         self.window.columnconfigure(0, weight = 1)
         self.window.rowconfigure(0, weight = 1)
 
@@ -362,7 +366,7 @@ class ValueFromFilename:
                 self.parent.match_keywords(self.focus)
             except AttributeError:
                 pass
-            self.parent.set_final_name(self.focus)
+            # self.parent.set_final_name(self.focus)
 
         self.destroy()
 
@@ -514,15 +518,14 @@ class ValueFromFilename:
         objEntry.select_to("end")
 
     def get_insight_values(self):
+        invalid_cols = ["Done", "Final name", "Genre", "Performer(s)",
+                        "URL", "", "Original name"]
         if self.filter_insight:
             values = self.pr.f.get_values_dict(
                 treeview = self.treeview,
                 iid = self.row_iid,
                 columns = self.treeview.get_columns(include_key = True)
                 )
-
-            invalid_cols = ["Done", "Final name", "Genre", "Performer(s)",
-                            "URL", "", "Original name"]
 
             # All columns we don't want to filter on
             for col in invalid_cols:
@@ -535,7 +538,6 @@ class ValueFromFilename:
 
         if insight_col in invalid_cols:
             self.insight_values = []
-
 
         query = self.pr.insight_rn.get_insight(
             values = values, column = insight_col, distinct = True)

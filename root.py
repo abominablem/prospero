@@ -8,6 +8,8 @@ Created on Wed Apr  7 23:22:23 2021
 from datetime import datetime
 import tkinter as tk
 from tkinter import ttk
+import sys
+sys.path.append("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Packages")
 
 # custom imports
 import prospero_constants as prc
@@ -18,7 +20,7 @@ from tab_naming import Naming
 from tab_audio_functions import AudioFunctions
 from value_insight import Insight
 from settings_window import Settings
-from arrange_widgets import WidgetSet
+from tk_arrange import WidgetSet
 import config
 from mh_logging import log_class
 from global_vars import LOG_LEVEL
