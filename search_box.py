@@ -90,9 +90,9 @@ class SearchBox:
                                    padx = self.pr.c.padding_small_right_only,
                                    pady = self.pr.c.padding_small)
 
-        self.google_button.bind("<Alt-1>", lambda event: self.search(event, "google", trace = {"source": "bound event", "widget": "SearchBox.create", "event": "<Alt-1>"}))
-        self.imslp_button.bind("<Alt-1>", lambda event: self.search(event, "imslp", trace = {"source": "bound event", "widget": "SearchBox.create", "event": "<Alt-1>"}))
-        self.go_to_url_button.bind("<Alt-1>", lambda event: self.search(event, "go_to_url", trace = {"source": "bound event", "widget": "SearchBox.create", "event": "<Alt-1>"}))
+        self.google_button.bind("<Alt-1>", lambda event: self.search(event, "google"))
+        self.imslp_button.bind("<Alt-1>", lambda event: self.search(event, "imslp"))
+        self.go_to_url_button.bind("<Alt-1>", lambda event: self.search(event, "go_to_url"))
 
         #weight the label and textbox equally so the textbox always takes up half the window, minus the fixed width buttons
         self.frame.columnconfigure(0, weight=1)
