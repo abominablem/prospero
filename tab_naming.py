@@ -467,12 +467,14 @@ class Naming:
                         text = "Failed to rename file"
                         raise
 
-                except FileNotFoundError:
+                except FileNotFoundError as err:
                     exception = True
                     text = "Renaming failed, original file not found"
-                except FileExistsError:
+                    error = err
+                except FileExistsError as err:
                     exception = True
                     text = "Renaming failed, new file already exists"
+                    error = err
                 except Exception as err:
                     """ All errors not handled elsewhere """
                     exception = True
@@ -524,6 +526,8 @@ class Naming:
     def add_insight(self, filename):
         values = self.file_list_treeview.get_dict(iid = filename,
                                                   include_key = True)
+        if filename in values:
+            values = values[filename]
         del values["Done"]
         values["original_path"] = self.io_directory.input_directory
         values["final_path"] = self.io_directory.output_directory
