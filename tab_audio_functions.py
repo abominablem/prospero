@@ -9,6 +9,8 @@ import tkinter as tk
 from datetime import datetime
 import threading
 import os
+import sys
+sys.path.append("D:\\Users\\Marcus\\Documents\\R Documents\\Coding\\Python\\Packages")
 import re
 
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,
@@ -21,16 +23,17 @@ from io_directory import IODirectory
 from value_from_filename import ValueFromFilename
 from audio_interface import AudioInterface
 from search_box import SearchBox
-from arrange_widgets import WidgetSet
+from tk_arrange import WidgetSet
 import config
 import described_widgets as dw
 from mh_logging import log_class
+from global_vars import LOG_LEVEL
 
 # #### REQUIRED ####
 # conda install ffmpeg
 
 class AudioFunctions():
-    @log_class
+    @log_class(LOG_LEVEL)
     def __init__(self, parent):
         self.pr = parent.pr
         self.root = parent.root
@@ -66,7 +69,6 @@ class AudioFunctions():
             waveform_colour = self.pr.c.colour_prospero_blue_pastel,
             background_colour = self.pr.c.colour_background
             )
-        self.mpl_connect_canvas()
 
         self.audio_interface = AudioInterface(
             parent = self,
@@ -84,10 +86,11 @@ class AudioFunctions():
         self._configure_last_called = datetime.min
 
         self.treeview_input_files = dw.SimpleTreeview(
-            self.widget_frame, {1: {"header": "Filename",
-                                    "width": self.pr.c.width_text_long,
-                                    "stretch": False,
-                                    "anchor": "center"}
+            self.widget_frame, {
+                1: {"header": "Filename",
+                    "width": self.pr.c.width_text_long,
+                    "stretch": False,
+                    "anchor": "center"}
                                 }
             )
 
@@ -238,12 +241,15 @@ class AudioFunctions():
 
         self.load_from_config()
         self.populate_input_files()
+        self.mpl_connect_canvas()
+        self.treeview_file_names.bind("<<ValueChange>>", self.update_final_name)
+        self.audio_canvas.bind("<<BreakpointAdd>>", self.update_treeview)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _btn_import_files_click(self):
         self.populate_input_files()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def populate_input_files(self):
         """
         Populate the treeview with file names
@@ -256,12 +262,10 @@ class AudioFunctions():
         for file in file_list:
             if file[-4:] == self.pr.c.file_extension:
                 filename = file[:-4]
-                self.treeview_input_files.insert("",
-                                                 index="end",
-                                                 text = filename,
-                                                 iid = filename)
+                self.treeview_input_files.insert(
+                    "", index="end", text = filename, iid = filename)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _btn_execute_breakpoints_click(self):
         if self.executing: return
 
@@ -275,7 +279,7 @@ class AudioFunctions():
         self.execution_process.start()
         self.executing = False
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def execute_breakpoints(self):
         true_breakpoints = self.audio_canvas.breakpoints.true_breakpoints(
             scale_to_sound = True)
@@ -292,7 +296,7 @@ class AudioFunctions():
 
                 #Write audio to file
                 try:
-                    self.write_audio(self.sound[start:end], filename)
+                    self.write_audio(self.audio_canvas.sound[start:end], filename)
                 except:
                     text = "Failed to write audio"
                     raise
@@ -343,12 +347,12 @@ class AudioFunctions():
             )
         self.treeview_input_files.delete(self.filename)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def write_audio(self, audio, name):
         audio.export(os.path.join(self.io_directory.output_directory, name),
                      format = "mp3")
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _btn_display_waveform_click(self):
         if self.executing: return
         if len(self.treeview_input_files.selection()) == 0: return
@@ -358,9 +362,10 @@ class AudioFunctions():
                                     self.filename + self.pr.c.file_extension)
             )
         self.audio_interface.end_audio_process()
+        self.treeview_file_names.clear()
         self.audio_interface.load_audio(self.audio_canvas.sound)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _btn_import_breakpoints_click(self):
         """
         Open a text input for the user to input either a list of timecodes
@@ -371,7 +376,7 @@ class AudioFunctions():
         input is a block of parsed text, attempt to also parse it for track
         names.
         """
-        if self.executing: return
+        if self.audio_canvas.locked: return
         if self.audio_canvas.waveform is None: return
         timecodes = tk.simpledialog.askstring(
             title = "Import Breakpoints",
@@ -422,12 +427,14 @@ class AudioFunctions():
                 if str(i+1) not in track_dict:
                     track_dict[str(i+1)] = trk
 
-        tc_list = [t*self.sound_subsample_length/self.sound_length
+        tc_list = [t*self.audio_canvas.get_scale(scale_up = True)
                    for t in tc_list]
 
         # loop through and add breakpoints at specified points
-        for tc in set(tc_list):
+        for tc in tc_list:
             self.audio_canvas.breakpoints.add(tc)
+
+        self.update_treeview()
 
         # Loop through the track_dict and set track names accordingly
         if track_dict != {}:
@@ -435,28 +442,28 @@ class AudioFunctions():
                 if trk.strip() != "":
                     self.treeview_file_names.set(i, "Track", trk)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def waveform_from_path(self, filepath):
         """ Displays the waveform of the specified file in the canvas """
         sound = AudioSegment.from_mp3(filepath)
         self.audio_canvas.display_waveform(sound)
-        self.update_treeview_numbers()
+        self.update_treeview()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _add_breakpoint(self, event):
         """ Handle the event to add a new breakpoint to the waveform """
         self.audio_canvas.breakpoints.add(event.xdata)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _undo_breakpoint(self, event):
         """ Undo the most recent breakpoint action. """
         self.audio_canvas.breakpoints.undo()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def load_from_config(self):
         self.subsampling_rate = 1000
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _treeview_mouse1_click(self, event):
         treeview_list = [self.treeview_file_names, self.treeview_input_files]
         x,y = self.root.winfo_pointerxy()
@@ -475,7 +482,7 @@ class AudioFunctions():
                 return event
         return event
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def edit_value_via_interface(self, event):
         """
         Open a window with the selected filename where a value can be
@@ -483,14 +490,14 @@ class AudioFunctions():
         """
         if self.executing: return
         #Identify the column clicked
-        clicked_column_id = self._treeview_mouse1_click_column
+        clicked_column = self.treeview_file_names.events["<1>"]["column"]
+        clicked_row = self.treeview_file_names.events["<1>"]["row"]
 
-        if clicked_column_id == "#0":
+        if clicked_column == "#0":
         #exit if the first column (filename) is clicked
             return event
 
         #Identify the filename of the row clicked
-        clicked_row = self._treeview_mouse1_click_row
         if clicked_row is None or clicked_row == "":
             return event # exit if an empty row is clicked
 
@@ -498,17 +505,17 @@ class AudioFunctions():
             parent = self,
             filename = self.filename,
             columnString = self.treeview_file_names.translate_column(
-                clicked_column_id
+                clicked_column
                 ),
-            columnId = clicked_column_id,
+            columnId = clicked_column,
             treeview = self.treeview_file_names,
             row_iid = clicked_row,
 
             )
         return event
 
-    @log_class
-    def update_treeview_numbers(self):
+    @log_class(LOG_LEVEL)
+    def update_treeview(self, *args):
         """ Update the number of rows in the file list treeview based on the
         number of breakpoints on the canvas """
         treeview_count = len(self.treeview_file_names.get_children())
@@ -519,7 +526,7 @@ class AudioFunctions():
         while treeview_count < breakpoint_count:
             _id = treeview_count + 1
             num_index = self.treeview_file_names.get_columns().index("#")
-            if self.audio_canvas.fresh_waveform == True:
+            if treeview_count == 0:
                 values = [self.pr.f.suggest_value(self.filename, field)
                           for field in self.treeview_file_names.get_columns()]
                 values[num_index] = 1
@@ -535,7 +542,6 @@ class AudioFunctions():
             self.treeview_file_names.insert("", index="end", text = str(_id),
                                             iid = str(_id), values = values)
             self.treeview_file_names.set_translate(str(_id), "Track", "")
-            self.set_final_name(str(_id))
             treeview_count = len(self.treeview_file_names.get_children())
 
         while treeview_count > breakpoint_count:
@@ -543,93 +549,102 @@ class AudioFunctions():
                 self.treeview_file_names.get_children()[-1])
             treeview_count = len(self.treeview_file_names.get_children())
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def mpl_connect_canvas(self):
         self.audio_canvas.mpl_connect("key_press_event", self._on_key_press)
         self.audio_canvas.mpl_connect("button_press_event", self._on_button_press)
+        self.audio_canvas.mpl_connect("key_release_event", self._on_key_release)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _on_key_press(self, event):
         if event.key in ['enter', ' ']:
-            self.update_treeview_numbers()
+            self.update_treeview()
         elif event.key == 'ctrl+z':
-            self.update_treeview_numbers()
+            self.update_treeview()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _on_button_press(self, event):
         if event.button == 1 and self.audio_canvas._shift_pressed:
-            self.update_treeview_numbers()
+            self.update_treeview()
+        elif event.button == 1 and self.audio_canvas._control_pressed:
+            self.update_treeview() #TODO
 
-    @log_class
+
+    @log_class(LOG_LEVEL)
+    def _on_key_release(self, event):
+        return
+
+    @log_class(LOG_LEVEL)
     def copy_from_above(self, event):
         """
         Copies a value down to all selected rows in certain column
         """
-        if self.executing: return
+        if self.audio_canvas.locked:
+            return
+
         selected_items = self.treeview_file_names.selection()
         selection_iter = range(len(selected_items))
-        clicked_column_id = self._treeview_mouse1_click_column
-        if clicked_column_id == "#0":
-            #cancel if the filename ID column was the last column clicked
-            return event
+        clicked_col = self.treeview_file_names.events["<1>"]["column"]
+        # cancel if the filename ID column was the last column clicked
+        if clicked_col == "#0":
+            return
 
-        #get the value to copy down. If one row is selected, this is the value in
-        #the row above. If multiple values are selected, this is the value in the
-        #first selected row
-        if self.treeview_file_names.translate_column(clicked_column_id) == "#":
+        """ get the value to copy down. If one row is selected, this is the
+        value in the row above. If multiple values are selected, this is the
+        value in the first selected row """
+        if self.treeview_file_names.translate_column(clicked_col) == "#":
             #number column case
+            start_value = self.treeview_file_names.set(
+                selected_items[0], clicked_col)
             if len(selected_items) == 1:
                 #increment from row above
-                value_to_copy = int(self.treeview_file_names.set(
-                    self.treeview_file_names.prev(selected_items[0]),
-                    clicked_column_id)
-                    ) + 1
+                value_to_copy = int(start_value) + 1
             else:
                 #list of incrementing values starting from first row
-                start_value = self.treeview_file_names.set(selected_items[0],
-                                                           clicked_column_id)
                 try:
                     start_int = int(start_value)
-                    value_to_copy = list(range(start_int,
-                                               start_int+len(selected_items)+1))
+                    value_to_copy = list(range(
+                        start_int, start_int + len(selected_items) + 1
+                        ))
                 except ValueError:
                     value_to_copy = ["" for i in selection_iter]
         else:
             if len(selected_items) == 1:
                 value_to_copy = self.treeview_file_names.set(
                     self.treeview_file_names.prev(selected_items[0]),
-                    clicked_column_id)
+                    clicked_col)
             else:
                 value_to_copy = self.treeview_file_names.set(
-                    selected_items[0], clicked_column_id)
+                    selected_items[0], clicked_col)
             value_to_copy = [value_to_copy for i in selection_iter]
 
         #update the value of all cells in the selected rows and column
         for i in selection_iter:
             item = selected_items[i]
             value = value_to_copy[i]
-            self.treeview_file_names.set(item, clicked_column_id, value)
-            self.set_final_name(item)
+            self.treeview_file_names.set(item, clicked_col, value)
         return event
 
-    @log_class
-    def set_final_name(self, filename):
+    @log_class(LOG_LEVEL)
+    def update_final_name(self, event):
+        """
+        Update the final name of the last updated file names treeview row
+        """
         if self.executing: return
-
-        self.treeview_file_names.set_translate(
-            filename,
-            "Final name",
-            self.pr.f.filename_from_dict(
-                parts_dict = self.pr.f.get_values_dict(
-                    self.treeview_file_names,
-                    filename,
-                    self.treeview_file_names.get_columns(include_key = True)
-                    ),
-
+        vc_event = self.treeview_file_names.events["<<ValueChange>>"]
+        updated_col = vc_event["column"]
+        updated_row = vc_event["row"]
+        if updated_col == "Final name": return
+        elif updated_row is None: return
+        try:
+            new_filename = self.pr.f.filename_from_dict(
+                parts_dict = self.treeview_file_names.values_dict(updated_row)
                 )
-            )
+        except tk.TclError:
+            return # if iid doesn't exist yet
+        self.treeview_file_names.set(updated_row, "Final name", new_filename)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def match_keywords(self, filename, overwrite = False):
         values_dict = {}
         for field in ["Composer", "Album", "#", "Genre", "Year", "Track"]:
@@ -659,7 +674,7 @@ class AudioFunctions():
                     values_dict[field] = compare_dict['value'][field]
         return values_dict
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def tag_file(self, iid, filename):
         tags = {"composer": self.treeview_file_names.set(iid, "Composer"),
                 "album": self.treeview_file_names.set(iid, "Album"),
@@ -672,11 +687,10 @@ class AudioFunctions():
                 }
         self.pr.f.tag_file(directory = self.io_directory.output_directory,
                            filename = filename,
-                           tags = tags,
-                           )
+                           tags = tags)
         self.pr.f.add_keyword_pattern(tags)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def add_insight(self, filename):
         values = self.pr.f.get_values_dict(
             self.treeview_file_names,
@@ -695,7 +709,7 @@ class AudioFunctions():
         values["date_created"] = ctime
         self.pr.insight_rn.add_row(**values)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _key_press_alt(self, event):
         """
         Create the search box GUI and maintain it while the bound key is
@@ -703,16 +717,17 @@ class AudioFunctions():
         """
         self.search_box.maintain()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _key_release_alt(self, event):
         """ Destroy the search box GUI when the bound key is released """
         self.search_box.destroy()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _alt_mouse_1(self, event):
         if self.search_box is None: return
         self._treeview_mouse1_click(event = event)
         self.search_box.add(self._treeview_mouse1_click_cell)
+
 
 def locked_function(func):
     """
@@ -732,7 +747,7 @@ def draw_function(func):
     return _func_with_draw
 
 class AudioBreakpoint:
-    @log_class
+    @log_class(LOG_LEVEL)
     def __init__(self, parent, x, **kwargs):
         self.parent = parent
         self.x = x
@@ -744,7 +759,7 @@ class AudioBreakpoint:
             self.line = self.figure.axvline(
                 x = x, color = kwargs.get("color", "black")
                 )
-    @log_class
+    @log_class(LOG_LEVEL)
     def _remove(self):
         """ Private remove method. Remove method in AudioBreakpoints should be
         called instead of this """
@@ -752,17 +767,17 @@ class AudioBreakpoint:
         if not self.figure is None:
             self.line.remove()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     @draw_function
     def move(self, x):
         self.x = x
         if not self.figure is None:
             self.line.set_xdata([x, x])
 
-
 class AudioBreakpoints:
-    @log_class
-    def __init__(self, draw = False, figure = None, draw_func = None):
+    @log_class(LOG_LEVEL)
+    def __init__(self, draw = False, figure = None, audio_canvas = None,
+                 draw_func = None):
         if draw and (figure is None or draw_func is None):
             raise ValueError(
                 "Figure to draw on and update function must be provided")
@@ -770,7 +785,10 @@ class AudioBreakpoints:
         self.figure = figure
         self.draw_func = draw_func
         self.locked = False
-
+        if not audio_canvas is None:
+            self.widget = audio_canvas.get_widget()
+        else:
+            self.widget = None
         self.breakpoints = []
         self.figure_numbers = []
 
@@ -789,7 +807,7 @@ class AudioBreakpoints:
             self._i = None
             raise StopIteration
 
-    @log_class
+    @log_class(LOG_LEVEL)
     @locked_function
     @draw_function
     def add(self, x, **kwargs):
@@ -797,9 +815,11 @@ class AudioBreakpoints:
         if not self.x_in_bounds(x): return
         new_brkpt = AudioBreakpoint(self, x, **kwargs)
         self.breakpoints.append(new_brkpt)
+        try: self.widget.event_generate("<<BreakpointAdd>>", x = x)
+        except AttributeError: pass
         self.reset_numbers()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def x_in_bounds(self, x, minmax = None, inclusive = False):
         xmin, xmax = minmax if not minmax is None else self.minmax()
         if xmin is None or xmax is None:
@@ -809,7 +829,7 @@ class AudioBreakpoints:
         else:
             return xmin < x < xmax
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def minmax(self):
         """ Return x coordinates of first and last breakpoint """
         try:
@@ -817,7 +837,7 @@ class AudioBreakpoints:
         except AttributeError:
             return (None, None)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     @locked_function
     @draw_function
     def remove(self, brkpt, redraw = True):
@@ -829,29 +849,29 @@ class AudioBreakpoints:
 
         if self.draw and redraw: self.reset_numbers()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     @locked_function
     @draw_function
     def move(self, brkpt, x):
         """ Move a given breakpoint to a given x coordinate """
         brkpt.move(x)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def count(self):
         return len(self.breakpoints)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     @locked_function
     def undo(self):
         if self.count() == 0: return
         self.remove(self[-1])
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def first(self):
         for brkpt in self:
             if brkpt.first: return brkpt
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def last(self):
         for brkpt in self:
             if brkpt.last: return brkpt
@@ -878,7 +898,7 @@ class AudioBreakpoints:
         for brkpt in brkpt_to_remove:
             self.remove(brkpt)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     @draw_function
     def draw_numbers(self):
         """ Draw numbers at the midpoint between breakpoints corresponding to
@@ -895,7 +915,7 @@ class AudioBreakpoints:
             fig_num = self.figure.text(x=x, y=y, s=text, **txt_kwargs)
             self.figure_numbers.append(fig_num)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     @draw_function
     def remove_numbers(self):
         """ Remove all numbers from the canvas """
@@ -903,14 +923,14 @@ class AudioBreakpoints:
             fig_num.remove()
         self.figure_numbers = []
 
-    @log_class
+    @log_class(LOG_LEVEL)
     @draw_function
     def reset_numbers(self):
         """ Remove all numbers from the canvas and redraw them """
         self.remove_numbers()
         self.draw_numbers()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     @locked_function
     @draw_function
     def reset(self):
@@ -919,7 +939,7 @@ class AudioBreakpoints:
             self.remove(brkpt, redraw = False)
         self.breakpoints = []
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def get_x(self, sort = True, include_ends = True):
         breakpoints_x = []
         for brkpt in self:
@@ -930,7 +950,7 @@ class AudioBreakpoints:
         else:
             return breakpoints_x
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def get_closest(self, x, xmin = None, xmax = None, brkpts = None):
         xmin_default, xmax_default = self.minmax()
         xmax = xmax_default if xmax is None else xmax
@@ -947,7 +967,7 @@ class AudioBreakpoints:
                 closest_brkpt = brkpt
         return closest_brkpt
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def true_breakpoints(self, scale_to_sound = True):
         brkpts_x = self.get_x(sort = True, include_ends = True)
         scale = self.get_scale()
@@ -956,13 +976,23 @@ class AudioBreakpoints:
                 brkpts_x[i] *= scale
         return brkpts_x
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def get_scale(self):
         return self.scale
 
+class AudioCanvasEvents(dw.WidgetEvents):
+    def log_event(self, sequence, event, **kwargs):
+        event_dict = {
+            "x": event.x, "y": event.x,
+            "ydata": event.__dict__.get("ydata", None),
+            "xdata": event.__dict__.get("xdata", None),
+            **kwargs
+            }
+        self.last = {**event_dict, "sequence": sequence}
+        self._edict[sequence] = event_dict
 
 class AudioCanvas:
-    @log_class
+    @log_class(LOG_LEVEL)
     def __init__(self, master, **kwargs):
         self.master = master
         self.waveform_colour = "black"
@@ -993,7 +1023,8 @@ class AudioCanvas:
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
         self.breakpoints = AudioBreakpoints(
-            draw = True, figure = self.figure, draw_func = self.draw)
+            draw = True, figure = self.figure,
+            draw_func = self.draw, audio_canvas = self)
         self.locked = False
         self.waveform = None
 
@@ -1007,36 +1038,45 @@ class AudioCanvas:
             "button_press_event": [],
             "key_release_event": []
             }
-        self._mpl_connect("key_press_event", self._on_key_press_default)
-        self._mpl_connect("button_press_event", self._on_button_press_default)
-        self._mpl_connect("key_release_event", self._on_key_release_default)
+        self.mpl_connect("key_press_event", self._on_key_press_default)
+        self.mpl_connect("button_press_event", self._on_button_press_default)
+        self.mpl_connect("key_release_event", self._on_key_release_default)
 
         self._control_pressed = False
         self._shift_pressed = False
         self._alt_pressed = False
 
-    @log_class
+        self.events = AudioCanvasEvents(self.canvas.get_tk_widget())
+        self.events.add("<1>")
+        self.events.add("<<BreakpointAdd>>")
+        self.events.add("<<BreakpointRemove>>") #TODO
+        self.events.add("<<BreakpointMove>>") #TODO
+        self.events.add("<<WaveformDisplay>>") #TODO
+
+    @log_class(LOG_LEVEL)
     def config(self, **kwargs):
         #TODO
         return
 
+    @log_class(LOG_LEVEL)
     def _mpl_connect(self, s, func):
         """ Bind the default functions which handle future calls with additional
         bound functions """
         self.canvas.mpl_connect(s, func)
 
+    @log_class(LOG_LEVEL)
     def mpl_connect(self, s, func):
         """ Bind a canvas event to a particular function. Can be run multiple
         times to bind multiple functions """
         if not s in self.mpl_connections:
             raise ValueError(f"{s} is not a valid event string")
-        self.mpl_connections[s] += func
+        self.mpl_connections[s] += [func]
 
-    @log_class
-    def mpl_connect(self, s, func):
-        self.canvas.mpl_connect(s, func)
+    @log_class(LOG_LEVEL)
+    def bind(self, sequence = None, func = None, add = None):
+        self.get_widget().bind(sequence = sequence, func = func, add = add)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     @locked_function
     def clear(self):
         self.toolbar.home()
@@ -1047,14 +1087,13 @@ class AudioCanvas:
         self.draw()
         self.focus()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     @locked_function
     def display_waveform(self, audio):
         subsampling_rate = self.__dict__.get("subsampling_rate", 1000)
 
         self.clear()
 
-        self.fresh_waveform = True
         self.sound = audio
         self.sound_length = len(audio)
         self.sound_subsample = self.sound.get_array_of_samples()[0::subsampling_rate]
@@ -1075,18 +1114,20 @@ class AudioCanvas:
         self.draw()
         self.toolbar.update()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     @locked_function
     def scale_canvas(self):
         self.figure.set_autoscalex_on(True)
         self.figure.set_autoscaley_on(True)
         self.figure.set_xlim(xmin = 0, xmax = self.sound_subsample_length)
+        self.figure.set_ylim(ymin = min(self.sound_subsample),
+                             ymax = max(self.sound_subsample))
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def draw(self):
         self.canvas.draw()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def get_closest_breakpoint(
             self, event, only_visible = True, only_ends = False,
             exclude_ends = True, sensitivity = 2, trace = None
@@ -1162,46 +1203,53 @@ class AudioCanvas:
         else:
             return closest_brkpt
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def tune_get_closest(self, **kwargs):
         return
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def lock(self):
         self.locked = True
         self.breakpoints.locked = True
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def unlock(self):
         self.locked = False
         self.breakpoints.locked = False
 
-    @log_class
-    def get_scale(self):
-        return self.sound_length/self.sound_subsample_length
+    @log_class(LOG_LEVEL)
+    def get_scale(self, scale_up = False):
+        if scale_up:
+            return self.sound_subsample_length/self.sound_length
+        else:
+            return self.sound_length/self.sound_subsample_length
 
-    @log_class
+    @log_class(LOG_LEVEL)
+    def get_widget(self):
+        return self.canvas.get_tk_widget()
+
+    @log_class(LOG_LEVEL)
     def focus(self):
         self.canvas.get_tk_widget().focus_force()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _call_mpl_connections(self, s, event):
         for func in self.mpl_connections[s]:
             func(event = event)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _on_key_press(self, event):
         self._call_mpl_connections("key_press_event", event)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _on_button_press(self, event):
         self._call_mpl_connections("button_press_event", event)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _on_key_release(self, event):
         self._call_mpl_connections("key_release_event", event)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _on_button_press_default(self, event):
         if event.button == 1:
             self.focus()
@@ -1225,7 +1273,7 @@ class AudioCanvas:
             bp.move(x = event.xdata)
             self.breakpoints.enforce_ends()
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _on_key_press_default(self, event):
         key_press_handler(event, self.canvas, self.toolbar)
 
@@ -1244,7 +1292,7 @@ class AudioCanvas:
             self._alt_pressed = True
             self.master.after(500, self._depress_key, event.key)
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _on_key_release_default(self, event):
         if event.key == "control":
             self._control_pressed = False
@@ -1253,7 +1301,7 @@ class AudioCanvas:
         elif event.key == "alt":
             self._alt_pressed = False
 
-    @log_class
+    @log_class(LOG_LEVEL)
     def _depress_key(self, key):
         """
         Force the relevant _<key>_pressed to False, for use in cases where
