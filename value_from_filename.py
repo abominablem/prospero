@@ -542,8 +542,11 @@ class ValueFromFilename:
         query = self.pr.insight_rn.get_insight(
             values = values, column = insight_col, distinct = True)
 
-        #assume one column queried and one list returned
-        self.insight_values = query[insight_col]
+        # assume one column queried and one list returned
+        try:
+            self.insight_values = query[insight_col]
+        except KeyError:
+            self.insight_values = []
 
     def get_suggested_values(self, text):
         values = self.pr.f.autocomplete(
