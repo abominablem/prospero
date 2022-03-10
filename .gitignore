@@ -161,3 +161,4 @@ archive/button_set.py
 archive/arrange_widgets.py
 archive/mh_logging.py
 archive/sqlite_database.py
+*.json
