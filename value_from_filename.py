@@ -574,7 +574,8 @@ class ValueFromFilename:
             return event
 
         self.txt_tag.delete(0, "end")
-        self.txt_tag.insert(0, self.suggested_values.events.last["cell"])
+        self.txt_tag.insert(
+            0, self.suggested_values.events["<Double-1>"]['cell'])
         self.whitespace_clean(self.txt_tag)
         self.suggested_values.selection_clear()
         self.btnSubmit_Click(event)
